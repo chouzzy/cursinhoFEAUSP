@@ -1,9 +1,10 @@
 import { Request, Response } from "express"
-import { ChargeRefundedProps, CustomerSubscriptionCreated, StripeCheckoutCustomerProps, StripeCustomerData, validationResponse } from "../types"
+import { ChargeRefundedProps, CustomerSubscriptionCreated, InvoiceRetrieveProps, StripeCheckoutCustomerProps, StripeCustomerData, validationResponse } from "../types"
 import { stripe } from "../server";
 import { prisma } from "../prisma";
 import { Prisma } from "@prisma/client";
 import { CreateDonationProps } from "../modules/donations/useCases/createDonation/CreateDonationController";
+import { Donations } from "../modules/donations/entities/Donations";
 
 interface CreateCustomerRequestProps {
 }
@@ -90,42 +91,47 @@ class StripeCustomer {
     // }
 
     async refundStudent(
-        chargeRefunded: ChargeRefundedProps
+        invoiceFound: InvoiceRetrieveProps
     ): Promise<validationResponse> {
 
         try {
 
+            //Encontrando o student a partir do stripe Customer ID no invoice (fatura)
             const studentExists = await prisma.students.findFirst({
                 where: {
                     OR: [
-                        { email: chargeRefunded.email },
+                        { stripeCustomerID: invoiceFound.customer },
                     ]
                 }
 
             })
 
+            // Checando se o student existe no banco de dados
             if (!studentExists) {
                 return {
                     isValid: false,
-                    errorMessage: "🛑 Hook Error: the payment data doesn't matches to any student🛑",
+                    errorMessage: "🛑 Hook Error: the refund data doesn't matches to any student🛑",
                     statusCode: 403
                 }
             }
 
+            //Atualizando a inscrição reembolsada para Refunded
             studentExists.purcharsedSubscriptions.map((subscription) => {
 
-                if (subscription.productID === customer.metadata.productID) {
-                    return {
-                        isValid: false,
-                        errorMessage: "🛑 Product already bought🛑",
-                        statusCode: 403
-                    }
+                if (subscription.schoolClassID === invoiceFound.lines.data[0].metadata.schoolClassID) {
+                    subscription.paymentStatus = 'refunded'
+
                 }
 
-                return
             })
 
-
+            //Atualizando o status de pagamento para "refunded" no banco de dados 
+            await prisma.students.update({
+                where: { id: studentExists.id },
+                data: {
+                    purcharsedSubscriptions: studentExists.purcharsedSubscriptions
+                }
+            })
 
             return { isValid: true, statusCode: 202, successMessage: "Customer created on Stripe Server" }
 
@@ -218,7 +224,7 @@ class StripeCustomer {
 
     }
 
-    async updatePurchasedSubscriptions(subscriptionCreated: CustomerSubscriptionCreated): Promise<validationResponse> {
+    async updatePurchasedSubscriptions({ subscriptionCreated }: { subscriptionCreated: CustomerSubscriptionCreated; }): Promise<validationResponse> {
 
         try {
 
@@ -284,13 +290,13 @@ class StripeCustomer {
                 }
 
                 student.purcharsedSubscriptions.map((subscription) => {
-                    
+
                     if (subscription.schoolClassID == isTheProductASchoolClass.id
                         &&
                         subscription.paymentStatus == 'Pagamento não confirmado') {
 
 
-                            subscription.schoolClassID = schoolClassBought.id,
+                        subscription.schoolClassID = schoolClassBought.id,
                             subscription.productID = schoolClassBought.stripeProductID,
                             subscription.productName = schoolClassBought.title,
                             subscription.paymentMethod = `card = ${subscriptionCreated.default_payment_method}`,
@@ -300,7 +306,7 @@ class StripeCustomer {
                             ) ?? '',
                             subscription.valuePaid = subscriptionCreated.items.data[0].price.unit_amount
 
-                            
+
                     }
                 })
 
@@ -354,6 +360,55 @@ class StripeCustomer {
                 return { isValid: false, errorMessage: String(error), statusCode: 403 }
             }
         }
+
+
+
+    }
+
+    async cancelDonationSubscription(donationID: Donations["id"]): Promise<validationResponse> {
+
+        try {
+
+            const subscription = await stripe.subscriptions.search({
+                query: `metadata[\'donationID\']:\'${donationID}\'`,
+            })
+
+            if (!subscription) {
+                return {
+                    isValid: false,
+                    errorMessage: '🔴 Donation Subscription not found on stripe 🔴',
+                    statusCode: 403
+                }
+            }
+
+            const subscriptionID = subscription.data[0].id
+
+            const deleted = await stripe.subscriptions.del(
+                subscriptionID
+            )
+
+            if (!deleted) {
+                return {
+                    isValid: false,
+                    errorMessage: `🔴 Stripe couldn't delete the subscription: ${subscriptionID} 🔴`,
+                    statusCode: 403
+                }
+            }
+
+            return {
+                isValid: true,
+                successMessage: `Subscription ${subscriptionID} deleted successfully`,
+                statusCode: 202
+            }
+
+        } catch (stripeError: unknown) {
+            return {
+                isValid: false,
+                errorMessage: String(stripeError),
+                statusCode: 403
+            }
+        }
+
 
 
 

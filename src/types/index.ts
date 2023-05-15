@@ -134,7 +134,28 @@ interface CustomerSubscriptionCreated {
 
 interface ChargeRefundedProps {
   refunded: boolean,
-  email: string
+  invoice: string,
+  customerID:string
+}
+
+interface InvoiceRetrieveProps {
+    customer: string,
+    customer_email: string,
+    subscription: string,
+    lines: {
+      data: [{
+        price: {
+          product: string
+        },
+        metadata: {
+          cpf: string,
+          rg: string,
+          schoolClassID: string,
+          stripeCustomerID: string,
+          subscriptionType: string
+        }
+      }]
+    }
 }
 
 interface StripeCreateProductProps {
@@ -193,5 +214,6 @@ export {
   ChargeRefundedProps,
   StripeCreateProductProps,
   StripeDeactivatedProduct,
-  StripeCustomerData
+  StripeCustomerData,
+  InvoiceRetrieveProps
 }

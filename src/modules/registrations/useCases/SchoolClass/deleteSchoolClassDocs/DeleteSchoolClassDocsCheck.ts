@@ -1,17 +1,17 @@
 import { ValidationError } from "yup";
 import { validationResponse } from "../../../../../types";
-import { UpdateDocumentsRequestProps } from "./UpdateDocumentsController";
+import { CreateSchoolClassDocsRequestProps } from "./DeleteSchoolClassDocsController";
+import { createSchoolClassDocsSchema } from "./DeleteSchoolClassDocsSchema";
 import { Students } from "../../../entities/Students";
-import { Documents } from "../../../entities/Documents";
-import { updateDocumentSchema } from "./UpdateDocumentsSchema";
+import { SchoolClass } from "../../../entities/SchoolClass";
 
 
 
 
-async function checkBody(documentData: UpdateDocumentsRequestProps): Promise<validationResponse> {
+async function checkBody(schoolClassDocsData: CreateSchoolClassDocsRequestProps): Promise<validationResponse> {
     // check body properties
     try {
-        const yupValidation = await updateDocumentSchema.validate(documentData, {
+        const yupValidation = await createSchoolClassDocsSchema.validate(schoolClassDocsData, {
             abortEarly: false,
         })
         return { isValid: true, statusCode: 202 }
@@ -27,16 +27,16 @@ async function checkBody(documentData: UpdateDocumentsRequestProps): Promise<val
 
 
 
-async function ErrorValidation(updatedDocuments: Documents | validationResponse): Promise<validationResponse> {
+async function ErrorValidation(createdSchoolClass: SchoolClass | validationResponse): Promise<validationResponse> {
 
-    function checkIfIsAError(updatedDocuments: any): updatedDocuments is validationResponse {
-        return 'isValid' in updatedDocuments;
+    function checkIfIsAError(createdSchoolClass: any): createdSchoolClass is validationResponse {
+        return 'isValid' in createdSchoolClass;
     }
 
-    if (checkIfIsAError(updatedDocuments)) {
+    if (checkIfIsAError(createdSchoolClass)) {
 
         //É um erro
-        return updatedDocuments
+        return createdSchoolClass
     } else {
 
         //Não é um erro

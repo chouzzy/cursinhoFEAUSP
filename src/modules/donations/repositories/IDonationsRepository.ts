@@ -1,6 +1,7 @@
 import { validationResponse } from "../../../types"
 import { Donations } from "../entities/Donations"
 import { CreateDonationProps } from "../useCases/createDonation/CreateDonationController"
+import { DeleteDonationProps } from "../useCases/deleteDonation/DeleteDonationController";
 
 
 interface IDonationsRepository {
@@ -15,7 +16,7 @@ interface IDonationsRepository {
 
     createDonation(donationData: CreateDonationProps): Promise<Donations|validationResponse>;
 
-    deleteDonation(donationID: Donations["id"]): Promise<Donations| validationResponse>
+    deleteDonation(donationID: Donations["id"], donationData: DeleteDonationProps): Promise<Donations| validationResponse>
 }
 
 export {IDonationsRepository}

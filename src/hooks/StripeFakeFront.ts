@@ -7,7 +7,7 @@ class StripeFakeFront {
 
         console.log('inside createSubscription')
 
-        //price_1Mxy6HHkzIzO4aMO0tXO4ZJ2 - donation - prod_NjQy58PYtAOAPb
+        //price_1Mxy6HHkzIzO4aMO0tXO4ZJ2 - donation - prod_NjQy58PYtAOAPb 
         //price_1N1FWXHkzIzO4aMONF3PGRqR - curso noturno - prod_NmpAHf1qPgwXHo
         //price_1N1ZXFHkzIzO4aMO4ZN4CfCL - curso diurno - prod_Nn9q6265icRu58
         //                               - diurno fim de seman - prod_NpmUBZhmSlJJad
@@ -38,10 +38,10 @@ class StripeFakeFront {
                         quantity: 1,
                         price_data: {
                             currency: 'brl',
-                            product: 'prod_NmpAHf1qPgwXHo',
+                            product: 'prod_NjQy58PYtAOAPb',
                             recurring: {
                                 interval: 'month',
-                                interval_count: 1
+                                interval_count: 6
                             },
                             unit_amount: 1000
                         }

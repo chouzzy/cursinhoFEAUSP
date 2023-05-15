@@ -5,16 +5,13 @@ import { SchoolClass } from "../../../entities/SchoolClass"
 import { UpdateSchoolClassUseCase } from "./UpdateSchoolClassUseCase"
 
 interface UpdateSchoolClassRequestProps {
-
-    title: SchoolClass["title"],
-    description: SchoolClass["description"],
-    initHour: SchoolClass["initHour"],
-    endHour: SchoolClass["endHour"],
-    daysOfWeek: SchoolClass["daysOfWeek"],
-    registrationStatus: SchoolClass["registrationStatus"],
-    subscriptionPrice: SchoolClass["subscriptionPrice"],
-    semester: SchoolClass["semester"],
-    year: SchoolClass["year"]
+    
+    title: SchoolClass["title"]
+    informations: SchoolClass["informations"]
+    subscriptions: SchoolClass["subscriptions"]
+    selectiveStages: SchoolClass["selectiveStages"]
+    stripeProductID: SchoolClass["stripeProductID"]
+    documents?: SchoolClass["documents"]
 }
 
 class UpdateSchoolClassController {
@@ -24,15 +21,6 @@ class UpdateSchoolClassController {
         const schoolClassData: UpdateSchoolClassRequestProps = req.body
         const { schoolClassID } = req.params
 
-        /// é responsabilidade do controller validar os dados recebidos na requisição
-        const bodyValidation = await checkBody(schoolClassData)
-
-        if (bodyValidation.isValid === false) {
-            return res.status(bodyValidation.statusCode).json({
-                errorMessage: bodyValidation.errorMessage
-            })
-        }
-
         /// instanciação da classe do caso de uso
         const schoolClasssRepository = new SchoolClassRepository()
         const updateSchoolClassUseCase = new UpdateSchoolClassUseCase(schoolClasssRepository)
@@ -40,11 +28,7 @@ class UpdateSchoolClassController {
 
         ///
         return res.status(updatedSchoolClassResponse.statusCode)
-            .json({
-                schoolClass: updatedSchoolClassResponse.schoolClass,
-                successMessage: updatedSchoolClassResponse.successMessage?? "none",
-                errorMessage: updatedSchoolClassResponse.errorMessage?? "none"
-            })
+            .json({updatedSchoolClassResponse})
     }
 }
 

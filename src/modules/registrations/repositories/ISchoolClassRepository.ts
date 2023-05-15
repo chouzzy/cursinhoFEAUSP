@@ -1,6 +1,9 @@
+import { Students } from "@prisma/client"
 import { validationResponse } from "../../../types"
-import { SchoolClass } from "../entities/SchoolClass"
+import { DocumentsTypes, SchoolClass, SchoolClassSelectiveStages } from "../entities/SchoolClass"
 import { CreateSchoolClassRequestProps } from "../useCases/SchoolClass/createSchoolClass/CreateSchoolClassController"
+import { CreateSchoolClassDocsRequestProps } from "../useCases/SchoolClass/createSchoolClassDocs/CreateSchoolClassDocsController"
+import { CreateSchoolClassStagesRequestProps } from "../useCases/SchoolClass/createSchoolClassStages/CreateSchoolClassStagesController"
 import { UpdateSchoolClassRequestProps } from "../useCases/SchoolClass/updateSchoolClass/UpdateSchoolClassController"
 
 
@@ -14,9 +17,29 @@ interface ISchoolClassRepository {
         schoolClassData: UpdateSchoolClassRequestProps,
         schoolClassID: SchoolClass["id"],
         stripeProductID?: SchoolClass["stripeProductID"]
-        ): Promise<validationResponse>
+    ): Promise<validationResponse>
 
-    deleteSchoolClass(schoolClassID: SchoolClass["id"]): Promise<SchoolClass | validationResponse>
+    deleteSchoolClass(schoolClassID: SchoolClass["id"]): Promise<validationResponse>
+
+    createDocs(
+        schoolClassDocsData: CreateSchoolClassDocsRequestProps[],
+        schoolClassID: Students["id"]
+    ): Promise<validationResponse>
+
+    createStages(
+        schoolClassStagesData: CreateSchoolClassStagesRequestProps[],
+        schoolClassID: Students["id"]
+    ): Promise<validationResponse>
+
+    deleteDocs(
+        docsID: DocumentsTypes["docsID"],
+        schoolClassID: SchoolClass["id"]
+    ): Promise<validationResponse>
+
+    deleteStages(
+        stagesID: SchoolClassSelectiveStages["stagesID"],
+        schoolClassID: SchoolClass["id"]
+    ): Promise<validationResponse>
 }
 
 export { ISchoolClassRepository }

@@ -7,15 +7,12 @@ import { validationResponse } from "../../../../../types"
 
 interface CreateSchoolClassRequestProps {
 
-    title: SchoolClass["title"],
-    description: SchoolClass["description"],
-    initHour: SchoolClass["initHour"],
-    endHour: SchoolClass["endHour"],
-    daysOfWeek: SchoolClass["daysOfWeek"],
-    registrationStatus: SchoolClass["registrationStatus"],
-    subscriptionPrice: SchoolClass["subscriptionPrice"],
-    semester: SchoolClass["semester"],
-    year: SchoolClass["year"]
+    title: SchoolClass["title"]
+    informations: SchoolClass["informations"]
+    subscriptions: SchoolClass["subscriptions"]
+    selectiveStages: SchoolClass["selectiveStages"]
+    stripeProductID: SchoolClass["stripeProductID"]
+    documents?: SchoolClass["documents"]
 }
 
 class CreateSchoolClassController {
@@ -23,26 +20,13 @@ class CreateSchoolClassController {
 
         const schoolClassData: CreateSchoolClassRequestProps = req.body
 
-        /// é responsabilidade do controller validar os dados recebidos na requisição
-        const bodyValidation = await checkBody(schoolClassData)
-
-        if (bodyValidation.isValid === false) {
-            return res.status(bodyValidation.statusCode).json({
-                errorMessage: bodyValidation.errorMessage
-            })
-        }
-
         /// instanciação da classe do caso de uso
         const schoolClassRepository = new SchoolClassRepository()
         const createSchoolClassUseCase = new CreateSchoolClassUseCase(schoolClassRepository)
         const createdSchoolClassResponse = await createSchoolClassUseCase.execute(schoolClassData)
-        
+
         return res.status(createdSchoolClassResponse.statusCode)
-            .json({
-                schoolClass: createdSchoolClassResponse.schoolClass,
-                errorMessage: createdSchoolClassResponse.errorMessage ?? "none",
-                successMessage: createdSchoolClassResponse.successMessage ?? "none"
-            })
+            .json({ createdSchoolClassResponse })
     }
 }
 

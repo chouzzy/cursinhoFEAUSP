@@ -13,17 +13,8 @@ class DeleteSchoolClassController {
         const deleteSchoolClassUseCase = new DeleteSchoolClassUseCase(schoolClassRepository)
         const deletedSchoolClass = await deleteSchoolClassUseCase.execute(schoolClassID)
 
-        const deletedSchoolClassIsValid = await ErrorValidation(deletedSchoolClass)
-
-        if (deletedSchoolClassIsValid.isValid === false) {
-            return res.status(deletedSchoolClassIsValid.statusCode).json({
-                errorMessage: deletedSchoolClassIsValid.errorMessage
-            })
-        }
-
-        return res.status(202).json({
-            deletedSchoolClass
-        })
+        return res.status(deletedSchoolClass.statusCode)
+        .json({ deletedSchoolClass })
 
     }
 }

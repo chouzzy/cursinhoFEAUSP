@@ -1,18 +1,43 @@
-import { Documents } from "./Documents"
 
 class SchoolClass {
-    id!:                 string
-    title!:              string
-    description!:              string
-    initHour!:           string
-    endHour!:            string
-    daysOfWeek!:         string
-    registrationStatus!: string
-    subscriptionPrice!:  number
-    semester!:  string
-    year!:  string
-    stripeProductID!: string
-    documents?:          Documents[]
-  }
 
-export { SchoolClass }
+  id!: string
+  title!: string
+  informations!: SchoolClassInformations
+  subscriptions!: SchoolClassSubscriptionInformations
+  selectiveStages!: SchoolClassSelectiveStages[]
+  stripeProductID!: string
+  documents?: DocumentsTypes[]
+}
+
+interface SchoolClassInformations {
+  description: string
+  whoCanParticipate: string
+  observations: string
+  classContent: string
+  dateSchedule: string
+  hourSchedule: string
+  color: string
+}
+
+interface DocumentsTypes {
+  docsID: string
+  title: string
+  downloadLink: string
+}
+
+
+interface SchoolClassSubscriptionInformations {
+  status: string
+  price: number
+  subscriptionSchedule: string
+}
+
+interface SchoolClassSelectiveStages {
+  stagesID: string
+  when: string
+  resultsDate: Date
+  description: string
+}
+
+export { SchoolClass, DocumentsTypes, SchoolClassSelectiveStages }

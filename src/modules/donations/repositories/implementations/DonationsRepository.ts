@@ -6,6 +6,7 @@ import { CreateDonationProps } from "../../useCases/createDonation/CreateDonatio
 import { IDonationsRepository } from "../IDonationsRepository";
 import { StripeCustomer } from "../../../../hooks/StripeCustomer";
 import { StripeFakeFront } from "../../../../hooks/StripeFakeFront";
+import { DeleteDonationProps } from "../../useCases/deleteDonation/DeleteDonationController";
 
 
 class DonationsRepository implements IDonationsRepository {
@@ -288,51 +289,57 @@ class DonationsRepository implements IDonationsRepository {
             }
         }
     }
-
-    async deleteDonation(donationID: Donations["id"]): Promise<Donations | validationResponse> {
+    
+    async deleteDonation(donationID: Donations["id"], donationData: DeleteDonationProps): Promise<Donations | validationResponse> {
 
         try {
 
-            const donation = await prisma.donations.findUnique({
-                where: {
-                    id: donationID
-                }
+            //Criando a donation no banco de dados
+            const donationExists = await prisma.donations.findFirst({
+                where: { id: donationID }
             })
 
-
-            if (donation != null) {
-
-                try {
-
-                    await prisma.donations.delete({
-                        where: {
-                            id: donationID
-                        }
-                    })
-
-                    return donation
-
-                } catch {
-
-                    return {
-                        isValid: false,
-                        statusCode: 403,
-                        errorMessage: "⛔ An error occurred when trying to delete the donation from the database ⛔"
-                    }
-                }
-
-            } else {
-
+            if (!donationExists) {
                 return {
                     isValid: false,
-                    statusCode: 403,
-                    errorMessage: "⛔ Donation not found in database ⛔"
+                    errorMessage: '🔴 Donation not found 🔴',
+                    statusCode: 403
                 }
             }
 
-        } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError) {
-                return { isValid: false, errorMessage: error, statusCode: 403 }
+            if (donationData.paymentStatus === 'canceled') {
+                
+                const stripeCustomer = new StripeCustomer()
+                
+                const stripeResponse = await stripeCustomer.cancelDonationSubscription(donationExists.id)
+
+                if (stripeResponse.isValid == true) {
+
+                    await prisma.donations.update({
+                        where: { id: donationExists.id },
+                        data: {
+                            paymentStatus: donationData.paymentStatus
+                        }
+                    })
+                }
+
+                return stripeResponse
+            }
+
+            return {
+                isValid: false,
+                errorMessage: "🔴 Donation not updated. Try to check if paymentStatus has the proper attribute. Ex: paymentStatus: 'canceled'  🔴",
+                statusCode: 304
+            }
+            
+
+        }
+        catch (error: unknown) {
+            if (error instanceof Prisma.PrismaClientValidationError) {
+
+                const argumentPosition = error.message.search('Argument')
+                const mongoDBError = error.message.slice(argumentPosition)
+                return { isValid: false, errorMessage: mongoDBError, statusCode: 403 }
 
             } else {
                 return { isValid: false, errorMessage: String(error), statusCode: 403 }

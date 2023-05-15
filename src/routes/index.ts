@@ -1,7 +1,6 @@
 import { Router } from "express"
 import { ensureAuthenticated } from "../modules/registrations/middleware/ensureAuthenticate"
 import { adminsRoutes } from "./admins.routes"
-import { documentsRoutes } from "./documents.routes"
 import { donationsRoutes } from "./donations.routes"
 import { refreshTokenRoutes } from "./refreshToken.routes"
 import { schoolClassRoutes } from "./schoolClass.routes"
@@ -25,7 +24,6 @@ router.get('/logintest', ensureAuthenticated, (req,res) => {
 })
 
 router.use('/schoolClass', schoolClassRoutes)
-router.use('/documents', documentsRoutes)
 
 
 export {router}

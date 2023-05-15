@@ -1,18 +1,39 @@
-import { number, object, string } from "yup";
+import * as yup from "yup" ;
 
-const updateSchoolClassSchema = object({
-    title: string().min(3, "O título precisa ter no mínimo três caracteres"),
-    description: string().required("A descrição é obrigatória").min(5, "A descrição precisa ter no mínimo cinco caracteres"),
-    initHour: string().min(3, "O horário de início precisa ter no mínimo três caracteres"),
-    endHour: string().min(3, "O horário de encerramento precisa ter no mínimo três caracteres"),
-    daysOfWeek: string().min(1, "A carga semanal precisa ter no mínimo um caractere"),
-    registrationStatus: string().min(3, "O status de inscrição precisa ter no mínimo três caracteres"),
-    subscriptionPrice: number().required("O preço de inscrição é obrigatório"),
-    semester: string().required("O semestre letivo é obrigatório")
-    .min(1, "O semestre letivo precisa ter apenas um caractere, sendo este numérico. Ex: 1")
-    .max(1, "O semestre letivo preicsa ter apenas um caractere, sendo este numérico. Ex: 1"),
-    year: string().required("O ano letivo é obrigatório").min(4, "O ano letivo precisa 4 caracteres").max(4, 'O ano letivo precisa ter 4 caracteres, ex: 2024'),
+const updateSchoolClassSchema = yup.object({
 
+    title: yup.string().min(3, "O título precisa ter no mínimo três caracteres"),
+
+    informations: yup.object({
+        description:  yup.string(),
+        whoCanParticipate:  yup.string(),
+        observations:  yup.string(),
+        classContent:  yup.string(),
+        dateSchedule:  yup.string(),
+        hourSchedule:  yup.string(),
+        color:  yup.string(),
+    }),
+
+    subscriptions: yup.object({
+        status: yup.string(),
+        price: yup.number(),
+        subscriptionSchedule: yup.string(),
+    }),
+
+    selectiveStages: yup.array().of(
+        yup.object().shape({
+            when: yup.string(),
+            resultsDate: yup.date(),
+            description: yup.string(),
+        })
+    ),
+
+    documents: yup.array().of(
+        yup.object().shape({
+            title: yup.string().min(3, 'O título deve conter ao menos 3 caracteres'),
+            downloadLink: yup.string().min(3, 'O título deve conter ao menos 3 caracteres')
+        })
+    )
 })
 
 export { updateSchoolClassSchema }

@@ -1,4 +1,4 @@
-// This is your Prisma schema file,
+// This is your Prisma schema file
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
@@ -89,31 +89,17 @@ model RefreshToken {
 }
 
 model SchoolClass {
-  id                 String      @id @default(uuid()) @map("_id")
+  id                 String                              @id @default(uuid()) @map("_id")
   title              String
-  description        String
-  initHour           String
-  endHour            String
-  daysOfWeek         String
-  registrationStatus String
-  subscriptionPrice  Int
-  semester           String
-  year               String
+  informations       SchoolClassInformations
+  subscriptions      SchoolClassSubscriptionInformations
+  selectiveStages    SchoolClassSelectiveStages[]
   stripeProductID    String
-  documents          Documents[]
+  documents          DocumentsTypes[]
 
   @@map("SchoolClass")
 }
 
-model Documents {
-  id            String       @id @default(uuid()) @map("_id")
-  title         String
-  downloadLink  String
-  SchoolClass   SchoolClass? @relation(fields: [schoolClassId], references: [id])
-  schoolClassId String?
-
-  @@map("Documents")
-}
 
 type PurchasedSubscriptions {
   schoolClassID String
@@ -123,4 +109,33 @@ type PurchasedSubscriptions {
   paymentStatus String
   paymentDate   String
   valuePaid     Int
+}
+
+type DocumentsTypes {
+  docsID String
+  title        String
+  downloadLink String
+}
+
+type SchoolClassInformations {
+  description       String
+  whoCanParticipate String
+  observations      String
+  classContent      String
+  dateSchedule      String
+  hourSchedule      String
+  color             String
+}
+
+type SchoolClassSubscriptionInformations {
+  status               String
+  price                Int
+  subscriptionSchedule String
+}
+
+type SchoolClassSelectiveStages {
+  stagesID String
+  when        String
+  resultsDate DateTime
+  description String
 }

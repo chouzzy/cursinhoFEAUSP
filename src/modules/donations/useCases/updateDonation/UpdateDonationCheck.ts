@@ -1,10 +1,11 @@
 import { ValidationError } from "yup";
+import { errorSchema } from "../../../../errors/ErrorSchema";
 import { validationResponse } from "../../../../types";
 import { Donations } from "../../entities/Donations";
-import { DeleteDonationProps } from "./DeleteDonationController";
-import { donationSchema } from "./DeleteDonationSchema";
+import { CreateDonationProps } from "./UpdateDonationController";
+import { donationSchema } from "./UpdateDonationSchema";
 
-async function checkBody(donationData:DeleteDonationProps): Promise<validationResponse> {
+async function checkBody(donationData:CreateDonationProps): Promise<validationResponse> {
     // check body properties
     try {
         const yupValidation = await donationSchema.validate(donationData, {
@@ -19,18 +20,17 @@ async function checkBody(donationData:DeleteDonationProps): Promise<validationRe
     return {isValid:true, statusCode:202}
 }
 
-async function ErrorValidation(deletedDonation: Donations | validationResponse): Promise<validationResponse> {
-    
-    function checkIfIsAError(deletedDonation: any): deletedDonation is validationResponse {
-        return 'isValid' in deletedDonation;
+async function ErrorValidation(createdDonation: Donations | validationResponse): Promise<validationResponse> {
+
+    function checkIfIsAError(createdDonation: any): createdDonation is validationResponse {
+        return 'isValid' in createdDonation;
     }
 
-    if (checkIfIsAError(deletedDonation)) {
+    if (checkIfIsAError(createdDonation)) {
         //É um erro
-        return deletedDonation
-
+        return createdDonation
     } else {
-        // não é um erro
+        //Não é um erro
         return {            
             isValid: true,
             statusCode: 202,
@@ -39,7 +39,7 @@ async function ErrorValidation(deletedDonation: Donations | validationResponse):
     }
 
 }
-export {ErrorValidation, checkBody}
+export {checkBody, ErrorValidation}
 
 
 

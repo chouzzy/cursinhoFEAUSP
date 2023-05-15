@@ -1,6 +1,6 @@
 import { Router } from "express"
 import { stripe } from "../server"
-import { StripeCheckoutCustomerPropsDetails, StripeCheckoutCustomerProps, ChargeRefundedProps } from "../types";
+import { StripeCheckoutCustomerPropsDetails, StripeCheckoutCustomerProps, ChargeRefundedProps, InvoiceRetrieveProps } from "../types";
 import { StripeCustomer } from "../hooks/StripeCustomer";
 ///////
 
@@ -24,15 +24,18 @@ webhooksRoutes.post('/', async (req, res) => {
             )
 
         } catch (err: unknown) {
-            // console.log(`⚠️  Webhook signature verification failed.`, err);
+            
             return res.sendStatus(400);
         }
     }
 
+    
+    
+
     if (event.type == 'charge.succeeded') {
-        // console.log(event.data.object)
         
-        // console.log('Inside charge.succeeded')
+
+        
         // const stripeCustomer = new StripeCustomer()
 
         // const customerCreated: StripeCheckoutCustomerProps = {
@@ -48,40 +51,55 @@ webhooksRoutes.post('/', async (req, res) => {
         //     amount: event.data.object.amount
         // }
 
-        // console.log('customer created:')
-        // console.log(customerCreated)
+        
+        
         // await stripeCustomer.updateStudent(customerCreated)
     }
 
-    if (event.type == 'customer.subscription.created') {
+    if (event.type == 'customer.subscription.created' || event.type == 'customer.subscription.deleted') {
 
         const stripeCustomer = new StripeCustomer()
 
-        await stripeCustomer.updatePurchasedSubscriptions(event.data.object)
+        await stripeCustomer.updatePurchasedSubscriptions({ subscriptionCreated: event.data.object })
 
     }
 
     if (event.type == 'charge.refunded') {
 
-        // console.log(event.data.object)
-        // const stripeCustomer = new StripeCustomer()
 
-        // const clientRefunded:ChargeRefundedProps = {
-        //     refunded: event.data.object.refunded,
-        //     email: event.data.object.billing_details.email
-        // }
-        // if (clientRefunded.refunded === true) {
-        //     await stripeCustomer.refundStudent(clientRefunded)
-        // }
+        const stripeCustomer = new StripeCustomer()
+
+        // Recuperando os dados da cobrança de reembolso
+        const clientRefunded: ChargeRefundedProps = {
+            refunded: event.data.object.refunded,
+            customerID: event.data.object.refunded.customer,
+            invoice: event.data.object.invoice
+
+        }
+
+        // Checando se o reembolso foi realizado
+        if (clientRefunded.refunded === true) {
+
+            // Buscnado o invoice (fatura) relativo a esse reembolso
+            const invoiceFound: InvoiceRetrieveProps = await stripe.invoices.retrieve(
+                clientRefunded.invoice
+            );
+
+            // Reembolsando o cliente
+
+            if (invoiceFound) {
+                await stripeCustomer.refundStudent(invoiceFound)
+            }
+        }
 
     }
 
     if (event.type == 'invoice.updated') {
+
         
-        // console.log(event.data.object)
     }
 
-    return res.json({ success: true, message:'Cliente atualizado com sucesso!' })
+    return res.json({ success: true, message: 'Cliente atualizado com sucesso!' })
 })
 
 export { webhooksRoutes }
