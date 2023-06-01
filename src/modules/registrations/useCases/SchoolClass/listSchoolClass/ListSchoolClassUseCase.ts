@@ -7,12 +7,12 @@ class ListSchoolClassUseCase {
     constructor(
         private schoolClassRepository: ISchoolClassRepository) { }
 
-    async execute(): Promise<SchoolClass[] | validationResponse> {
+    async execute(): Promise<validationResponse> {
 
 
-        const schoolClass = await this.schoolClassRepository.listAllSchoolClasses()
+        const response = await this.schoolClassRepository.listAllSchoolClasses()
         
-        return schoolClass
+        return response
     }
 }
 

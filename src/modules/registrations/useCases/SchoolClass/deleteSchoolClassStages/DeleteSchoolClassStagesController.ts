@@ -8,21 +8,16 @@ import { SchoolClassSelectiveStages } from "@prisma/client"
 
 class DeleteSchoolClassStagesController {
     async handle(req: Request, res: Response): Promise<Response> {
-        
+
         const { schoolClassID, stagesID } = req.params
 
         /// instanciação da classe do caso de uso
         const schoolClassRepository = new SchoolClassRepository()
         const deleteSchoolClassStagesUseCase = new DeleteSchoolClassStagesUseCase(schoolClassRepository)
-        const deletedSchoolClassResponse = await deleteSchoolClassStagesUseCase.execute(stagesID, schoolClassID)
-        
-        return res.status(deletedSchoolClassResponse.statusCode)
-            .json({
-                schoolClass: deletedSchoolClassResponse.schoolClass,
-                errorMessage: deletedSchoolClassResponse.errorMessage ?? "none",
-                successMessage: deletedSchoolClassResponse.successMessage ?? "none"
-            })
+        const response = await deleteSchoolClassStagesUseCase.execute(stagesID, schoolClassID)
+
+        return res.status(response.statusCode).json({ response })
     }
 }
 
-export { DeleteSchoolClassStagesController}
+export { DeleteSchoolClassStagesController }

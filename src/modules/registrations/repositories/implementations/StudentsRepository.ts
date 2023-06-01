@@ -7,6 +7,7 @@ import { UpdateStudentRequestProps } from "../../useCases/Students/updateStudent
 import { IStudentsRepository } from "../IStudentsRepository";
 import { StripeCustomer } from "../../../../hooks/StripeCustomer";
 import { StripeFakeFront } from "../../../../hooks/StripeFakeFront";
+import { ListStudentsQuery } from "../../useCases/Students/listStudents/ListStudentsController";
 
 
 class StudentsRepository implements IStudentsRepository {
@@ -17,34 +18,129 @@ class StudentsRepository implements IStudentsRepository {
     }
 
     async filterStudent(
-        id: Students["id"],
-        email: Students["email"],
-        state: Students["state"],
-        paymentStatus: string,
-        actualPage: number
-    ): Promise<Students[] | validationResponse> {
-
-        if (actualPage == 0) { actualPage = 1 }
-
-        // Função do prisma para buscar todos os students
+        { id, name, email, cpf, paymentStatus, schoolClassID, initDate, endDate }: ListStudentsQuery,
+        page: number,
+        pageRange: number
+    ): Promise<validationResponse> {
 
         try {
 
-            const students = await prisma.students.findMany({
+            let filteredStudents = await prisma.students.findMany({
                 where: {
                     AND: [
                         { id: id },
+                        { name: name },
                         { email: email },
-                        { state: state }
-                    ],
+                        { cpf: cpf },
+                    ]
                 },
+                skip: page * pageRange,
+                take: pageRange
             })
 
-            return students
-        } catch (error: unknown) {
+            const studentsPerSchoolClass: Students[] = []
+            filteredStudents.map(student => {
+                const check = student.purcharsedSubscriptions.map(sub => {
 
-            if (error instanceof Prisma.PrismaClientKnownRequestError) {
-                return { isValid: false, errorMessage: error, statusCode: 403 }
+                    if (sub.paymentDate) {
+
+
+                        if ((new Date(endDate) > sub.paymentDate) && (sub.paymentDate > new Date(initDate))) {
+                            return true
+                        }
+
+                        else {
+                            return false
+                        }
+                    }
+                })
+
+                if (check.includes(true)) {
+                    studentsPerSchoolClass.push(student)
+                }
+            })
+
+            filteredStudents = studentsPerSchoolClass
+
+            // Filtro por turma
+            if (schoolClassID) {
+                const studentsPerSchoolClass: Students[] = []
+
+                filteredStudents.map(student => {
+
+                    const check = student.purcharsedSubscriptions.map(sub => {
+
+                        if (sub.schoolClassID == schoolClassID) {
+
+                            if (!paymentStatus) {
+                                return true
+
+                            } else if (sub.paymentStatus == paymentStatus) {
+                                return true
+                            }
+                        }
+                        return false
+
+
+                    })
+
+                    if (check.includes(true)) {
+                        studentsPerSchoolClass.push(student)
+                    }
+
+                })
+
+                // studentsPerSchoolClass.filter(
+                //     (v, i, a) => {
+                //         console.log(v, i, a)
+                //         a.findIndex(v2 => (v2.id === v.id)) === i
+                //     }
+                // )
+
+                // // console.log(filteredStudents)
+
+
+
+                return {
+                    isValid: true,
+                    statusCode: 202,
+                    studentsList: studentsPerSchoolClass
+                }
+            }
+
+            //Filtro apenas por status de pagamento
+            if (paymentStatus && !schoolClassID) {
+                const studentsPerPaymentStatus: Students[] = []
+
+                filteredStudents.map(student => {
+
+                    student.purcharsedSubscriptions.map(sub => {
+
+                        if (sub.paymentStatus == paymentStatus) {
+                            studentsPerPaymentStatus.push(student)
+                        }
+                    })
+                })
+
+                return {
+                    isValid: true,
+                    statusCode: 202,
+                    studentsList: studentsPerPaymentStatus
+                }
+            }
+
+            return {
+                isValid: true,
+                statusCode: 202,
+                studentsList: filteredStudents
+            }
+
+        } catch (error: unknown) {
+            if (error instanceof Prisma.PrismaClientValidationError) {
+
+                const argumentPosition = error.message.search('Argument')
+                const mongoDBError = error.message.slice(argumentPosition)
+                return { isValid: false, errorMessage: mongoDBError, statusCode: 403 }
 
             } else {
                 return { isValid: false, errorMessage: String(error), statusCode: 403 }
@@ -52,7 +148,7 @@ class StudentsRepository implements IStudentsRepository {
         }
     }
 
-    async createStudent(studentData: CreateStudentRequestProps): Promise<Students | validationResponse> {
+    async createStudent(studentData: CreateStudentRequestProps): Promise<validationResponse> {
 
         try {
             const searchedStudent = await prisma.students.findFirst({
@@ -64,7 +160,6 @@ class StudentsRepository implements IStudentsRepository {
                 }
 
             })
-
 
             // Buscando o RG e CPF do customer no Stripe
             const stripeCustomer = new StripeCustomer()
@@ -116,15 +211,15 @@ class StudentsRepository implements IStudentsRepository {
 
                             if (subscription.schoolClassID == subscriptionAlreadyRegistered.schoolClassID
                             ) {
-                                subscriptionAlreadyRegistered.paymentDate = subscriptionAlreadyRegistered.paymentDate ?? 'Pagamento não confirmado',
-                                subscriptionAlreadyRegistered.paymentMethod = subscriptionAlreadyRegistered.paymentMethod ?? 'Pagamento não confirmado',
-                                subscriptionAlreadyRegistered.paymentStatus = subscriptionAlreadyRegistered.paymentStatus ?? 'Pagamento não confirmado',
-                                subscriptionAlreadyRegistered.productID = subscriptionAlreadyRegistered.productID ?? 'Pagamento não confirmado',
-                                subscriptionAlreadyRegistered.productName = subscriptionAlreadyRegistered.productName ?? 'Pagamento não confirmado',
-                                subscriptionAlreadyRegistered.valuePaid = subscriptionAlreadyRegistered.valuePaid ?? 0
-                                
-                            } 
-                    })
+                                subscriptionAlreadyRegistered.paymentDate = subscriptionAlreadyRegistered.paymentDate ?? null,
+                                    subscriptionAlreadyRegistered.paymentMethod = subscriptionAlreadyRegistered.paymentMethod ?? 'Pagamento não confirmado',
+                                    subscriptionAlreadyRegistered.paymentStatus = subscriptionAlreadyRegistered.paymentStatus ?? 'Pagamento não confirmado',
+                                    subscriptionAlreadyRegistered.productID = subscriptionAlreadyRegistered.productID ?? 'Pagamento não confirmado',
+                                    subscriptionAlreadyRegistered.productName = subscriptionAlreadyRegistered.productName ?? 'Pagamento não confirmado',
+                                    subscriptionAlreadyRegistered.valuePaid = subscriptionAlreadyRegistered.valuePaid ?? 0
+
+                            }
+                        })
 
                 })
 
@@ -160,13 +255,14 @@ class StudentsRepository implements IStudentsRepository {
 
                 const stripeFrontEnd = new StripeFakeFront()
                 studentData.pursharsedSubscriptions.map(async (subscription) => {
-    
+
                     await stripeFrontEnd.createSubscription('', stripeSearchedCustomerID, cpf, rg, subscription.schoolClassID)
                 })
 
                 return {
                     isValid: true,
                     errorMessage: `Student updated successfully in database`,
+                    students: updatedStudent,
                     statusCode: 202
                 }
 
@@ -174,14 +270,15 @@ class StudentsRepository implements IStudentsRepository {
 
 
             // Student não encontrado no banco:
+            console.log("nao foi encontrado no banco")
             const stripeCustomerCreatedID = await stripeCustomer.createCustomer(studentData)
 
-            let studentSchoolClasses:purcharsedSubscriptions[] = []
+            let studentSchoolClasses: purcharsedSubscriptions[] = []
 
             studentData.pursharsedSubscriptions.map((subscription) => {
                 studentSchoolClasses.push({
                     schoolClassID: subscription.schoolClassID,
-                    paymentDate: subscription.paymentDate ?? 'Pagamento não confirmado',
+                    paymentDate: subscription.paymentDate ?? null,
                     paymentMethod: subscription.paymentMethod ?? 'Pagamento não confirmado',
                     paymentStatus: subscription.paymentStatus ?? 'Pagamento não confirmado',
                     productID: subscription.productID ?? 'Pagamento não confirmado',
@@ -222,13 +319,14 @@ class StudentsRepository implements IStudentsRepository {
             const stripeFrontEnd = new StripeFakeFront()
             studentData.pursharsedSubscriptions.map(async (subscription) => {
 
-                await stripeFrontEnd.createSubscription('',stripeCustomerCreatedID, cpf, rg, subscription.schoolClassID)
+                await stripeFrontEnd.createSubscription('', stripeCustomerCreatedID, cpf, rg, subscription.schoolClassID)
             })
 
 
             return {
                 isValid: true,
-                errorMessage: `Student created successfully in database`,
+                successMessage: `Student created successfully in database`,
+                students: createdStudent,
                 statusCode: 202
             }
 
@@ -246,7 +344,7 @@ class StudentsRepository implements IStudentsRepository {
         }
     }
 
-    async updateStudent(studentData: UpdateStudentRequestProps, studentID: Students["id"]): Promise<Students | validationResponse> {
+    async updateStudent(studentData: UpdateStudentRequestProps, studentID: Students["id"]): Promise<validationResponse> {
         try {
 
             const student = await prisma.students.findUnique({
@@ -255,8 +353,12 @@ class StudentsRepository implements IStudentsRepository {
                 }
             })
 
-            if (student == null) {
-                return { isValid: false, errorMessage: '🛑 Student not found 🛑', statusCode: 403 }
+            if (!student) {
+                return {
+                    isValid: false,
+                    errorMessage: '🛑 Student not found 🛑',
+                    statusCode: 404
+                }
             }
 
             const updatedStudent = await prisma.students.update({
@@ -285,7 +387,11 @@ class StudentsRepository implements IStudentsRepository {
                     exStudent: studentData.exStudent ?? student.exStudent
                 }
             })
-            return updatedStudent
+            return {
+                isValid: true,
+                statusCode: 202,
+                students: updatedStudent
+            }
 
         } catch (error: unknown) {
 
@@ -305,7 +411,7 @@ class StudentsRepository implements IStudentsRepository {
         }
     }
 
-    async deleteStudent(studentID: string): Promise<Students | validationResponse> {
+    async deleteStudent(studentID: string): Promise<validationResponse> {
         try {
 
             const student = await prisma.students.findFirst({
@@ -314,7 +420,7 @@ class StudentsRepository implements IStudentsRepository {
                 }
             })
 
-            if (student != null) {
+            if (student) {
 
                 try {
 
@@ -324,7 +430,12 @@ class StudentsRepository implements IStudentsRepository {
                         }
                     })
 
-                    return student
+                    return {
+                        isValid: true,
+                        statusCode: 202,
+                        students: student,
+                        successMessage: 'Student deleted successfully'
+                    }
 
                 } catch {
 

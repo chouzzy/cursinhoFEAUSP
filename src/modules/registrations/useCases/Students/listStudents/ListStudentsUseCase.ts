@@ -9,28 +9,29 @@ class ListStudentsUseCase {
     constructor(
         private studentsRepository: IStudentsRepository) { }
 
-    async execute(query: ListStudentsQuery): Promise<Students[] | validationResponse> {
+    async execute(studentsRequestBody: ListStudentsQuery): Promise<validationResponse> {
 
-        let {
-            id,
-            email,
-            state,
-            paymentStatus,
-            page
-        } = query
+        const bodyValidation = await checkQuery(studentsRequestBody)
 
-        let actualPage = Number(page)
+        if (bodyValidation.isValid === false) {
+            return ({
+                isValid: false,
+                statusCode: 403,
+                errorMessage: bodyValidation.errorMessage,
+            })
+        }
 
-        if (page == undefined) { actualPage = 0}
+        let {page, pageRange} = studentsRequestBody
+        if (!page) { page = 0}
+        if (!pageRange) { pageRange = 10}
+
+        
+        if (!studentsRequestBody.initDate) {studentsRequestBody.initDate = "1979-01-01"}
+        if (!studentsRequestBody.endDate) {studentsRequestBody.endDate = "2999-01-01"}
 
 
-        const students = await this.studentsRepository.filterStudent(
-            id,
-            email,
-            state,
-            paymentStatus,
-            actualPage
-        )
+
+        const students = await this.studentsRepository.filterStudent(studentsRequestBody, page, pageRange)
         
         return students
     }

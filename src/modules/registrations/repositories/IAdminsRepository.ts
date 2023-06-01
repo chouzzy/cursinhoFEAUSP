@@ -14,17 +14,17 @@ interface IAdminsRepository {
         email: Admins["email"] | undefined,
         username: Admins["username"] | undefined,
         actualPage: number
-    ): Promise<Admins[] | validationResponse>
+    ): Promise<validationResponse>
 
-    createAdmin(adminData: CreateAdminRequestProps): Promise<Admins | validationResponse>
+    createAdmin(adminData: CreateAdminRequestProps): Promise<validationResponse>
 
-    updateAdmin(adminData: UpdateAdminRequestProps, adminID: Admins["id"]): Promise<Admins | validationResponse>
+    updateAdmin(adminData: UpdateAdminRequestProps, adminID: Admins["id"]): Promise<validationResponse>
 
-    updateAdminPassword(adminData: UpdateAdminPasswordRequestProps, adminID: Admins["id"]): Promise<Admins | validationResponse>
+    updateAdminPassword(adminData: UpdateAdminPasswordRequestProps, adminID: Admins["id"]): Promise<validationResponse>
 
-    deleteAdmin(adminID: Admins["id"]): Promise<Admins| validationResponse>
+    deleteAdmin(adminID: Admins["id"]): Promise< validationResponse>
 
-    authenticateAdmin({ username, password }: AuthenticateAdminRequestProps): Promise<string|validationResponse>
+    authenticateAdmin({ username, password }: AuthenticateAdminRequestProps): Promise<validationResponse>
 
 }
 

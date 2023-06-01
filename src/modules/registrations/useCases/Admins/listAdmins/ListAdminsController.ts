@@ -18,32 +18,15 @@ class ListAdminsController {
 
         const query: ListAdminsQuery = req.query
 
-        const queryValidation = await checkQuery(query)
-
-        if (queryValidation.isValid === false) {
-            return res.status(queryValidation.statusCode).json({
-                errorMessage: queryValidation.errorMessage
-            })
-        }
 
         // Instanciando o useCase no repositório com as funções
         const adminsRepository = new AdminsRepository()
 
         const listAdminsUseCase = new ListAdminsUseCase(adminsRepository);
 
-        const admins = await listAdminsUseCase.execute(query)
-        
-        const adminsAreValid = await ErrorValidation(admins)
-        
-        if (adminsAreValid.isValid === false) {
-            return res.status(adminsAreValid.statusCode).json({
-                errorMessage: adminsAreValid.errorMessage
-            })
-        }
+        const response = await listAdminsUseCase.execute(query)
 
-        return res.status(202).json({
-            admins
-        })
+        return res.status(response.statusCode).json({response})
 
     }
 }

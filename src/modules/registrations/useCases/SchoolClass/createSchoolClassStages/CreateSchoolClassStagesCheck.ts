@@ -8,7 +8,7 @@ import { SchoolClass } from "../../../entities/SchoolClass";
 
 
 
-async function checkBody(schoolClassStagesData: CreateSchoolClassStagesRequestProps): Promise<validationResponse> {
+async function checkBody(schoolClassStagesData: CreateSchoolClassStagesRequestProps[]): Promise<validationResponse> {
     // check body properties
     try {
         const yupValidation = await createSchoolClassStagesSchema.validate(schoolClassStagesData, {

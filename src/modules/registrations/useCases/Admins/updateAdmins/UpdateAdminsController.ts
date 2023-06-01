@@ -18,32 +18,12 @@ class UpdateAdminsController {
         const adminData: UpdateAdminRequestProps = req.body
         const {adminID} = req.params
 
-        /// é responsabilidade do controller validar os dados recebidos na requisição
-        const bodyValidation = await checkBody(adminData)
-
-        if (bodyValidation.isValid === false) {
-            return res.status(bodyValidation.statusCode).json({
-                errorMessage: bodyValidation.errorMessage
-            })
-        }
-
         /// instanciação da classe do caso de uso
         const adminsRepository = new AdminsRepository()
         const updateAdminsUseCase = new UpdateAdminsUseCase(adminsRepository)
-        const updatedAdmin = await updateAdminsUseCase.execute(adminData, adminID)
+        const response = await updateAdminsUseCase.execute(adminData, adminID)
 
-        ///
-        const updatedAdminIsValid = await ErrorValidation(updatedAdmin)
-
-        if (updatedAdminIsValid.isValid === false) {
-            return res.status(updatedAdminIsValid.statusCode).json({
-                errorMessage: updatedAdminIsValid.errorMessage
-            })
-        }
-
-        return res.status(202).json({
-            updatedAdmin
-        })
+        return res.status(response.statusCode).json({response})
 
     }
 }

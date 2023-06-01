@@ -25,31 +25,12 @@ class CreateDonationController {
 
         const donationData:CreateDonationProps = req.body
 
-        //é responsabilidade do controller validar os dados recebidos na requisição
-        const bodyValidation = await checkBody(donationData)
-
-        if (bodyValidation.isValid === false) {
-            return res.status(bodyValidation.statusCode).json({
-                errorMessage: bodyValidation.errorMessage
-            })
-        }
-
-
         const donationsRepository = new DonationsRepository()
         const createDonationUseCase = new CreateDonationUseCase(donationsRepository)
         
-        const createdDonation = await createDonationUseCase.execute(donationData)
-        const createdDonationIsValid = await ErrorValidation(createdDonation)
+        const response = await createDonationUseCase.execute(donationData)
 
-        if (createdDonationIsValid.isValid === false) {
-            return res.status(createdDonationIsValid.statusCode).json({
-                errorMessage: createdDonationIsValid.errorMessage
-            })
-        }
-
-        return res.status(202).json({
-            createdDonation
-        })
+        return res.status(response.statusCode).json({response})
 
     }
 }

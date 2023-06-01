@@ -17,32 +17,12 @@ class CreateAdminsController {
 
         const adminData: CreateAdminRequestProps = req.body
 
-        /// é responsabilidade do controller validar os dados recebidos na requisição
-        const bodyValidation = await checkBody(adminData)
-
-        if (bodyValidation.isValid === false) {
-            return res.status(bodyValidation.statusCode).json({
-                errorMessage: bodyValidation.errorMessage
-            })
-        }
-
         /// instanciação da classe do caso de uso
         const adminsRepository = new AdminsRepository()
         const createAdminUseCase = new CreateAdminUseCase(adminsRepository)
-        const createdAdmin = await createAdminUseCase.execute(adminData)
+        const response = await createAdminUseCase.execute(adminData)
 
-        ///
-        const createdAdminIsValid = await ErrorValidation(createdAdmin)
-
-        if (createdAdminIsValid.isValid === false) {
-            return res.status(createdAdminIsValid.statusCode).json({
-                errorMessage: createdAdminIsValid.errorMessage
-            })
-        }
-
-        return res.status(202).json({
-            createdAdmin
-        })
+        return res.status(response.statusCode).json({response})
 
     }
 }

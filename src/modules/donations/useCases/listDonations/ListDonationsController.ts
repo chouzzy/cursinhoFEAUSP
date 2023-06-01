@@ -3,41 +3,41 @@ import { DonationsRepository } from "../../repositories/implementations/Donation
 import { checkQuery } from "./ListDonationsCheck";
 import { ListDonationsUseCase } from "./ListDonationsUseCase";
 
+// Nome
+// E-mail
+// CPF
+// Range de valores
+// Status de pagamento
+// Range de datas
+
 interface ListDonationsQuery {
+    name?: string;
+    email?: string,
+    cpf?: string,
+    paymentStatus?: string,
     initValue?: number,
     endValue?: number,
-    email?: string,
-    date?: string,
-    page?: string
+    initDate: string,
+    endDate: string,
+    page?: number,
+    pageRange?: number
 }
+
+
 
 class ListDonationsController {
     async handle(req: Request, res: Response): Promise<Response> {
 
-        const query:ListDonationsQuery = req.query
-
-        const queryValidation = await checkQuery(query)
-        
-        if (queryValidation.isValid === false) {
-            return res.status(queryValidation.statusCode).json({
-                errorMessage: queryValidation.errorMessage
-            })
-        }
+        const body:ListDonationsQuery = req.body
 
         // Instanciando o useCase no repositório com as funções
         const donationsRepository = new DonationsRepository()
         
         const listDonationsUseCase = new ListDonationsUseCase(donationsRepository);
         
-        const donations = await listDonationsUseCase.execute(query)
-
-        if (donations.length == 0) {
-            return res.status(404).json({
-                errorMessage: "🛑 Donation not found 🛑"
-            })
-        }
+        const response = await listDonationsUseCase.execute(body)
         
-        return res.status(202).json(donations)
+        return res.status(response.statusCode).json(response)
 
     }
 }

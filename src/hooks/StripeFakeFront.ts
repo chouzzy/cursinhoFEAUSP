@@ -5,12 +5,14 @@ class StripeFakeFront {
 
     async createSubscription(donationID: string | undefined = undefined, stripeCustomerID: string, cpf: string, rg: string, schoolClassID: string|undefined = undefined): Promise<unknown> {
 
-        console.log('inside createSubscription')
+        console.log('inside createSubscription FAKEFRONT')
 
-        //price_1Mxy6HHkzIzO4aMO0tXO4ZJ2 - donation - prod_NjQy58PYtAOAPb 
+        //price_1NAwZsHkzIzO4aMONf1wmRG2 - donation - prod_NwqGmvpORCudCp  
         //price_1N1FWXHkzIzO4aMONF3PGRqR - curso noturno - prod_NmpAHf1qPgwXHo
         //price_1N1ZXFHkzIzO4aMO4ZN4CfCL - curso diurno - prod_Nn9q6265icRu58
         //                               - diurno fim de seman - prod_NpmUBZhmSlJJad
+
+        // Período diurno teste 1105.1400 - "prod_NsNpalHn8d9nB8"
 
         try {
 
@@ -38,10 +40,10 @@ class StripeFakeFront {
                         quantity: 1,
                         price_data: {
                             currency: 'brl',
-                            product: 'prod_NjQy58PYtAOAPb',
+                            product: 'prod_NsNpalHn8d9nB8',
                             recurring: {
                                 interval: 'month',
-                                interval_count: 6
+                                interval_count: 1
                             },
                             unit_amount: 1000
                         }

@@ -5,10 +5,16 @@ import { Admins } from "../entities/Admins"
 
 class GenerateTokenProvider {
 
-    async execute(adminID: Admins["id"]): Promise<validationResponse["token"]> {
+    async execute(adminID: Admins["id"], adminName: Admins['name'], adminEmail: Admins['email']): Promise<validationResponse["token"]> {
 
         const privateKey = process.env.TOKEN_PRIVATE_KEY
-        const token = sign({}, privateKey?privateKey:'', {
+        const payload = JSON.stringify({
+            id: adminID,
+            name: adminName,
+            adminEmail: adminEmail
+        })
+        const token = sign({payload}, privateKey?privateKey:'', {
+            
             subject: adminID,
             expiresIn: "20s"
         })

@@ -1,3 +1,4 @@
+import { validationResponse } from "../../../../types"
 import { Donations } from "../../entities/Donations"
 import { IDonationsRepository } from "../../repositories/IDonationsRepository"
 import { checkQuery } from "./ListDonationsCheck"
@@ -9,33 +10,27 @@ class ListDonationsUseCase {
         private donationsRepository: IDonationsRepository) 
         { }
     
-    async execute(query:ListDonationsQuery): Promise<Donations[]> {
+    async execute(donationsRequest:ListDonationsQuery): Promise<validationResponse> {
+
+        //Checando query
+        const queryValidation = await checkQuery(donationsRequest)
         
-        let {initValue, endValue, email, date, page} = query
-        let parseInitValue = Number(initValue)
-        let parseEndValue = Number(endValue)
-        let actualPage = Number(page)
-        
+        if (queryValidation.isValid === false) {
+            return ({
+                isValid: false,
+                statusCode: 403,
+                errorMessage: queryValidation.errorMessage,
+            })
+        }
 
-        // Checa se os query params estão corretos
-        const isQueryCorrect = await checkQuery(query)
-        if ((isQueryCorrect).isValid == false) { return [] }
+        if (!donationsRequest.page) {donationsRequest.page = 0}
+        if (!donationsRequest.pageRange) {donationsRequest.pageRange = 10}
 
-        
-        if (initValue == undefined) { parseInitValue = 0 }
-        if (endValue == undefined)  { parseEndValue = 999999999999 }
-        if (email == undefined)     { email = "notInformed" }
-        if (date == undefined)      { date = "notInformed" }
-        if (page == undefined)      { actualPage = 0 }
+        if (!donationsRequest.initDate) {donationsRequest.initDate = "1979-01-01"}
+        if (!donationsRequest.endDate) {donationsRequest.endDate = "2999-01-01"}
 
-
-        const donations = await this.donationsRepository.filterByValueEmailandDate(
-            parseInitValue,
-            parseEndValue,
-            email,
-            date,
-            actualPage
-        )
+        const {page, pageRange} = donationsRequest
+        const donations = await this.donationsRepository.filterDonation(donationsRequest, page, pageRange)
         // console.log(donations)
         return donations
     }

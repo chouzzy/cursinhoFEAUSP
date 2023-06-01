@@ -28,7 +28,7 @@ class AdminsRepository implements IAdminsRepository {
         email: Admins["email"] | undefined,
         username: Admins["username"] | undefined,
         actualPage: number):
-        Promise<validationResponse | Admins[]> {
+        Promise<validationResponse> {
 
 
         if (actualPage == 0) { actualPage = 1 }
@@ -48,7 +48,19 @@ class AdminsRepository implements IAdminsRepository {
                 },
             })
 
-            return admins
+            if (admins.length == 0) {
+                return {
+                    isValid: false,
+                    statusCode: 404,
+                    errorMessage: '🔴 Admin not found 🔴'
+                }
+            }
+
+            return {
+                isValid: true,
+                statusCode: 202,
+                adminsList: admins
+            }
         } catch (error: unknown) {
 
             if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -60,7 +72,7 @@ class AdminsRepository implements IAdminsRepository {
         }
     }
 
-    async createAdmin(adminData: CreateAdminRequestProps): Promise<Admins | validationResponse> {
+    async createAdmin(adminData: CreateAdminRequestProps): Promise<validationResponse> {
 
         try {
 
@@ -103,7 +115,12 @@ class AdminsRepository implements IAdminsRepository {
                 }
             })
 
-            return createAdmin
+            return {
+                isValid: true,
+                statusCode: 202,
+                admins: createAdmin,
+                successMessage: 'Admin successfully created'
+            }
 
 
         } catch (error: unknown) {
@@ -119,7 +136,7 @@ class AdminsRepository implements IAdminsRepository {
         }
     }
 
-    async updateAdmin(adminData: UpdateAdminRequestProps, adminID: Admins["id"]): Promise<Admins | validationResponse> {
+    async updateAdmin(adminData: UpdateAdminRequestProps, adminID: Admins["id"]): Promise<validationResponse> {
 
         try {
             const admin = await prisma.admins.findUnique({
@@ -142,7 +159,12 @@ class AdminsRepository implements IAdminsRepository {
                     username: adminData.username ?? admin.username,
                 }
             })
-            return updatedAdmin
+            return {
+                isValid: true,
+                statusCode: 202,
+                admins: updatedAdmin,
+                successMessage: 'Admin successfully updated'
+            }
 
         } catch (error: unknown) {
 
@@ -162,7 +184,7 @@ class AdminsRepository implements IAdminsRepository {
         }
     }
 
-    async updateAdminPassword(adminData: UpdateAdminPasswordRequestProps, adminID: string): Promise<Admins | validationResponse> {
+    async updateAdminPassword(adminData: UpdateAdminPasswordRequestProps, adminID: string): Promise<validationResponse> {
 
         try {
             const admin = await prisma.admins.findUnique({
@@ -183,7 +205,11 @@ class AdminsRepository implements IAdminsRepository {
                     password: adminData.password ?? admin.password,
                 }
             })
-            return updatedAdmin
+            return {
+                isValid: true,
+                statusCode: 202,
+                successMessage: 'Password was successfully changed'
+            }
 
         } catch (error: unknown) {
 
@@ -203,7 +229,7 @@ class AdminsRepository implements IAdminsRepository {
         }
     }
 
-    async deleteAdmin(adminID: string): Promise<Admins | validationResponse> {
+    async deleteAdmin(adminID: string): Promise<validationResponse> {
         try {
 
             const admin = await prisma.admins.findUnique({
@@ -213,7 +239,7 @@ class AdminsRepository implements IAdminsRepository {
             })
 
 
-            if (admin != null) {
+            if (admin) {
 
                 try {
 
@@ -223,7 +249,11 @@ class AdminsRepository implements IAdminsRepository {
                         }
                     })
 
-                    return admin
+                    return {
+                        isValid: true,
+                        statusCode: 202,
+                        admins: admin
+                    }
 
                 } catch {
 
@@ -234,13 +264,12 @@ class AdminsRepository implements IAdminsRepository {
                     }
                 }
 
-            } else {
+            }
 
-                return {
-                    isValid: false,
-                    statusCode: 403,
-                    errorMessage: "⛔ Admin not found in database ⛔"
-                }
+            return {
+                isValid: false,
+                statusCode: 403,
+                errorMessage: "⛔ Admin not found in database ⛔"
             }
 
         } catch (error) {
@@ -286,12 +315,12 @@ class AdminsRepository implements IAdminsRepository {
 
             // Gerando o Token
             const generateTokenProvider = new GenerateTokenProvider()
-            const token = await generateTokenProvider.execute(adminFound.id)
+            const token = await generateTokenProvider.execute(adminFound.id, adminFound.name, adminFound.email)
 
 
 
 
-            //////// RefreshToken ////////
+            //////// REFRESH TOKEN ////////
 
             //Buscando o RefreshToken do usuário logado
             const adminRefreshToken = await prisma.refreshToken.findFirst({
@@ -299,7 +328,7 @@ class AdminsRepository implements IAdminsRepository {
                     adminID: adminFound.id
                 }
             })
-            
+
             //Checando se o RefreshToken do usuário logado existe
             if (!adminRefreshToken) {
                 const generateRefreshToken = new GenerateRefreshToken()

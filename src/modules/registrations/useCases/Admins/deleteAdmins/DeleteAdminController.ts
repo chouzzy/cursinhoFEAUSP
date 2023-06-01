@@ -11,19 +11,9 @@ class DeleteAdminController {
 
         const adminsRepository = new AdminsRepository()
         const deleteAdminUseCase = new DeleteAdminUseCase(adminsRepository)
-        const deletedAdmin = await deleteAdminUseCase.execute(adminID)
+        const response = await deleteAdminUseCase.execute(adminID)
 
-        const deletedAdminIsValid = await ErrorValidation(deletedAdmin)
-
-        if (deletedAdminIsValid.isValid === false) {
-            return res.status(deletedAdminIsValid.statusCode).json({
-                errorMessage: deletedAdminIsValid.errorMessage
-            })
-        }
-
-        return res.status(202).json({
-            deletedAdmin
-        })
+        return res.status(response.statusCode).json({response})
 
     }
 }

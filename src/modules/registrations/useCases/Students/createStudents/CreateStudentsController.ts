@@ -1,5 +1,5 @@
 import { Request, Response } from "express"
-import { Students } from "../../../entities/Students"
+import { Students, purcharsedSubscriptions } from "../../../entities/Students"
 import { checkBody, ErrorValidation } from "./CreateStudentCheck"
 import { CreateStudentUseCase } from "./CreateStudentUseCase"
 import { StudentsRepository } from "../../../repositories/implementations/StudentsRepository"
@@ -26,13 +26,13 @@ interface CreateStudentRequestProps {
     metUsMethod: Students["metUsMethod"],
     exStudent: Students["exStudent"],
     pursharsedSubscriptions:{
-        schoolClassID: string
-        productID:     string
-        productName:   string
-        paymentMethod: string
-        paymentStatus: string
-        paymentDate:   string
-        valuePaid:     number
+        schoolClassID: purcharsedSubscriptions["schoolClassID"]
+        productID:     purcharsedSubscriptions["productID"]
+        productName:   purcharsedSubscriptions["productName"]
+        paymentMethod: purcharsedSubscriptions["paymentMethod"]
+        paymentStatus: purcharsedSubscriptions["paymentStatus"]
+        paymentDate:   purcharsedSubscriptions["paymentDate"]
+        valuePaid:     purcharsedSubscriptions["valuePaid"]
     }[],
 
 }
@@ -42,32 +42,12 @@ class CreateStudentController {
 
         const studentData: CreateStudentRequestProps = req.body
 
-        /// é responsabilidade do controller validar os dados recebidos na requisição
-        const bodyValidation = await checkBody(studentData)
-
-        if (bodyValidation.isValid === false) {
-            return res.status(bodyValidation.statusCode).json({
-                errorMessage: bodyValidation.errorMessage
-            })
-        }
-
         /// instanciação da classe do caso de uso
         const studentsRepository = new StudentsRepository()
         const createStudentUseCase = new CreateStudentUseCase(studentsRepository)
-        const createdStudent = await createStudentUseCase.execute(studentData)
+        const response = await createStudentUseCase.execute(studentData)
 
-        ///
-        const createdStudentIsValid = await ErrorValidation(createdStudent)
-
-        if (createdStudentIsValid.isValid === false) {
-            return res.status(createdStudentIsValid.statusCode).json({
-                errorMessage: createdStudentIsValid.errorMessage
-            })
-        }
-
-        return res.status(202).json({
-            createdStudent
-        })
+        return res.status(response.statusCode).json({response})
 
     }
 }

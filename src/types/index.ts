@@ -1,6 +1,8 @@
 import { Prisma } from "@prisma/client";
 import { SchoolClass } from "../modules/registrations/entities/SchoolClass";
-import { purcharsedSubscriptions } from "../modules/registrations/entities/Students";
+import { Students, purcharsedSubscriptions } from "../modules/registrations/entities/Students";
+import { Admins } from "../modules/registrations/entities/Admins";
+import { Donations } from "../modules/donations/entities/Donations";
 
 
 interface validationResponse {
@@ -14,6 +16,13 @@ interface validationResponse {
   stripeCreatedCustomerID?: string;
   stripeCreatedProductID?: string;
   schoolClass?: SchoolClass
+  schoolClassList?: SchoolClass[]
+  students?: Students
+  studentsList?: Students[]
+  admins?: Admins
+  adminsList?: Admins[]
+  donations?: Donations
+  donationsList?: Donations[]
   subscriptionsDuplicated?: purcharsedSubscriptions["schoolClassID"][]
 }
 

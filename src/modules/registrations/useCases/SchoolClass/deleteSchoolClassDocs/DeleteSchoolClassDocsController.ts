@@ -13,14 +13,9 @@ class DeleteSchoolClassDocsController {
         /// instanciação da classe do caso de uso
         const schoolClassRepository = new SchoolClassRepository()
         const deleteSchoolClassDocsUseCase = new DeleteSchoolClassDocsUseCase(schoolClassRepository)
-        const createdSchoolClassResponse = await deleteSchoolClassDocsUseCase.execute(docsID, schoolClassID)
+        const response = await deleteSchoolClassDocsUseCase.execute(docsID, schoolClassID)
         
-        return res.status(createdSchoolClassResponse.statusCode)
-            .json({
-                schoolClass: createdSchoolClassResponse.schoolClass,
-                errorMessage: createdSchoolClassResponse.errorMessage ?? "none",
-                successMessage: createdSchoolClassResponse.successMessage ?? "none"
-            })
+        return res.status(response.statusCode).json({response})
     }
 }
 

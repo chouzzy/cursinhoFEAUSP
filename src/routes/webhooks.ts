@@ -32,29 +32,29 @@ webhooksRoutes.post('/', async (req, res) => {
     
     
 
-    if (event.type == 'charge.succeeded') {
+    // if (event.type == 'charge.succeeded') {
         
 
         
-        // const stripeCustomer = new StripeCustomer()
+    //     // const stripeCustomer = new StripeCustomer()
 
-        // const customerCreated: StripeCheckoutCustomerProps = {
+    //     // const customerCreated: StripeCheckoutCustomerProps = {
 
-        //     metadata: {
-        //         schoolClassID:'6df7a3ba-81b5-4ff4-8dcf-35e1cddbe5e9',
-        //         productID:'prod_NmpAHf1qPgwXHo',
-        //         productName:'Período noturno semanal'
-        //     },
-        //     customerDetails: event.data.object.billing_details,
-        //     paymentMethod: event.data.object.payment_method_details.type,
-        //     paymentStatus: event.data.object.status,
-        //     amount: event.data.object.amount
-        // }
+    //     //     metadata: {
+    //     //         schoolClassID:'6df7a3ba-81b5-4ff4-8dcf-35e1cddbe5e9',
+    //     //         productID:'prod_NmpAHf1qPgwXHo',
+    //     //         productName:'Período noturno semanal'
+    //     //     },
+    //     //     customerDetails: event.data.object.billing_details,
+    //     //     paymentMethod: event.data.object.payment_method_details.type,
+    //     //     paymentStatus: event.data.object.status,
+    //     //     amount: event.data.object.amount
+    //     // }
 
         
         
-        // await stripeCustomer.updateStudent(customerCreated)
-    }
+    //     // await stripeCustomer.updateStudent(customerCreated)
+    // }
 
     if (event.type == 'customer.subscription.created' || event.type == 'customer.subscription.deleted') {
 

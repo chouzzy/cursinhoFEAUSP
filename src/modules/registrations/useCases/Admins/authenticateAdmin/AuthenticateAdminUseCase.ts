@@ -10,7 +10,7 @@ class AuthenticateAdminUseCase {
     constructor(
         private adminsRepository: IAdminsRepository) {}
 
-    async execute(adminData: AuthenticateAdminRequestProps): Promise<string | validationResponse> {
+    async execute(adminData: AuthenticateAdminRequestProps): Promise<validationResponse> {
         
         const authenticatedAdmin = await this.adminsRepository.authenticateAdmin(adminData)
         

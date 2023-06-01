@@ -5,6 +5,7 @@ import { donationsRoutes } from "./donations.routes"
 import { refreshTokenRoutes } from "./refreshToken.routes"
 import { schoolClassRoutes } from "./schoolClass.routes"
 import { studentsRoutes } from "./students.routes"
+import { webhooksRoutes } from "./webhooks"
 
 
 const router = Router()
@@ -24,6 +25,7 @@ router.get('/logintest', ensureAuthenticated, (req,res) => {
 })
 
 router.use('/schoolClass', schoolClassRoutes)
+router.use('/webhooks', webhooksRoutes)
 
 
 export {router}

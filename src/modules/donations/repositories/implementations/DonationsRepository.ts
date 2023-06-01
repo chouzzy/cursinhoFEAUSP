@@ -7,6 +7,7 @@ import { IDonationsRepository } from "../IDonationsRepository";
 import { StripeCustomer } from "../../../../hooks/StripeCustomer";
 import { StripeFakeFront } from "../../../../hooks/StripeFakeFront";
 import { DeleteDonationProps } from "../../useCases/deleteDonation/DeleteDonationController";
+import { ListDonationsQuery } from "../../useCases/listDonations/ListDonationsController";
 
 
 class DonationsRepository implements IDonationsRepository {
@@ -16,193 +17,94 @@ class DonationsRepository implements IDonationsRepository {
         this.donations = [];
     }
 
-    async filterByValueEmailandDate(
-        initValue: number,
-        endValue: number,
-        email: string,
-        date: string,
-        actualPage: number
-    ): Promise<Donations[]> {
+    async filterDonation(
+        {name,
+        email,
+        cpf,
+        paymentStatus,
+        initValue,
+        endValue,
+        initDate,
+        endDate}:ListDonationsQuery,
+        page:number,
+        pageRange:number
+    ): Promise<validationResponse> {
+        
+        
+        try {
+            console.log('aqui')
+        const filteredDonations = await prisma.donations.groupBy({
+            by:[
+                'id',
+                'name',
+                'email',
+                'phoneNumber',
+                'gender',
+                'birth',
+                'country',
+                'state',
+                'city',
+                'address',
+                'cpf',
+                'rg',
 
-        if (actualPage == 0) {
-            actualPage = 1;
+                'valuePaid',
+                'paymentMethod',
+                'paymentStatus',
+                'paymentDate',
+
+                'stripeCustomerID',
+                'donationExpirationDate',
+
+                'createdAt',
+            ],
+            where: {
+                AND: [
+                    {name: name},
+                    {email: email},
+                    {cpf: cpf},
+                    {paymentStatus: paymentStatus}
+                ]
+            },
+            having: {
+                valuePaid: {
+                    gt: initValue ?? 0,
+                    lt: endValue ?? 999999999999999
+                },
+                paymentDate: {
+                    gte:new Date(initDate),
+                    lte:new Date(endDate)
+                }
+            },
+            orderBy: {
+                name: 'asc'
+            },
+            skip: page * pageRange,
+            take: pageRange
+            
+        })
+
+        return {
+            isValid: true,
+            statusCode: 202,
+            donationsList: filteredDonations
         }
 
-        // Função do prisma para buscar todos as donations
-        if (email === 'notInformed' && date != 'notInformed') {
+        } catch (error: unknown) {
+            if (error instanceof Prisma.PrismaClientValidationError) {
 
-            const donations = await prisma.donations.groupBy({
-                by: [
-                    "id",
-                    "name",
-                    "email",
-                    "phoneNumber",
-                    "gender",
-                    "birth",
-                    "country",
-                    "state",
-                    "city",
-                    "address",
-                    "cpf",
-                    "rg",
-                    "valuePaid",
-                    "paymentMethod",
-                    "paymentStatus",
-                    "paymentDate",
-                    "donationExpirationDate",
-                    "stripeCustomerID",
-                    "createdAt"
-                ],
-                having: {
-                    valuePaid: {
-                        gt: initValue,
-                        lt: endValue
-                    },
-                    paymentDate: date,
+                const argumentPosition = error.message.search('Argument')
+                const mongoDBError = error.message.slice(argumentPosition)
+                return { isValid: false, errorMessage: mongoDBError, statusCode: 403 }
 
-                },
-
-                orderBy: {
-                    name: 'asc',
-                },
-                skip: (actualPage - 1) * 10,
-                take: 10
-            })
-
-            return donations
-        }
-
-
-
-        else if (email != 'notInformed' && date === 'notInformed') {
-
-            const donations = await prisma.donations.groupBy({
-                by: [
-                    "id",
-                    "name",
-                    "email",
-                    "phoneNumber",
-                    "gender",
-                    "birth",
-                    "country",
-                    "state",
-                    "city",
-                    "address",
-                    "cpf",
-                    "rg",
-                    "valuePaid",
-                    "paymentMethod",
-                    "paymentStatus",
-                    "paymentDate",
-                    "donationExpirationDate",
-                    "stripeCustomerID",
-                    "createdAt"
-                ],
-                having: {
-                    valuePaid: {
-                        gt: initValue,
-                        lt: endValue
-                    },
-                    email: email
-                },
-                orderBy: {
-                    name: 'asc',
-                },
-                skip: (actualPage - 1) * 10,
-                take: 10
-            })
-
-            return donations
-        }
-
-
-
-        else if (email != 'notInformed' && date != 'notInformed') {
-
-            const donations = await prisma.donations.groupBy({
-                by: [
-                    "id",
-                    "name",
-                    "email",
-                    "phoneNumber",
-                    "gender",
-                    "birth",
-                    "country",
-                    "state",
-                    "city",
-                    "address",
-                    "cpf",
-                    "rg",
-                    "valuePaid",
-                    "paymentMethod",
-                    "paymentStatus",
-                    "paymentDate",
-                    "donationExpirationDate",
-                    "stripeCustomerID",
-                    "createdAt"
-                ],
-                having: {
-                    valuePaid: {
-                        gt: initValue,
-                        lt: endValue
-                    },
-                    email: email,
-                    paymentDate: date
-                },
-                orderBy: {
-                    name: 'asc',
-                },
-                skip: (actualPage - 1) * 10,
-                take: 10
-            })
-
-            return donations
-        }
-
-
-
-        else {
-            const donations = await prisma.donations.groupBy({
-                by: [
-                    "id",
-                    "name",
-                    "email",
-                    "phoneNumber",
-                    "gender",
-                    "birth",
-                    "country",
-                    "state",
-                    "city",
-                    "address",
-                    "cpf",
-                    "rg",
-                    "valuePaid",
-                    "paymentMethod",
-                    "paymentStatus",
-                    "paymentDate",
-                    "donationExpirationDate",
-                    "stripeCustomerID",
-                    "createdAt"
-                ],
-                having: {
-                    valuePaid: {
-                        gt: initValue,
-                        lt: endValue
-                    }
-                },
-                orderBy: {
-                    name: 'asc',
-                },
-                skip: (actualPage - 1) * 10,
-                take: 10
-            })
-
-            return donations
+            } else {
+                return { isValid: false, errorMessage: String(error), statusCode: 403 }
+            }
         }
     }
 
 
-    async createDonation(donationData: CreateDonationProps): Promise<Donations | validationResponse> {
+    async createDonation(donationData: CreateDonationProps): Promise<validationResponse> {
 
         try {
 
@@ -223,8 +125,6 @@ class DonationsRepository implements IDonationsRepository {
                     valuePaid: donationData.valuePaid,
                     paymentMethod: 'Sem informação ainda',
                     paymentStatus: 'Sem informação ainda',
-                    paymentDate: 'Sem informação ainda',
-                    donationExpirationDate: 'Sem informação ainda',
                     stripeCustomerID: 'Sem informação ainda'
 
                 }
@@ -290,7 +190,7 @@ class DonationsRepository implements IDonationsRepository {
         }
     }
     
-    async deleteDonation(donationID: Donations["id"], donationData: DeleteDonationProps): Promise<Donations | validationResponse> {
+    async deleteDonation(donationID: Donations["id"], donationData: DeleteDonationProps): Promise<validationResponse> {
 
         try {
 
@@ -349,3 +249,210 @@ class DonationsRepository implements IDonationsRepository {
 }
 
 export { DonationsRepository }
+
+
+
+
+
+
+
+
+
+
+
+// Função list antiga
+// {
+    
+
+//     if (actualPage == 0) {
+//         actualPage = 1;
+//     }
+
+//     // Função do prisma para buscar todos as donations
+//     if (email === 'notInformed' && date != 'notInformed') {
+
+//         const donations = await prisma.donations.groupBy({
+//             by: [
+//                 "id",
+//                 "name",
+//                 "email",
+//                 "phoneNumber",
+//                 "gender",
+//                 "birth",
+//                 "country",
+//                 "state",
+//                 "city",
+//                 "address",
+//                 "cpf",
+//                 "rg",
+//                 "valuePaid",
+//                 "paymentMethod",
+//                 "paymentStatus",
+//                 "paymentDate",
+//                 "donationExpirationDate",
+//                 "stripeCustomerID",
+//                 "createdAt"
+//             ],
+//             having: {
+//                 valuePaid: {
+//                     gt: initValue,
+//                     lt: endValue
+//                 },
+//                 paymentDate: date,
+
+//             },
+
+//             orderBy: {
+//                 name: 'asc',
+//             },
+//             skip: (actualPage - 1) * 10,
+//             take: 10
+//         })
+
+//         return {
+//             isValid: true,
+//             statusCode: 202,
+//             donationsList: donations
+//         }
+//     }
+
+
+
+//     else if (email != 'notInformed' && date === 'notInformed') {
+
+//         const donations = await prisma.donations.groupBy({
+//             by: [
+//                 "id",
+//                 "name",
+//                 "email",
+//                 "phoneNumber",
+//                 "gender",
+//                 "birth",
+//                 "country",
+//                 "state",
+//                 "city",
+//                 "address",
+//                 "cpf",
+//                 "rg",
+//                 "valuePaid",
+//                 "paymentMethod",
+//                 "paymentStatus",
+//                 "paymentDate",
+//                 "donationExpirationDate",
+//                 "stripeCustomerID",
+//                 "createdAt"
+//             ],
+//             having: {
+//                 valuePaid: {
+//                     gt: initValue,
+//                     lt: endValue
+//                 },
+//                 email: email
+//             },
+//             orderBy: {
+//                 name: 'asc',
+//             },
+//             skip: (actualPage - 1) * 10,
+//             take: 10
+//         })
+
+//         return {
+//             isValid: true,
+//             statusCode: 202,
+//             donationsList: donations
+//         }
+//     }
+
+
+
+//     else if (email != 'notInformed' && date != 'notInformed') {
+
+//         const donations = await prisma.donations.groupBy({
+//             by: [
+//                 "id",
+//                 "name",
+//                 "email",
+//                 "phoneNumber",
+//                 "gender",
+//                 "birth",
+//                 "country",
+//                 "state",
+//                 "city",
+//                 "address",
+//                 "cpf",
+//                 "rg",
+//                 "valuePaid",
+//                 "paymentMethod",
+//                 "paymentStatus",
+//                 "paymentDate",
+//                 "donationExpirationDate",
+//                 "stripeCustomerID",
+//                 "createdAt"
+//             ],
+//             having: {
+//                 valuePaid: {
+//                     gt: initValue,
+//                     lt: endValue
+//                 },
+//                 email: email,
+//                 paymentDate: date
+//             },
+//             orderBy: {
+//                 name: 'asc',
+//             },
+//             skip: (actualPage - 1) * 10,
+//             take: 10
+//         })
+
+//         return {
+//             isValid: true,
+//             statusCode: 202,
+//             donationsList: donations
+//         }
+//     }
+
+
+
+//     else {
+//         const donations = await prisma.donations.groupBy({
+//             by: [
+//                 "id",
+//                 "name",
+//                 "email",
+//                 "phoneNumber",
+//                 "gender",
+//                 "birth",
+//                 "country",
+//                 "state",
+//                 "city",
+//                 "address",
+//                 "cpf",
+//                 "rg",
+//                 "valuePaid",
+//                 "paymentMethod",
+//                 "paymentStatus",
+//                 "paymentDate",
+//                 "donationExpirationDate",
+//                 "stripeCustomerID",
+//                 "createdAt"
+//             ],
+//             having: {
+//                 valuePaid: {
+//                     gt: initValue,
+//                     lt: endValue
+//                 }
+//             },
+//             orderBy: {
+//                 name: 'asc',
+//             },
+//             skip: (actualPage - 1) * 10,
+//             take: 10
+//         })
+
+//         return {
+//             isValid: true,
+//             statusCode: 202,
+//             donationsList: donations
+//         }
+//     }
+// }

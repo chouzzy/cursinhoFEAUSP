@@ -10,8 +10,8 @@ const donationSchema = object({
     state: string().required("O estado é obrigatório").min(2, "O estado deve possuir ao menos 2 letras"),
     city: string().required("A cidade é obrigatória").min(2, "A cidade deve possuir ao menos 2 letras"),
     address: string().required("O CEP é obrigatório").min(9, "O CEP deve conter 8 algarismos e um hífen. Ex: 08230-030"),
-    cpf: string().required().min(11, "O CPF deve conter ao menos 11 algarismos"),
-    rg : string().required().min(9, "O RG deve conter ao menos 9 algarismos"),
+    cpf: string().required().min(11, "O CPF deve conter ao menos 11 caracteres").max(11, "O CPF deve conter 11 caracteres"),
+    rg : string().required().min(9, "O RG deve conter ao menos 9 caracteres").max(9, "O RG deve conter ao menos 9 caracteres"),
     valuePaid: number().required()
 })
 

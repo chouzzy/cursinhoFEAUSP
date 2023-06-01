@@ -66,12 +66,16 @@ class SchoolClassRepository implements ISchoolClassRepository {
         }
     }
 
-    async listAllSchoolClasses(): Promise<validationResponse | SchoolClass[]> {
+    async listAllSchoolClasses(): Promise<validationResponse> {
 
         try {
             const allSchoolClasses = await prisma.schoolClass.findMany()
 
-            return allSchoolClasses
+            return {
+                isValid: true,
+                statusCode: 202,
+                schoolClassList: allSchoolClasses
+            }
 
         } catch (error: unknown) {
 

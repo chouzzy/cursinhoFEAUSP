@@ -11,19 +11,9 @@ class DeleteStudentController {
 
         const studentsRepository = new StudentsRepository()
         const deleteStudentUseCase = new DeleteStudentUseCase(studentsRepository)
-        const deletedStudent = await deleteStudentUseCase.execute(studentID)
+        const response = await deleteStudentUseCase.execute(studentID)
 
-        const deletedStudentIsValid = await ErrorValidation(deletedStudent)
-
-        if (deletedStudentIsValid.isValid === false) {
-            return res.status(deletedStudentIsValid.statusCode).json({
-                errorMessage: deletedStudentIsValid.errorMessage
-            })
-        }
-
-        return res.status(202).json({
-            deletedStudent
-        })
+        return res.status(response.statusCode).json({response})
 
     }
 }

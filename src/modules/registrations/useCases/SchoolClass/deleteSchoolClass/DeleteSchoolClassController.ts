@@ -11,10 +11,9 @@ class DeleteSchoolClassController {
 
         const schoolClassRepository = new SchoolClassRepository()
         const deleteSchoolClassUseCase = new DeleteSchoolClassUseCase(schoolClassRepository)
-        const deletedSchoolClass = await deleteSchoolClassUseCase.execute(schoolClassID)
+        const response = await deleteSchoolClassUseCase.execute(schoolClassID)
 
-        return res.status(deletedSchoolClass.statusCode)
-        .json({ deletedSchoolClass })
+        return res.status(response.statusCode).json({ response })
 
     }
 }

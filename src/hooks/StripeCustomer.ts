@@ -227,7 +227,7 @@ class StripeCustomer {
     async updatePurchasedSubscriptions({ subscriptionCreated }: { subscriptionCreated: CustomerSubscriptionCreated; }): Promise<validationResponse> {
 
         try {
-
+            console.log(subscriptionCreated)
             const stripeProductCreatedID = subscriptionCreated.items.data[0].price.product
 
             const isTheProductASchoolClass = await prisma.schoolClass.findFirst({
@@ -238,7 +238,6 @@ class StripeCustomer {
 
             //Verifica se é Donation ou SchoolClass
             if (isTheProductASchoolClass) {
-
 
 
                 const customer = await stripe.customers.update(
@@ -254,6 +253,7 @@ class StripeCustomer {
                         }
                     }
                 )
+
 
 
 
@@ -281,6 +281,9 @@ class StripeCustomer {
                     }
                 })
 
+                console.log(schoolClassBought)
+
+
                 if (!schoolClassBought) {
                     return {
                         isValid: false,
@@ -301,9 +304,7 @@ class StripeCustomer {
                             subscription.productName = schoolClassBought.title,
                             subscription.paymentMethod = `card = ${subscriptionCreated.default_payment_method}`,
                             subscription.paymentStatus = subscriptionCreated.status,
-                            subscription.paymentDate = String(
-                                (new Date()).toLocaleDateString('pt-BR')
-                            ) ?? '',
+                            subscription.paymentDate = new Date() ?? null,
                             subscription.valuePaid = subscriptionCreated.items.data[0].price.unit_amount
 
 
@@ -324,7 +325,6 @@ class StripeCustomer {
             } else {
 
                 // Atualizando os status de pagamento da donation
-
                 const donationSubscribed = await prisma.donations.update({
                     where: {
                         id: subscriptionCreated.metadata.donationID
@@ -333,8 +333,8 @@ class StripeCustomer {
                         valuePaid: subscriptionCreated.items.data[0].price.unit_amount,
                         paymentMethod: `card: ${subscriptionCreated.default_payment_method}`,
                         paymentStatus: subscriptionCreated.status,
-                        paymentDate: (new Date()).toLocaleDateString('pt-BR'),
-                        donationExpirationDate: (new Date(subscriptionCreated.current_period_end * 1000)).toLocaleDateString('pt-BR'),
+                        paymentDate: (new Date()),
+                        donationExpirationDate: (new Date(subscriptionCreated.current_period_end * 1000)),
                     }
                 })
 
@@ -417,7 +417,7 @@ class StripeCustomer {
     async searchCustomer(cpf: string, rg: string): Promise<string | undefined> {
 
         const customer = await stripe.customers.search({
-            query: `metadata[\'cpf\']:\'${cpf}\' OR metadata[\'rg\']:\'${rg}\'`,
+            query: `metadata[\'cpf\']:\'${cpf}\'`,
         });
 
 

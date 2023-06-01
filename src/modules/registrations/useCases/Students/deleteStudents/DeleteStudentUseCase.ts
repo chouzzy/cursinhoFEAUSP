@@ -6,7 +6,7 @@ class DeleteStudentUseCase {
     constructor(
         private studentsRepository: IStudentsRepository) {}
 
-    async execute(studentID:Students["id"]): Promise<Students | validationResponse> {
+    async execute(studentID:Students["id"]): Promise<validationResponse> {
         
         const deletedStudent = await this.studentsRepository.deleteStudent(studentID)
         

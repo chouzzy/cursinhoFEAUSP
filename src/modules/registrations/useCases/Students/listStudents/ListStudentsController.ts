@@ -6,43 +6,28 @@ import { ListStudentsUseCase } from "./ListStudentsUseCase";
 
 interface ListStudentsQuery {
     id?: Students["id"],
+    name?: Students["name"],
     email?: Students["email"],
-    state?: Students["state"],
+    cpf?: Students["cpf"],
     paymentStatus?: purcharsedSubscriptions["paymentStatus"],
-    page?: string
+    schoolClassID?: purcharsedSubscriptions["schoolClassID"],
+    initDate: string,
+    endDate: string,
+    page?: number,
+    pageRange?: number
 }
 
 class ListStudentsController {
     async handle(req: Request, res: Response): Promise<Response> {
 
-        const query: ListStudentsQuery = req.query
-
-        const queryValidation = await checkQuery(query)
-
-        if (queryValidation.isValid === false) {
-            return res.status(queryValidation.statusCode).json({
-                errorMessage: queryValidation.errorMessage
-            })
-        }
+        const body: ListStudentsQuery = req.body
 
         // Instanciando o useCase no repositório com as funções
         const studentsRepository = new StudentsRepository()
-
         const listStudentsUseCase = new ListStudentsUseCase(studentsRepository);
+        const response = await listStudentsUseCase.execute(body)
 
-        const students = await listStudentsUseCase.execute(query)
-        
-        const studentsAreValid = await ErrorValidation(students)
-        
-        if (studentsAreValid.isValid === false) {
-            return res.status(studentsAreValid.statusCode).json({
-                errorMessage: studentsAreValid.errorMessage
-            })
-        }
-
-        return res.status(202).json({
-            students
-        })
+        return res.status(response.statusCode).json({response})
 
     }
 }

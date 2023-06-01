@@ -6,7 +6,7 @@ class DeleteAdminUseCase {
     constructor(
         private adminsRepository: IAdminsRepository) {}
 
-    async execute(adminID:Admins["id"]): Promise<Admins | validationResponse> {
+    async execute(adminID:Admins["id"]): Promise<validationResponse> {
         
         const deletedAdmin = await this.adminsRepository.deleteAdmin(adminID)
         

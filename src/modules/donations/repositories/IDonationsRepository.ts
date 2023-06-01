@@ -2,21 +2,27 @@ import { validationResponse } from "../../../types"
 import { Donations } from "../entities/Donations"
 import { CreateDonationProps } from "../useCases/createDonation/CreateDonationController"
 import { DeleteDonationProps } from "../useCases/deleteDonation/DeleteDonationController";
+import { ListDonationsQuery } from "../useCases/listDonations/ListDonationsController";
 
 
 interface IDonationsRepository {
 
-    filterByValueEmailandDate(
-        initValue:number,
-        endValue:number,
-        email:string,
-        date:string,
-        actualPage:number
-    ): Promise<Donations[]>
+    filterDonation(
+        {name,
+        email,
+        cpf,
+        paymentStatus,
+        initValue,
+        endValue,
+        initDate,
+        endDate}:ListDonationsQuery,
+        page:number,
+        pageRange:number
+    ): Promise<validationResponse>
 
-    createDonation(donationData: CreateDonationProps): Promise<Donations|validationResponse>;
+    createDonation(donationData: CreateDonationProps): Promise<validationResponse>;
 
-    deleteDonation(donationID: Donations["id"], donationData: DeleteDonationProps): Promise<Donations| validationResponse>
+    deleteDonation(donationID: Donations["id"], donationData: DeleteDonationProps): Promise<validationResponse>
 }
 
-export {IDonationsRepository}
+export { IDonationsRepository }

@@ -14,30 +14,11 @@ class DeleteDonationController {
         const donationID:Donations["id"] = req.params.donationID
         const donationData: DeleteDonationProps = req.body
 
-        const bodyValidation = await checkBody(donationData)
-
-        if (bodyValidation.isValid === false) {
-            return res.status(bodyValidation.statusCode).json({
-                errorMessage: bodyValidation.errorMessage
-            })
-        }
-
-
         const donationsRepository = new DonationsRepository()
         const deleteDonationUseCase = new DeleteDonationUseCase(donationsRepository)
-        const deletedDonation = await deleteDonationUseCase.execute(donationID, donationData)
+        const response = await deleteDonationUseCase.execute(donationID, donationData)
 
-        const deletedDonationIsValid = await ErrorValidation(deletedDonation)
-
-        if (deletedDonationIsValid.isValid === false) {
-            return res.status(deletedDonationIsValid.statusCode).json({
-                errorMessage: deletedDonationIsValid.errorMessage
-            })
-        }
-
-        return res.status(202).json({
-            deletedDonation
-        })
+        return res.status(response.statusCode).json({response})
 
     }
 }

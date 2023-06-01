@@ -20,11 +20,11 @@ class RefreshTokenController {
         const newTokens = await refreshTokenUseCase.execute(refreshToken)
 
         ///
-        const tokenIsValid = await ErrorValidation(newTokens)
+        // const tokenIsValid = await ErrorValidation(newTokens)
         
-        if (tokenIsValid.isValid === false) {
-            return res.status(tokenIsValid.statusCode).json({
-                errorMessage: tokenIsValid.errorMessage
+        if (newTokens.isValid === false) {
+            return res.status(newTokens.statusCode).json({
+                errorMessage: newTokens.errorMessage
             })
         }
 

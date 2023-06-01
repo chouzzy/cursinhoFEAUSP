@@ -16,12 +16,15 @@ class Donations {
     valuePaid!: number
     paymentMethod!: string
     paymentStatus!: string
-    paymentDate!: string
+    paymentDate!: Date | null
 
     stripeCustomerID?: string
-    donationExpirationDate?: string
+    donationExpirationDate!: Date | null
 
     createdAt!: Date
 }
 
 export { Donations }
+
+
+

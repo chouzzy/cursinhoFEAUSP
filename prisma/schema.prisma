@@ -27,9 +27,9 @@ model Donations {
   valuePaid     Int
   paymentMethod String
   paymentStatus String
-  paymentDate   String
+  paymentDate   DateTime?
 
-  donationExpirationDate String
+  donationExpirationDate DateTime?
 
   stripeCustomerID String
   createdAt        DateTime @default(now())
@@ -107,7 +107,7 @@ type PurchasedSubscriptions {
   productName   String
   paymentMethod String
   paymentStatus String
-  paymentDate   String
+  paymentDate   DateTime?
   valuePaid     Int
 }
 

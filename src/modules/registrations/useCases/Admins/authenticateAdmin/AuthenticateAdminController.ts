@@ -17,20 +17,9 @@ class AuthenticateAdminsController {
         /// instanciação da classe do caso de uso
         const adminsRepository = new AdminsRepository()
         const authenticateAdminUseCase = new AuthenticateAdminUseCase(adminsRepository)
-        const authenticatedAdmin = await authenticateAdminUseCase.execute(adminData)
+        const response = await authenticateAdminUseCase.execute(adminData)
 
-        ///
-        const authenticatedAdminIsValid = await ErrorValidation(authenticatedAdmin)
-
-        if (authenticatedAdminIsValid.isValid === false) {
-            return res.status(authenticatedAdminIsValid.statusCode).json({
-                errorMessage: authenticatedAdminIsValid.errorMessage
-            })
-        }
-
-        return res.status(202).json({
-            authenticatedAdmin
-        })
+        return res.status(response.statusCode).json({response})
 
     }
 }

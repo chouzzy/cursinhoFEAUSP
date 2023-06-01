@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { SchoolClass } from "../../../entities/SchoolClass";
-import { SchoolClassRepository} from "../../../repositories/implementations/SchoolClassRepository";
+import { SchoolClassRepository } from "../../../repositories/implementations/SchoolClassRepository";
 import { ErrorValidation } from "./ListSchoolClassCheck";
 import { ListSchoolClassUseCase } from "./ListSchoolClassUseCase";
 
@@ -12,19 +12,11 @@ class ListSchoolClassController {
 
         const listSchoolClassUseCase = new ListSchoolClassUseCase(schoolClassRepository);
 
-        const schoolClass = await listSchoolClassUseCase.execute()
-        
-        const schoolClassAreValid = await ErrorValidation(schoolClass)
-        
-        if (schoolClassAreValid.isValid === false) {
-            return res.status(schoolClassAreValid.statusCode).json({
-                errorMessage: schoolClassAreValid.errorMessage
-            })
-        }
+        const schoolClassResponse = await listSchoolClassUseCase.execute()
 
-        return res.status(202).json({
-            schoolClass
-        })
+        return res.status(
+            schoolClassResponse.statusCode
+        ).json({schoolClassResponse})
 
     }
 }

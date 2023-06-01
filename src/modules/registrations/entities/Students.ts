@@ -5,7 +5,7 @@ class Students {
     id!:            string
     name!:          string
     email!:         string
-    gender?:           string
+    gender!:        string
     birth!:         string
     phoneNumber!:   string
     country!:       string
@@ -34,10 +34,13 @@ interface purcharsedSubscriptions {
     productName:   string
     paymentMethod: string
     paymentStatus: string
-    paymentDate:   string
+    paymentDate:   Date | null
     valuePaid:     number
 }
 
 
 
 export {Students, purcharsedSubscriptions}
+
+
+

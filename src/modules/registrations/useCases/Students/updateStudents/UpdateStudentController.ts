@@ -35,32 +35,13 @@ class UpdateStudentController {
         const studentData: UpdateStudentRequestProps = req.body
         const {studentID} = req.params
 
-        /// é responsabilidade do controller validar os dados recebidos na requisição
-        const bodyValidation = await checkBody(studentData)
-
-        if (bodyValidation.isValid === false) {
-            return res.status(bodyValidation.statusCode).json({
-                errorMessage: bodyValidation.errorMessage
-            })
-        }
 
         /// instanciação da classe do caso de uso
         const studentsRepository = new StudentsRepository()
         const updateStudentUseCase = new UpdateStudentUseCase(studentsRepository)
-        const updatedStudent = await updateStudentUseCase.execute(studentData, studentID)
+        const response = await updateStudentUseCase.execute(studentData, studentID)
 
-        ///
-        const updatedStudentIsValid = await ErrorValidation(updatedStudent)
-
-        if (updatedStudentIsValid.isValid === false) {
-            return res.status(updatedStudentIsValid.statusCode).json({
-                errorMessage: updatedStudentIsValid.errorMessage
-            })
-        }
-
-        return res.status(202).json({
-            updatedStudent
-        })
+        return res.status(response.statusCode).json({response})
 
     }
 }
