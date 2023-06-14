@@ -19,7 +19,12 @@ interface validationResponse {
   schoolClassList?: SchoolClass[]
   students?: Students
   studentsList?: Students[]
-  admins?: Admins
+  admins?: {
+    id: Admins["id"]
+    name: Admins["name"]
+    email: Admins["email"]
+    username: Admins["username"]
+  }
   adminsList?: Admins[]
   donations?: Donations
   donationsList?: Donations[]
@@ -144,27 +149,27 @@ interface CustomerSubscriptionCreated {
 interface ChargeRefundedProps {
   refunded: boolean,
   invoice: string,
-  customerID:string
+  customerID: string
 }
 
 interface InvoiceRetrieveProps {
-    customer: string,
-    customer_email: string,
-    subscription: string,
-    lines: {
-      data: [{
-        price: {
-          product: string
-        },
-        metadata: {
-          cpf: string,
-          rg: string,
-          schoolClassID: string,
-          stripeCustomerID: string,
-          subscriptionType: string
-        }
-      }]
-    }
+  customer: string,
+  customer_email: string,
+  subscription: string,
+  lines: {
+    data: [{
+      price: {
+        product: string
+      },
+      metadata: {
+        cpf: string,
+        rg: string,
+        schoolClassID: string,
+        stripeCustomerID: string,
+        subscriptionType: string
+      }
+    }]
+  }
 }
 
 interface StripeCreateProductProps {

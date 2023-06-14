@@ -24,7 +24,7 @@ router.get('/logintest', ensureAuthenticated, (req,res) => {
     return res.json({success: true})
 })
 
-router.use('/schoolClass', schoolClassRoutes)
+router.use('/schoolClass', ensureAuthenticated, schoolClassRoutes)
 router.use('/webhooks', webhooksRoutes)
 
 

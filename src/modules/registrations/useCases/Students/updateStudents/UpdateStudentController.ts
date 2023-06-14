@@ -11,6 +11,7 @@ interface UpdateStudentRequestProps {
     gender: Students["gender"],
     birth: Students["birth"],
     phoneNumber: Students["phoneNumber"],
+    isPhoneWhatsapp: Students["isPhoneWhatsapp"],
     country: Students["country"],
     state: Students["state"],
     city: Students["city"],

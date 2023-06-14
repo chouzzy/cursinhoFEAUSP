@@ -110,7 +110,7 @@ class StripeCustomer {
             if (!studentExists) {
                 return {
                     isValid: false,
-                    errorMessage: "🛑 Hook Error: the refund data doesn't matches to any student🛑",
+                    errorMessage: "Erro de Hook: os dados do reembolso não corresponde à nenhum estudante",
                     statusCode: 403
                 }
             }
@@ -133,7 +133,7 @@ class StripeCustomer {
                 }
             })
 
-            return { isValid: true, statusCode: 202, successMessage: "Customer created on Stripe Server" }
+            return { isValid: true, statusCode: 202, successMessage: "Cliente criado no servidor Stripe" }
 
         } catch (error: unknown) {
 
@@ -174,7 +174,7 @@ class StripeCustomer {
             if (!donationExists) {
                 return {
                     isValid: false,
-                    errorMessage: "🛑 Hook Error: the payment data doesn't matches to any donation🛑",
+                    errorMessage: "Erro de hook: os dados do pagamento não correspondem com nenhuma doação",
                     statusCode: 403
                 }
             }
@@ -270,7 +270,7 @@ class StripeCustomer {
                 if (!student) {
                     return {
                         isValid: false,
-                        errorMessage: "🛑 Product already bought🛑",
+                        errorMessage: "Produto já comprado.",
                         statusCode: 403
                     }
                 }
@@ -287,7 +287,7 @@ class StripeCustomer {
                 if (!schoolClassBought) {
                     return {
                         isValid: false,
-                        errorMessage: "🛑 Product already bought🛑",
+                        errorMessage: "Produto já comprado.",
                         statusCode: 403
                     }
                 }
@@ -342,7 +342,7 @@ class StripeCustomer {
 
 
 
-            return { isValid: true, statusCode: 202, successMessage: "Customer created on Stripe Server" }
+            return { isValid: true, statusCode: 202, successMessage: "Cliente criado no servidor Stripe." }
 
         } catch (error: unknown) {
 
@@ -376,7 +376,7 @@ class StripeCustomer {
             if (!subscription) {
                 return {
                     isValid: false,
-                    errorMessage: '🔴 Donation Subscription not found on stripe 🔴',
+                    errorMessage: 'Inscrição de doação não encontrada no Stripe',
                     statusCode: 403
                 }
             }
@@ -390,14 +390,14 @@ class StripeCustomer {
             if (!deleted) {
                 return {
                     isValid: false,
-                    errorMessage: `🔴 Stripe couldn't delete the subscription: ${subscriptionID} 🔴`,
+                    errorMessage: ` Stripe não conseguiu excluir a inscrição: ${subscriptionID} `,
                     statusCode: 403
                 }
             }
 
             return {
                 isValid: true,
-                successMessage: `Subscription ${subscriptionID} deleted successfully`,
+                successMessage: `Inscrição ${subscriptionID} deletada com sucesso.`,
                 statusCode: 202
             }
 

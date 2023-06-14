@@ -32,13 +32,13 @@ class DonationsRepository implements IDonationsRepository {
         
         
         try {
-            console.log('aqui')
         const filteredDonations = await prisma.donations.groupBy({
             by:[
                 'id',
                 'name',
                 'email',
                 'phoneNumber',
+                'isPhoneWhatsapp',
                 'gender',
                 'birth',
                 'country',
@@ -114,6 +114,7 @@ class DonationsRepository implements IDonationsRepository {
                     name: donationData.name,
                     email: donationData.email,
                     phoneNumber: donationData.phoneNumber,
+                    isPhoneWhatsapp: donationData.isPhoneWhatsapp,
                     gender: donationData.gender ?? 'Não informado',
                     birth: donationData.birth,
                     country: donationData.country,
@@ -174,7 +175,7 @@ class DonationsRepository implements IDonationsRepository {
                 await stripeFrontEnd.createSubscription(createdDonation.id, stripeCustomerID, cpf, rg)
             }
 
-            return { isValid: true, successMessage: 'Donation Created', statusCode: 202 }
+            return { isValid: true, successMessage: 'Doação criada com sucesso!', statusCode: 202 }
 
         }
         catch (error: unknown) {
@@ -202,7 +203,7 @@ class DonationsRepository implements IDonationsRepository {
             if (!donationExists) {
                 return {
                     isValid: false,
-                    errorMessage: '🔴 Donation not found 🔴',
+                    errorMessage: 'Doação não encontrada',
                     statusCode: 403
                 }
             }
@@ -228,7 +229,7 @@ class DonationsRepository implements IDonationsRepository {
 
             return {
                 isValid: false,
-                errorMessage: "🔴 Donation not updated. Try to check if paymentStatus has the proper attribute. Ex: paymentStatus: 'canceled'  🔴",
+                errorMessage: "Doação não atualizada. Cheque se o Status de pagamento foi enviado corretamente. Ex: paymentStatus: 'canceled'",
                 statusCode: 304
             }
             

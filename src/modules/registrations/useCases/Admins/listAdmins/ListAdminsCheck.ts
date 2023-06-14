@@ -36,7 +36,7 @@ async function ErrorValidation(admin: Admins[] | validationResponse): Promise<va
             return {
                 isValid: false,
                 statusCode: 404,
-                errorMessage: '⚠️ Não foi encontrado nenhum admnistrador. ⚠️'
+                errorMessage: 'Não foi encontrado nenhum admnistrador.'
             }
         }
         return {

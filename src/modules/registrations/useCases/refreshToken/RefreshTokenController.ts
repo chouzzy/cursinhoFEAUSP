@@ -4,7 +4,9 @@ import { ErrorValidation } from "./RefreshTokenCheck"
 import { RefreshTokenUseCase } from "./RefreshTokenUseCase"
 import { RefreshTokenRepository } from "../../repositories/implementations/RefreshTokenRepository"
 
-interface RefreshTokenRequestProps extends RefreshToken { }
+interface RefreshTokenRequestProps {
+    id: RefreshToken["id"]
+ }
 
 
 class RefreshTokenController {

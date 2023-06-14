@@ -15,6 +15,7 @@ model Donations {
   name        String
   email       String
   phoneNumber String
+  isPhoneWhatsapp Boolean
   gender      String
   birth       String
   country     String
@@ -44,6 +45,7 @@ model Students {
   gender      String
   birth       String
   phoneNumber String
+  isPhoneWhatsapp Boolean
   country     String
   state       String
   city        String

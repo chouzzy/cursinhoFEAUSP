@@ -1,5 +1,3 @@
-
-
 class Students {
 
     id!:            string
@@ -8,6 +6,7 @@ class Students {
     gender!:        string
     birth!:         string
     phoneNumber!:   string
+    isPhoneWhatsapp!: boolean
     country!:       string
     state!:         string
     city!:          string
@@ -38,9 +37,4 @@ interface purcharsedSubscriptions {
     valuePaid:     number
 }
 
-
-
 export {Students, purcharsedSubscriptions}
-
-
-

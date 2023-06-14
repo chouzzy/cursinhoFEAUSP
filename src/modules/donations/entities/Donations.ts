@@ -4,6 +4,7 @@ class Donations {
     name!: string
     email!: string
     phoneNumber!: string
+    isPhoneWhatsapp!: boolean
     gender?: string
     birth!: string
     country!: string
@@ -25,6 +26,3 @@ class Donations {
 }
 
 export { Donations }
-
-
-

@@ -36,7 +36,7 @@ async function ErrorValidation(student: Students[] | validationResponse): Promis
             return {
                 isValid: false,
                 statusCode: 404,
-                errorMessage: '⚠️ Não foi encontrado nenhum estudante. ⚠️'
+                errorMessage: 'Não foi encontrado nenhum estudante.'
             }
         }
         return {

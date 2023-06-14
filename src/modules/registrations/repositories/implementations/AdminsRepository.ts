@@ -90,15 +90,15 @@ class AdminsRepository implements IAdminsRepository {
             if (searchedAdmin.length > 0) {
 
                 if (searchedAdmin[0].email == adminData.email && searchedAdmin[0].username == adminData.username) {
-                    return { isValid: false, errorMessage: `🛑 E-mail and Username already exists 🛑`, statusCode: 403 }
+                    return { isValid: false, errorMessage: `E-mail and nome de usuário já existem `, statusCode: 403 }
                 }
 
                 if (searchedAdmin[0].email == adminData.email) {
-                    return { isValid: false, errorMessage: `🛑 E-mail already exists 🛑`, statusCode: 403 }
+                    return { isValid: false, errorMessage: `🛑 E-mail já existente 🛑`, statusCode: 403 }
                 }
 
                 if (searchedAdmin[0].username == adminData.username) {
-                    return { isValid: false, errorMessage: `🛑 Username already exists 🛑`, statusCode: 403 }
+                    return { isValid: false, errorMessage: `🛑 Nome de usuário já existente 🛑`, statusCode: 403 }
                 }
 
 
@@ -118,8 +118,13 @@ class AdminsRepository implements IAdminsRepository {
             return {
                 isValid: true,
                 statusCode: 202,
-                admins: createAdmin,
-                successMessage: 'Admin successfully created'
+                admins: {
+                    id: createAdmin.id,
+                    name: createAdmin.name,
+                    email: createAdmin.email,
+                    username: createAdmin.username
+                },
+                successMessage: 'Admnistrador criado com sucesso.'
             }
 
 
@@ -163,7 +168,7 @@ class AdminsRepository implements IAdminsRepository {
                 isValid: true,
                 statusCode: 202,
                 admins: updatedAdmin,
-                successMessage: 'Admin successfully updated'
+                successMessage: 'Administrador atualizado com sucesso.'
             }
 
         } catch (error: unknown) {
@@ -194,7 +199,7 @@ class AdminsRepository implements IAdminsRepository {
             })
 
             if (admin == null) {
-                return { isValid: false, errorMessage: '🛑 Admin not found 🛑', statusCode: 403 }
+                return { isValid: false, errorMessage: 'Administrador não encontrado.', statusCode: 403 }
             }
 
             const updatedAdmin = await prisma.admins.update({
@@ -208,7 +213,7 @@ class AdminsRepository implements IAdminsRepository {
             return {
                 isValid: true,
                 statusCode: 202,
-                successMessage: 'Password was successfully changed'
+                successMessage: 'Senha alterada com sucesso.'
             }
 
         } catch (error: unknown) {
@@ -260,7 +265,7 @@ class AdminsRepository implements IAdminsRepository {
                     return {
                         isValid: false,
                         statusCode: 403,
-                        errorMessage: "⛔ An error occurred when trying to delete the admin from the database ⛔"
+                        errorMessage: "Ocorreu um erro ao tentar deletar o administrador"
                     }
                 }
 
@@ -269,7 +274,7 @@ class AdminsRepository implements IAdminsRepository {
             return {
                 isValid: false,
                 statusCode: 403,
-                errorMessage: "⛔ Admin not found in database ⛔"
+                errorMessage: "Administrador não encontrado no banco de dados."
             }
 
         } catch (error) {
@@ -298,7 +303,7 @@ class AdminsRepository implements IAdminsRepository {
                 return {
                     isValid: false,
                     statusCode: 403,
-                    errorMessage: "⛔ Username or password incorrect 1 ⛔"
+                    errorMessage: "Usuário ou senha incorretos."
                 }
             }
 
@@ -308,62 +313,32 @@ class AdminsRepository implements IAdminsRepository {
                 return {
                     isValid: false,
                     statusCode: 403,
-                    errorMessage: "⛔ Username or password incorrect 2 ⛔"
+                    errorMessage: "Usuário ou senha incorretos."
                 }
             }
 
 
             // Gerando o Token
             const generateTokenProvider = new GenerateTokenProvider()
-            const token = await generateTokenProvider.execute(adminFound.id, adminFound.name, adminFound.email)
+            const token = await generateTokenProvider.execute(adminFound.id)
 
 
 
+            //Gerando refresh token
+            const generateRefreshToken = new GenerateRefreshToken()
+            const newRefreshToken = await generateRefreshToken.execute(adminFound.id)
 
-            //////// REFRESH TOKEN ////////
-
-            //Buscando o RefreshToken do usuário logado
-            const adminRefreshToken = await prisma.refreshToken.findFirst({
-                where: {
-                    adminID: adminFound.id
-                }
-            })
-
-            //Checando se o RefreshToken do usuário logado existe
-            if (!adminRefreshToken) {
-                const generateRefreshToken = new GenerateRefreshToken()
-                const refreshToken = await generateRefreshToken.execute(adminFound.id)
-
-                return { isValid: true, token: token, refreshToken: refreshToken, statusCode: 403 }
+            return {
+                isValid: true,
+                token: token,
+                refreshToken: newRefreshToken.id,
+                admins: {
+                    id: adminFound.id,
+                    name: adminFound.name,
+                    username: adminFound.username,
+                    email: adminFound.email
+                }, statusCode: 202
             }
-
-
-
-
-
-            //////// Expiração ////////
-
-            //Checagem da expiração do Token encontrado
-            const refreshTokenExpired = dayjs().isAfter(dayjs.unix(adminRefreshToken.expires_at))
-
-            //Deleção dos RefreshTokens expirados
-            if (refreshTokenExpired) {
-
-                await prisma.refreshToken.deleteMany({
-                    where: {
-                        adminID: adminRefreshToken.adminID
-                    }
-                })
-                const generateRefreshToken = new GenerateRefreshToken()
-                const newRefreshToken = await generateRefreshToken.execute(adminRefreshToken.adminID)
-
-                return { isValid: true, token: token, refreshToken: newRefreshToken, statusCode: 202 }
-            }
-
-
-            //////// Refresh Token existente e não expirado ////////
-            // Retorno do novo token e refreshToken antigo que não foi expirado
-            return { isValid: true, token: token, refreshToken: adminRefreshToken, statusCode: 202 }
 
 
         } catch (error) {

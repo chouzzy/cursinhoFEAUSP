@@ -1,9 +1,9 @@
 import { ValidationError } from "yup";
 import { validationResponse } from "../../../../../types";
-import { CreateSchoolClassDocsRequestProps } from "./DeleteSchoolClassDocsController";
 import { createSchoolClassDocsSchema } from "./DeleteSchoolClassDocsSchema";
 import { Students } from "../../../entities/Students";
 import { SchoolClass } from "../../../entities/SchoolClass";
+import { CreateSchoolClassDocsRequestProps } from "../createSchoolClassDocs/CreateSchoolClassDocsController";
 
 
 

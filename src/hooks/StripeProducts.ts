@@ -25,7 +25,7 @@ class StripeProducts {
             if (!schoolClassFound) {
                 return {
                     isValid: false,
-                    errorMessage: "🛑 Hook Error: the product data doesn't matches to any product 🛑",
+                    errorMessage: " Erro de Hook: Os dados do produto não correspondem a nenhum produto ",
                     statusCode: 403
                 }
             }
@@ -53,7 +53,7 @@ class StripeProducts {
                 isValid: true,
                 statusCode: 202,
                 stripeCreatedProductID: stripeCreatedProduct.id,
-                successMessage: "Customer created on Stripe Server"
+                successMessage: "Cliente criado no servidor Stripe"
             }
 
         } catch (error: unknown) {

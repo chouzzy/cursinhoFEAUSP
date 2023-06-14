@@ -17,7 +17,7 @@ async function ErrorValidation(schoolClass: SchoolClass[] | validationResponse):
             return {
                 isValid: false,
                 statusCode: 404,
-                errorMessage: '⚠️ Não foi encontrada nenhuma turma. ⚠️'
+                errorMessage: 'Não foi encontrada nenhuma turma.'
             }
         }
         return {

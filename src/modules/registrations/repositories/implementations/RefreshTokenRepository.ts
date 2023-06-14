@@ -6,6 +6,7 @@ import { RefreshToken } from "../../entities/RefreshToken";
 import { GenerateRefreshToken } from "../../provider/GenerateRefreshToken";
 import { GenerateTokenProvider } from "../../provider/GenerateTokenProvider";
 import { IRefreshTokenRepository } from "../IRefreshTokenRepository";
+import { RefreshTokenRequestProps } from "../../useCases/refreshToken/RefreshTokenController";
 
 
 class RefreshTokenRepository implements IRefreshTokenRepository {
@@ -16,7 +17,7 @@ class RefreshTokenRepository implements IRefreshTokenRepository {
         this.refreshToken = []
     }
 
-    async refreshTokenValidation(refreshToken: RefreshToken): Promise< validationResponse> {
+    async refreshTokenValidation(refreshToken: RefreshTokenRequestProps): Promise<validationResponse> {
 
         try {
 
@@ -27,30 +28,62 @@ class RefreshTokenRepository implements IRefreshTokenRepository {
             })
 
             if (!adminRefreshToken) {
-                return { isValid: false, errorMessage: "🔴 Refresh Token Invalid 🔴", statusCode: 403 }
+                return { isValid: false, errorMessage: "Refresh Token inválido", statusCode: 403 }
             }
 
-            const refreshTokenExpired = dayjs().isAfter(dayjs.unix(refreshToken.expires_at))
 
+            const adminFound = await prisma.admins.findFirst({
+                where: {
+                    id: adminRefreshToken.adminID
+                }
+            })
+
+            if (!adminFound) {
+                return { isValid: false, errorMessage: " Administrador não encontrado ", statusCode: 403 }
+            }
+
+
+            const refreshTokenExpired = dayjs().isAfter(dayjs.unix(adminRefreshToken.expires_at))
+
+            if (refreshTokenExpired) {
+
+                await prisma.refreshToken.deleteMany({
+                    where: {
+                        adminID: adminRefreshToken.adminID
+                    }
+                })
+                return { isValid: false, errorMessage: "Refresh Token expirado", statusCode: 403 }
+            }
+
+            await prisma.refreshToken.deleteMany({
+                where: {
+                    adminID: adminRefreshToken.adminID
+                }
+            })
+
+            //gera novo access token
             const generateTokenProvider = new GenerateTokenProvider()
             const token = await generateTokenProvider.execute(adminRefreshToken.adminID)
 
-            if (refreshTokenExpired) {
-                await prisma.refreshToken.deleteMany({
-                    where: {
-                        adminID:refreshToken.adminID
-                    }
-                })
-                const generateRefreshToken = new GenerateRefreshToken()
-                const newRefreshToken = await generateRefreshToken.execute(adminRefreshToken.adminID)
+            //apagar o refresh token e enviar um 401 refresh token expired
+            const generateRefreshToken = new GenerateRefreshToken()
+            const newRefreshToken = await generateRefreshToken.execute(adminRefreshToken.adminID)
 
-                return { isValid: true, token: token, refreshToken: newRefreshToken, statusCode: 202}
+            return {
+                isValid: true,
+                token: token,
+                refreshToken: newRefreshToken.id,
+                admins: {
+                    id: adminFound.id,
+                    name: adminFound.name,
+                    username: adminFound.username,
+                    email: adminFound.email,
+                },
+                statusCode: 202
             }
 
-            return { isValid: true, token: token, statusCode: 202}
 
 
-            
         } catch (error) {
             if (error instanceof Prisma.PrismaClientValidationError) {
 

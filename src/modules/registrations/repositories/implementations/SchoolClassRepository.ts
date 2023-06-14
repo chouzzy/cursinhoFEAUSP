@@ -36,7 +36,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
 
             //Checa se email e usuario ja existem
             if (schoolClassFound) {
-                return { isValid: false, errorMessage: `🛑 School Class tittle already exists 🛑`, statusCode: 403 }
+                return { isValid: false, errorMessage: `Título de turma já existente`, statusCode: 403 }
             }
 
             schoolClassData.documents?.map(doc => {
@@ -103,7 +103,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
             })
 
             if (!schoolClass) {
-                return { isValid: false, errorMessage: '🛑 SchoolClass not found 🛑', statusCode: 403 }
+                return { isValid: false, errorMessage: 'Turma não encontrada.', statusCode: 403 }
             }
 
             //Se tiver o product ID, iremos atualizá-lo, pois se trata de um update do webhook
@@ -121,7 +121,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
                 return {
                     isValid: true,
                     statusCode: 202,
-                    successMessage: 'SchoolClass Product created on Stripe and updated successfully on Database ',
+                    successMessage: 'Turma criada no servidor Stripe e atualizada com sucesso no banco de dados.',
                     schoolClass: updatedSchoolClass
                 }
             }
@@ -139,7 +139,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
             return {
                 isValid: true,
                 statusCode: 202,
-                successMessage: "SchoolClass updated successfully",
+                successMessage: "Turma atualizada com sucesso",
                 schoolClass: updatedSchoolClass
             }
 
@@ -189,7 +189,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
 
                     return {
                         isValid: true,
-                        successMessage:'Student successfully deleted',
+                        successMessage:'Estudante deletado com sucesso',
                         statusCode: 202,
                         schoolClass: schoolClass
                     }
@@ -199,7 +199,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
                     return {
                         isValid: false,
                         statusCode: 403,
-                        errorMessage: "⛔ An error occurred when trying to delete the schoolClass from the database ⛔"
+                        errorMessage: "Um erro ocorreu ao tentar excluir a turma do banco de dados"
                     }
                 }
 
@@ -208,7 +208,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
                 return {
                     isValid: false,
                     statusCode: 403,
-                    errorMessage: "⛔ SchoolClass not found in database ⛔"
+                    errorMessage: "Turma não encontrada no banco de dados"
                 }
             }
 
@@ -232,7 +232,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
             if (!schoolClass) {
                 return {
                     isValid: false,
-                    errorMessage: "Could not find school class",
+                    errorMessage: "Turma não encontrada.",
                     statusCode: 403
                 }
             }
@@ -263,7 +263,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
             if (titleAlreadyRegistered) {
                 return {
                     isValid: false,
-                    errorMessage: "This title is already in use or duplicated in your request",
+                    errorMessage: "Título já existente",
                     statusCode: 403
                 }
             }
@@ -309,7 +309,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
             if (!schoolClass) {
                 return {
                     isValid: false,
-                    errorMessage: "Could not find school class",
+                    errorMessage: "Turma não encontrada",
                     statusCode: 403
                 }
             }
@@ -338,7 +338,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
 
             return {
                 isValid: true,
-                successMessage: "Document was successfully registered",
+                successMessage: "Documento registrado com sucesso.",
                 statusCode: 201,
             }
 
@@ -367,7 +367,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
             if (!schoolClass) {
                 return {
                     isValid: false,
-                    errorMessage: 'School class not found',
+                    errorMessage: 'Turma não encontrada.',
                     statusCode: 404
                 }
             }
@@ -377,11 +377,10 @@ class SchoolClassRepository implements ISchoolClassRepository {
                 return doc.docsID === docsID
             })
 
-            console.log(docExists)
             if (docExists.length == 0) {
                 return {
                     isValid: false,
-                    errorMessage: 'Document not found',
+                    errorMessage: 'Documento não encontrado',
                     statusCode: 404
                 }
             }
@@ -398,7 +397,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
 
             return {
                 isValid: true,
-                successMessage: 'Document deleted successfully',
+                successMessage: 'Documento excluído com sucesso.',
                 statusCode: 201
             }
 
@@ -426,7 +425,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
             if (!schoolClass) {
                 return {
                     isValid: false,
-                    errorMessage: 'School class not found',
+                    errorMessage: 'Turma não encontrada',
                     statusCode: 404
                 }
             }
@@ -436,11 +435,10 @@ class SchoolClassRepository implements ISchoolClassRepository {
                 return stage.stagesID === stagesID
             })
 
-            console.log(stageExists)
             if (stageExists.length == 0) {
                 return {
                     isValid: false,
-                    errorMessage: 'Selective Stage not found',
+                    errorMessage: 'Etapa não encontrada',
                     statusCode: 404
                 }
             }

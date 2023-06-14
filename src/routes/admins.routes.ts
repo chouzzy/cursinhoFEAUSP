@@ -5,23 +5,24 @@ import { DeleteAdminController } from "../modules/registrations/useCases/Admins/
 import { ListAdminsController } from "../modules/registrations/useCases/Admins/listAdmins/ListAdminsController"
 import { UpdateAdminsController } from "../modules/registrations/useCases/Admins/updateAdmins/UpdateAdminsController"
 import { UpdateAdminsPasswordController } from "../modules/registrations/useCases/Admins/updateAdminsPassword/UpdateAdminsPasswordController"
+import { ensureAuthenticated } from "../modules/registrations/middleware/ensureAuthenticate"
 
 const adminsRoutes = Router()
 
 const listAdminsController = new ListAdminsController()
-adminsRoutes.get('/', listAdminsController.handle)
+adminsRoutes.get('/', ensureAuthenticated, listAdminsController.handle)
 
 const createAdminsController = new CreateAdminsController()
-adminsRoutes.post('/create', createAdminsController.handle)
+adminsRoutes.post('/create', ensureAuthenticated, createAdminsController.handle)
 
 const updateAdminsController = new UpdateAdminsController()
-adminsRoutes.put('/:adminID/update', updateAdminsController.handle)
+adminsRoutes.put('/:adminID/update', ensureAuthenticated, updateAdminsController.handle)
 
 const updateAdminsPasswordController = new UpdateAdminsPasswordController()
-adminsRoutes.put('/:adminID/updatePassword', updateAdminsPasswordController.handle)
+adminsRoutes.put('/:adminID/updatePassword', ensureAuthenticated, updateAdminsPasswordController.handle)
 
 const deleteAdminsController = new DeleteAdminController()
-adminsRoutes.delete('/:adminID/delete', deleteAdminsController.handle)
+adminsRoutes.delete('/:adminID/delete', ensureAuthenticated, deleteAdminsController.handle)
 
 const authenticateAdminsController = new AuthenticateAdminsController()
 adminsRoutes.post('/login', authenticateAdminsController.handle)

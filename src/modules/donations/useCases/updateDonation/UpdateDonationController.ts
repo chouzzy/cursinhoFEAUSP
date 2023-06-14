@@ -8,6 +8,7 @@ interface UpdateDonationProps {
     name:        Donations["name"]
     email:       Donations["email"]
     phoneNumber: Donations["phoneNumber"]
+    isPhoneWhatsapp: Donations["isPhoneWhatsapp"]
     gender?:      Donations["gender"]
     birth:       Donations["birth"]
     country:     Donations["country"]

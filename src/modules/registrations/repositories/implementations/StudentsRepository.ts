@@ -194,7 +194,7 @@ class StudentsRepository implements IStudentsRepository {
 
                     return {
                         isValid: false,
-                        errorMessage: `🛑 One or more subscriptions has been already bought by this Student 🛑`,
+                        errorMessage: `Uma ou mais inscrições já foram compradas pelo estudante.`,
                         subscriptionsDuplicated: subscriptionsDuplicated,
                         statusCode: 403
                     }
@@ -261,7 +261,7 @@ class StudentsRepository implements IStudentsRepository {
 
                 return {
                     isValid: true,
-                    errorMessage: `Student updated successfully in database`,
+                    errorMessage: `Estudante atualizado com sucesso!`,
                     students: updatedStudent,
                     statusCode: 202
                 }
@@ -270,7 +270,6 @@ class StudentsRepository implements IStudentsRepository {
 
 
             // Student não encontrado no banco:
-            console.log("nao foi encontrado no banco")
             const stripeCustomerCreatedID = await stripeCustomer.createCustomer(studentData)
 
             let studentSchoolClasses: purcharsedSubscriptions[] = []
@@ -294,6 +293,7 @@ class StudentsRepository implements IStudentsRepository {
                     gender: studentData.gender ?? 'Não informado',
                     birth: studentData.birth,
                     phoneNumber: studentData.phoneNumber,
+                    isPhoneWhatsapp: studentData.isPhoneWhatsapp,
                     country: studentData.country,
                     state: studentData.state,
                     city: studentData.city,
@@ -325,7 +325,7 @@ class StudentsRepository implements IStudentsRepository {
 
             return {
                 isValid: true,
-                successMessage: `Student created successfully in database`,
+                successMessage: `Estudante criado com sucesso!`,
                 students: createdStudent,
                 statusCode: 202
             }
@@ -356,7 +356,7 @@ class StudentsRepository implements IStudentsRepository {
             if (!student) {
                 return {
                     isValid: false,
-                    errorMessage: '🛑 Student not found 🛑',
+                    errorMessage: 'Estudante não encontrado.',
                     statusCode: 404
                 }
             }
@@ -366,25 +366,7 @@ class StudentsRepository implements IStudentsRepository {
                     id: studentID
                 },
                 data: {
-                    name: studentData.name ?? student.name,
-                    email: studentData.email ?? student.email,
-                    gender: studentData.gender ?? student.gender,
-                    birth: studentData.birth ?? student.birth,
-                    phoneNumber: studentData.phoneNumber ?? student.phoneNumber,
-                    country: studentData.country ?? student.country,
-                    state: studentData.state ?? student.state,
-                    city: studentData.city ?? student.city,
-
-                    address: studentData.address ?? student.address,
-                    cpf: studentData.cpf ?? student.cpf,
-                    rg: studentData.rg ?? student.rg,
-                    selfDeclaration: studentData.selfDeclaration ?? student.selfDeclaration,
-                    oldSchool: studentData.oldSchool ?? student.oldSchool,
-                    oldSchoolAdress: studentData.oldSchoolAdress ?? student.oldSchoolAdress,
-                    highSchoolGraduationDate: studentData.highSchoolGraduationDate ?? student.highSchoolGraduationDate,
-                    highSchoolPeriod: studentData.highSchoolPeriod ?? student.highSchoolPeriod,
-                    metUsMethod: studentData.metUsMethod ?? student.metUsMethod,
-                    exStudent: studentData.exStudent ?? student.exStudent
+                    ...studentData,
                 }
             })
             return {
@@ -434,7 +416,7 @@ class StudentsRepository implements IStudentsRepository {
                         isValid: true,
                         statusCode: 202,
                         students: student,
-                        successMessage: 'Student deleted successfully'
+                        successMessage: 'Estudante deletado com sucesso.'
                     }
 
                 } catch {
@@ -442,7 +424,7 @@ class StudentsRepository implements IStudentsRepository {
                     return {
                         isValid: false,
                         statusCode: 403,
-                        errorMessage: "⛔ An error occurred when trying to delete the student from the database ⛔"
+                        errorMessage: "Um erro ocorreu ao tentar excluir o estudante no banco de dados."
                     }
                 }
 
@@ -451,7 +433,7 @@ class StudentsRepository implements IStudentsRepository {
                 return {
                     isValid: false,
                     statusCode: 403,
-                    errorMessage: "⛔ Student not found in database ⛔"
+                    errorMessage: "Estudante não encontrado."
                 }
             }
 

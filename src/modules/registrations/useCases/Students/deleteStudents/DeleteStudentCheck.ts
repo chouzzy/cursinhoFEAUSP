@@ -1,5 +1,5 @@
 import { validationResponse } from "../../../../../types";
-import { Donations } from "../../entities/Donations";
+import { Donations } from "../../../../donations/entities/Donations";
 
 async function ErrorValidation(createdDonation: Donations | validationResponse): Promise<validationResponse> {
     
