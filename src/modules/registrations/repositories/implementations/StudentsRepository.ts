@@ -226,30 +226,7 @@ class StudentsRepository implements IStudentsRepository {
 
                 const updatedStudent = await prisma.students.update({
                     where: { id: searchedStudent.id },
-                    data: {
-                        name: studentData.name,
-                        email: studentData.email,
-                        gender: studentData.gender ?? 'Não informado',
-                        birth: studentData.birth,
-                        phoneNumber: studentData.phoneNumber,
-                        country: studentData.country,
-                        state: studentData.state,
-                        city: studentData.city,
-
-                        address: studentData.address,
-                        cpf: studentData.cpf,
-                        rg: studentData.rg,
-                        selfDeclaration: studentData.selfDeclaration,
-                        oldSchool: studentData.oldSchool,
-                        oldSchoolAdress: studentData.oldSchoolAdress,
-                        highSchoolGraduationDate: studentData.highSchoolGraduationDate,
-                        highSchoolPeriod: studentData.highSchoolPeriod,
-                        metUsMethod: studentData.metUsMethod,
-                        exStudent: studentData.exStudent,
-                        stripeCustomerID: stripeSearchedCustomerID,
-
-                        purcharsedSubscriptions: searchedStudent.purcharsedSubscriptions
-                    }
+                    data: {...studentData}
                 })
 
 
@@ -294,11 +271,15 @@ class StudentsRepository implements IStudentsRepository {
                     birth: studentData.birth,
                     phoneNumber: studentData.phoneNumber,
                     isPhoneWhatsapp: studentData.isPhoneWhatsapp,
-                    country: studentData.country,
                     state: studentData.state,
+                    
                     city: studentData.city,
+                    street: studentData.street,
+                    homeNumber: studentData.homeNumber,
+                    complement: studentData.complement ?? 'Não informado',
+                    district: studentData.district,
+                    zipCode: studentData.zipCode,
 
-                    address: studentData.address,
                     cpf: studentData.cpf,
                     rg: studentData.rg,
                     selfDeclaration: studentData.selfDeclaration,

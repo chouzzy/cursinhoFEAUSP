@@ -12,11 +12,15 @@ interface CreateStudentRequestProps {
     birth: Students["birth"],
     phoneNumber: Students["phoneNumber"],
     isPhoneWhatsapp: Students["isPhoneWhatsapp"],
-    country: Students["country"],
-    state: Students["state"],
-    city: Students["city"],
 
-    address: Students["address"],
+    state: Students["state"]
+    city: Students["city"]
+    street: Students["street"]
+    homeNumber: Students["homeNumber"]
+    complement?: Students["complement"]
+    district: Students["district"]
+    zipCode: Students["zipCode"]
+    
     cpf: Students["cpf"],
     rg: Students["rg"],
     selfDeclaration: Students["selfDeclaration"],
@@ -26,14 +30,14 @@ interface CreateStudentRequestProps {
     highSchoolPeriod: Students["highSchoolPeriod"],
     metUsMethod: Students["metUsMethod"],
     exStudent: Students["exStudent"],
-    pursharsedSubscriptions:{
+    pursharsedSubscriptions: {
         schoolClassID: purcharsedSubscriptions["schoolClassID"]
-        productID:     purcharsedSubscriptions["productID"]
-        productName:   purcharsedSubscriptions["productName"]
+        productID: purcharsedSubscriptions["productID"]
+        productName: purcharsedSubscriptions["productName"]
         paymentMethod: purcharsedSubscriptions["paymentMethod"]
         paymentStatus: purcharsedSubscriptions["paymentStatus"]
-        paymentDate:   purcharsedSubscriptions["paymentDate"]
-        valuePaid:     purcharsedSubscriptions["valuePaid"]
+        paymentDate: purcharsedSubscriptions["paymentDate"]
+        valuePaid: purcharsedSubscriptions["valuePaid"]
     }[],
 
 }
@@ -48,7 +52,7 @@ class CreateStudentController {
         const createStudentUseCase = new CreateStudentUseCase(studentsRepository)
         const response = await createStudentUseCase.execute(studentData)
 
-        return res.status(response.statusCode).json({response})
+        return res.status(response.statusCode).json({ response })
 
     }
 }

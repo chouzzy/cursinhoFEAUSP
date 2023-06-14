@@ -7,10 +7,14 @@ class Donations {
     isPhoneWhatsapp!: boolean
     gender?: string
     birth!: string
-    country!: string
-    state!: string
-    city!: string
-    address!: string
+    state!:string
+    city!:string
+    street!:string
+    homeNumber!:string
+    complement!: string| null
+    district!:string
+    zipCode!:string
+
     cpf!: string
     rg!: string
 

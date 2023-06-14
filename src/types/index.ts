@@ -211,10 +211,9 @@ interface StripeCustomerData {
   phoneNumber: string
   gender?: string
   birth: string
-  country: string
   state: string
   city: string
-  address: string
+  street: string
   cpf: string
   rg: string
 }

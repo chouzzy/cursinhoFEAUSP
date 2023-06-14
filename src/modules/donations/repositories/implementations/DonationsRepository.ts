@@ -41,10 +41,13 @@ class DonationsRepository implements IDonationsRepository {
                 'isPhoneWhatsapp',
                 'gender',
                 'birth',
-                'country',
                 'state',
                 'city',
-                'address',
+                'homeNumber',
+                'complement',
+                'district',
+                'zipCode',
+                'street',
                 'cpf',
                 'rg',
 
@@ -117,16 +120,21 @@ class DonationsRepository implements IDonationsRepository {
                     isPhoneWhatsapp: donationData.isPhoneWhatsapp,
                     gender: donationData.gender ?? 'Não informado',
                     birth: donationData.birth,
-                    country: donationData.country,
                     state: donationData.state,
                     city: donationData.city,
-                    address: donationData.address,
+                    street: donationData.street,
+                    
+                    homeNumber: donationData.homeNumber,
+                    complement: donationData.complement ?? 'Não informado',
+                    district: donationData.district,
+                    zipCode: donationData.zipCode,
                     cpf: donationData.cpf,
                     rg: donationData.rg,
                     valuePaid: donationData.valuePaid,
                     paymentMethod: 'Sem informação ainda',
                     paymentStatus: 'Sem informação ainda',
-                    stripeCustomerID: 'Sem informação ainda'
+                    stripeCustomerID: 'Sem informação ainda',
+
 
                 }
             })

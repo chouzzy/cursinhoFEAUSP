@@ -12,11 +12,15 @@ interface UpdateStudentRequestProps {
     birth: Students["birth"],
     phoneNumber: Students["phoneNumber"],
     isPhoneWhatsapp: Students["isPhoneWhatsapp"],
-    country: Students["country"],
-    state: Students["state"],
-    city: Students["city"],
 
-    address: Students["address"],
+    state: Students["state"]
+    city: Students["city"]
+    street: Students["street"]
+    homeNumber: Students["homeNumber"]
+    complement?: Students["complement"]
+    district: Students["district"]
+    zipCode: Students["zipCode"]
+
     cpf: Students["cpf"],
     rg: Students["rg"],
     selfDeclaration: Students["selfDeclaration"],

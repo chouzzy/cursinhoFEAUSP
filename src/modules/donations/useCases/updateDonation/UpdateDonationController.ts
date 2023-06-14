@@ -5,26 +5,29 @@ import { checkBody, ErrorValidation } from "./UpdateDonationCheck"
 import { UpdateDonationUseCase } from "./UpdateDonationUseCase"
 
 interface UpdateDonationProps {
-    name:        Donations["name"]
-    email:       Donations["email"]
+    name: Donations["name"]
+    email: Donations["email"]
     phoneNumber: Donations["phoneNumber"]
     isPhoneWhatsapp: Donations["isPhoneWhatsapp"]
-    gender?:      Donations["gender"]
-    birth:       Donations["birth"]
-    country:     Donations["country"]
-    state:       Donations["state"]
-    city:        Donations["city"]
-    address:     Donations["address"]
-    cpf:         Donations["cpf"]
-    rg:          Donations["rg"]
-    valuePaid:   Donations["valuePaid"]
+    gender?: Donations["gender"]
+    birth: Donations["birth"]
+    state: Donations["state"]
+    city: Donations["city"]
+    street: Donations["street"]
+    homeNumber: Donations["homeNumber"]
+    complement?: Donations["complement"]
+    district: Donations["district"]
+    zipCode: Donations["zipCode"]
+    cpf: Donations["cpf"]
+    rg: Donations["rg"]
+    valuePaid: Donations["valuePaid"]
 }
 
 
 class UpdateDonationController {
     async handle(req: Request, res: Response): Promise<Response> {
 
-        const donationData:UpdateDonationProps = req.body
+        const donationData: UpdateDonationProps = req.body
 
         //é responsabilidade do controller validar os dados recebidos na requisição
         const bodyValidation = await checkBody(donationData)
@@ -38,7 +41,7 @@ class UpdateDonationController {
 
         const donationsRepository = new DonationsRepository()
         const updateDonationUseCase = new UpdateDonationUseCase(donationsRepository)
-        
+
         const updatedDonation = await updateDonationUseCase.execute(donationData)
         const updatedDonationIsValid = await ErrorValidation(updatedDonation)
 
@@ -55,4 +58,4 @@ class UpdateDonationController {
     }
 }
 
-export {UpdateDonationController, UpdateDonationProps}
+export { UpdateDonationController, UpdateDonationProps }

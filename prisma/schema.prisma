@@ -11,19 +11,24 @@ datasource db {
 }
 
 model Donations {
-  id          String @id @default(uuid()) @map("_id")
-  name        String
-  email       String
-  phoneNumber String
+  id              String  @id @default(uuid()) @map("_id")
+  name            String
+  email           String
+  phoneNumber     String
   isPhoneWhatsapp Boolean
-  gender      String
-  birth       String
-  country     String
-  state       String
-  city        String
-  address     String
-  cpf         String
-  rg          String
+  gender          String
+  birth           String
+
+  state      String
+  city       String
+  street     String
+  homeNumber String
+  complement String?
+  district   String
+  zipCode    String
+
+  cpf String
+  rg  String
 
   valuePaid     Int
   paymentMethod String
@@ -39,17 +44,20 @@ model Donations {
 }
 
 model Students {
-  id          String @id @default(uuid()) @map("_id")
-  name        String
-  email       String @unique
-  gender      String
-  birth       String
-  phoneNumber String
+  id              String  @id @default(uuid()) @map("_id")
+  name            String
+  email           String  @unique
+  gender          String
+  birth           String
+  phoneNumber     String
   isPhoneWhatsapp Boolean
-  country     String
-  state       String
-  city        String
-  address     String
+  state           String
+  city            String
+  street          String
+  homeNumber      String
+  complement      String?
+  district        String
+  zipCode         String
 
   cpf                      String
   rg                       String
@@ -91,17 +99,16 @@ model RefreshToken {
 }
 
 model SchoolClass {
-  id                 String                              @id @default(uuid()) @map("_id")
-  title              String
-  informations       SchoolClassInformations
-  subscriptions      SchoolClassSubscriptionInformations
-  selectiveStages    SchoolClassSelectiveStages[]
-  stripeProductID    String
-  documents          DocumentsTypes[]
+  id              String                              @id @default(uuid()) @map("_id")
+  title           String
+  informations    SchoolClassInformations
+  subscriptions   SchoolClassSubscriptionInformations
+  selectiveStages SchoolClassSelectiveStages[]
+  stripeProductID String
+  documents       DocumentsTypes[]
 
   @@map("SchoolClass")
 }
-
 
 type PurchasedSubscriptions {
   schoolClassID String
@@ -114,7 +121,7 @@ type PurchasedSubscriptions {
 }
 
 type DocumentsTypes {
-  docsID String
+  docsID       String
   title        String
   downloadLink String
 }
@@ -136,7 +143,7 @@ type SchoolClassSubscriptionInformations {
 }
 
 type SchoolClassSelectiveStages {
-  stagesID String
+  stagesID    String
   when        String
   resultsDate DateTime
   description String

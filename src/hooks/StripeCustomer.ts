@@ -182,8 +182,7 @@ class StripeCustomer {
             const stripeDonorCreated = await stripe.customers.create({
                 address: {
                     city: donationData.city,
-                    country: donationData.country,
-                    line1: donationData.address,
+                    line1: donationData.street,
                     state: donationData.city
                 },
                 name: donationData.name,
@@ -435,8 +434,7 @@ class StripeCustomer {
             description: `Customer criado por awer na data: ${(new Date()).toLocaleDateString('pt-BR')}`,
             address: {
                 city: customerData.city,
-                country: customerData.country,
-                line1: customerData.address,
+                line1: customerData.street,
                 state: customerData.state
             },
             email: customerData.email,
