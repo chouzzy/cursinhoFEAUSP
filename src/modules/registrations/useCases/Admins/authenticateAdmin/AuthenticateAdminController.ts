@@ -19,7 +19,7 @@ class AuthenticateAdminsController {
         const authenticateAdminUseCase = new AuthenticateAdminUseCase(adminsRepository)
         const response = await authenticateAdminUseCase.execute(adminData)
 
-        return res.status(response.statusCode).json({response})
+        return res.status(response.statusCode).json(response)
 
     }
 }

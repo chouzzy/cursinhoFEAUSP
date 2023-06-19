@@ -8,7 +8,7 @@ function ensureAuthenticated(req: Request, res: Response, next: NextFunction) {
     
     if (!authToken) {
         return res.status(401).json({
-            message:'Nenhum header token foi enviado'
+            errorMessage:'Nenhum header token foi enviado'
         })
     }
 
@@ -17,7 +17,7 @@ function ensureAuthenticated(req: Request, res: Response, next: NextFunction) {
 
     if (!token) {
         return res.status(401).json({
-            message:'Token is missing'
+            errorMessage:'Token is missing'
         })
     }
 
@@ -28,7 +28,7 @@ function ensureAuthenticated(req: Request, res: Response, next: NextFunction) {
 
     } catch (error) {
         return res.status(401).json({
-            message:'Token is invalid'
+            errorMessage:'Token is invalid'
         })
     }
 }

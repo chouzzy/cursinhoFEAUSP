@@ -27,15 +27,15 @@ class AdminsRepository implements IAdminsRepository {
         name: Admins["name"] | undefined,
         email: Admins["email"] | undefined,
         username: Admins["username"] | undefined,
-        actualPage: number):
+        page: number,
+        pageRange: number
+        ):
         Promise<validationResponse> {
 
-
-        if (actualPage == 0) { actualPage = 1 }
-
         // Função do prisma para buscar todos os admins
-
         try {
+
+            const totalAdmins = (await prisma.admins.findMany()).length
 
             const admins = await prisma.admins.findMany({
                 where: {
@@ -46,6 +46,8 @@ class AdminsRepository implements IAdminsRepository {
                         { username: username },
                     ],
                 },
+                skip: page * pageRange,
+                take: pageRange
             })
 
             if (admins.length == 0) {
@@ -59,7 +61,8 @@ class AdminsRepository implements IAdminsRepository {
             return {
                 isValid: true,
                 statusCode: 202,
-                adminsList: admins
+                adminsList: admins,
+                totalDocuments: totalAdmins
             }
         } catch (error: unknown) {
 

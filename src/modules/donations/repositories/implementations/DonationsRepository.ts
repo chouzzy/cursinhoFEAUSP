@@ -32,6 +32,9 @@ class DonationsRepository implements IDonationsRepository {
         
         
         try {
+        const donations = await prisma.donations.findMany()
+        const totalDonations = donations.length
+
         const filteredDonations = await prisma.donations.groupBy({
             by:[
                 'id',
@@ -90,7 +93,8 @@ class DonationsRepository implements IDonationsRepository {
         return {
             isValid: true,
             statusCode: 202,
-            donationsList: filteredDonations
+            donationsList: filteredDonations,
+            totalDocuments: totalDonations
         }
 
         } catch (error: unknown) {
@@ -131,9 +135,11 @@ class DonationsRepository implements IDonationsRepository {
                     cpf: donationData.cpf,
                     rg: donationData.rg,
                     valuePaid: donationData.valuePaid,
+                    paymentDate: new Date(),
                     paymentMethod: 'Sem informação ainda',
                     paymentStatus: 'Sem informação ainda',
                     stripeCustomerID: 'Sem informação ainda',
+                    donationExpirationDate: null
 
 
                 }

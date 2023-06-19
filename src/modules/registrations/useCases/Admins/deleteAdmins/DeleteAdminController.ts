@@ -13,7 +13,7 @@ class DeleteAdminController {
         const deleteAdminUseCase = new DeleteAdminUseCase(adminsRepository)
         const response = await deleteAdminUseCase.execute(adminID)
 
-        return res.status(response.statusCode).json({response})
+        return res.status(response.statusCode).json(response)
 
     }
 }

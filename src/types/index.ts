@@ -28,6 +28,7 @@ interface validationResponse {
   adminsList?: Admins[]
   donations?: Donations
   donationsList?: Donations[]
+  totalDocuments?: number
   subscriptionsDuplicated?: purcharsedSubscriptions["schoolClassID"][]
 }
 

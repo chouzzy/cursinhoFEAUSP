@@ -20,7 +20,7 @@ class UpdateAdminsPasswordController {
         const updateAdminsPasswordUseCase = new UpdateAdminsPasswordUseCase(adminsRepository)
         const response = await updateAdminsPasswordUseCase.execute(adminData, adminID)
 
-        return res.status(response.statusCode).json({response})
+        return res.status(response.statusCode).json(response)
 
     }
 }

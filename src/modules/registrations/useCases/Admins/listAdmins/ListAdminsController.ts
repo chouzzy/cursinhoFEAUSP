@@ -10,7 +10,8 @@ interface ListAdminsQuery {
     email?: Admins["email"],
     username?: Admins["username"],
     password?: Admins["password"],
-    page?: string
+    page?: string,
+    pageRange?: string
 }
 
 class ListAdminsController {
@@ -26,7 +27,7 @@ class ListAdminsController {
 
         const response = await listAdminsUseCase.execute(query)
 
-        return res.status(response.statusCode).json({response})
+        return res.status(response.statusCode).json(response)
 
     }
 }

@@ -9,7 +9,7 @@ import { UpdateSchoolClassRequestProps } from "../useCases/SchoolClass/updateSch
 
 interface ISchoolClassRepository {
 
-    listAllSchoolClasses(): Promise<validationResponse>
+    listAllSchoolClasses(page: number, pageRange: number): Promise<validationResponse>
 
     createSchoolClass(schoolClassData: CreateSchoolClassRequestProps): Promise<validationResponse>
 

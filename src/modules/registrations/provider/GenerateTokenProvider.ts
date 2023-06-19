@@ -14,7 +14,7 @@ class GenerateTokenProvider {
         const token = sign({payload}, privateKey?privateKey:'', {
             
             subject: adminID,
-            expiresIn: "20s"
+            expiresIn: "1d"
         })
 
         return token

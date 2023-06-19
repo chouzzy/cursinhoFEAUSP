@@ -27,7 +27,7 @@ class ListStudentsController {
         const listStudentsUseCase = new ListStudentsUseCase(studentsRepository);
         const response = await listStudentsUseCase.execute(body)
 
-        return res.status(response.statusCode).json({response})
+        return res.status(response.statusCode).json(response)
 
     }
 }

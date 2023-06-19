@@ -13,7 +13,7 @@ class DeleteStudentController {
         const deleteStudentUseCase = new DeleteStudentUseCase(studentsRepository)
         const response = await deleteStudentUseCase.execute(studentID)
 
-        return res.status(response.statusCode).json({response})
+        return res.status(response.statusCode).json(response)
 
     }
 }

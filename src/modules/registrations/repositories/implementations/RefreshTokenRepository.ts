@@ -28,7 +28,7 @@ class RefreshTokenRepository implements IRefreshTokenRepository {
             })
 
             if (!adminRefreshToken) {
-                return { isValid: false, errorMessage: "Refresh Token inválido", statusCode: 403 }
+                return { isValid: false, errorMessage: "Refresh Token inválido", statusCode: 401 }
             }
 
 
@@ -39,7 +39,7 @@ class RefreshTokenRepository implements IRefreshTokenRepository {
             })
 
             if (!adminFound) {
-                return { isValid: false, errorMessage: " Administrador não encontrado ", statusCode: 403 }
+                return { isValid: false, errorMessage: "Refresh Token inválido", statusCode: 401 }
             }
 
 
@@ -52,7 +52,7 @@ class RefreshTokenRepository implements IRefreshTokenRepository {
                         adminID: adminRefreshToken.adminID
                     }
                 })
-                return { isValid: false, errorMessage: "Refresh Token expirado", statusCode: 403 }
+                return { isValid: false, errorMessage: "Refresh Token inválido", statusCode: 401 }
             }
 
             await prisma.refreshToken.deleteMany({

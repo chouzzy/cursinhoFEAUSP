@@ -23,7 +23,7 @@ class CreateSchoolClassStagesController {
         const createSchoolClassStagesUseCase = new CreateSchoolClassStagesUseCase(schoolClassRepository)
         const response = await createSchoolClassStagesUseCase.execute(schoolClassStagesData, schoolClassID)
         
-        return res.status(response.statusCode).json({response})
+        return res.status(response.statusCode).json(response)
     }
 }
 

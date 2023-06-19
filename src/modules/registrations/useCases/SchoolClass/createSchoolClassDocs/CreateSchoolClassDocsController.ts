@@ -21,8 +21,7 @@ class CreateSchoolClassDocsController {
         const createSchoolClassDocsUseCase = new CreateSchoolClassDocsUseCase(schoolClassRepository)
         const response = await createSchoolClassDocsUseCase.execute(schoolClassDocsData, schoolClassID)
         
-        return res.status(response.statusCode)
-            .json({response})
+        return res.status(response.statusCode).json(response)
     }
 }
 

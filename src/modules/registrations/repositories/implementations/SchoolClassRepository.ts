@@ -66,15 +66,20 @@ class SchoolClassRepository implements ISchoolClassRepository {
         }
     }
 
-    async listAllSchoolClasses(): Promise<validationResponse> {
+    async listAllSchoolClasses(page: number, pageRange: number): Promise<validationResponse> {
 
         try {
-            const allSchoolClasses = await prisma.schoolClass.findMany()
+            const totalSchoolClasses = (await prisma.schoolClass.findMany()).length
+            const allSchoolClasses = await prisma.schoolClass.findMany({
+                skip: page * pageRange,
+                take: pageRange
+            })
 
             return {
                 isValid: true,
                 statusCode: 202,
-                schoolClassList: allSchoolClasses
+                schoolClassList: allSchoolClasses,
+                totalDocuments: totalSchoolClasses
             }
 
         } catch (error: unknown) {
@@ -189,7 +194,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
 
                     return {
                         isValid: true,
-                        successMessage:'Estudante deletado com sucesso',
+                        successMessage: 'Estudante deletado com sucesso',
                         statusCode: 202,
                         schoolClass: schoolClass
                     }
@@ -315,8 +320,8 @@ class SchoolClassRepository implements ISchoolClassRepository {
             }
 
             // Registrating UUID for each document
-            
-            const stagesWithID = schoolClassStagesData.map( stage => {
+
+            const stagesWithID = schoolClassStagesData.map(stage => {
                 return {
                     stagesID: uuidV4(),
                     when: stage.when,
@@ -325,13 +330,13 @@ class SchoolClassRepository implements ISchoolClassRepository {
                 }
             })
 
-            
+
             const stagesToUpdate = [...stagesWithID, ...schoolClass.selectiveStages]
             console.log(stagesToUpdate)
 
             await prisma.schoolClass.update({
                 where: { id: schoolClassID },
-                data: { 
+                data: {
                     selectiveStages: stagesToUpdate
                 }
             })
@@ -388,11 +393,12 @@ class SchoolClassRepository implements ISchoolClassRepository {
             const remainingDocs = schoolClass.documents.filter((doc) => {
                 return doc.docsID != docsID
             })
-            
+
             const deletedDoc = await prisma.schoolClass.update({
                 where: { id: schoolClassID },
                 data: {
-                    documents: remainingDocs}
+                    documents: remainingDocs
+                }
             })
 
             return {
@@ -450,7 +456,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
             const deletedStage = await prisma.schoolClass.update({
                 where: { id: schoolClassID },
                 data: {
-                    selectiveStages:remainingStages
+                    selectiveStages: remainingStages
                 }
             })
 

@@ -25,6 +25,8 @@ class StudentsRepository implements IStudentsRepository {
 
         try {
 
+            const totalStudents = (await prisma.students.findMany()).length
+
             let filteredStudents = await prisma.students.findMany({
                 where: {
                     AND: [
@@ -38,8 +40,11 @@ class StudentsRepository implements IStudentsRepository {
                 take: pageRange
             })
 
+
+            
             const studentsPerSchoolClass: Students[] = []
             filteredStudents.map(student => {
+
                 const check = student.purcharsedSubscriptions.map(sub => {
 
                     if (sub.paymentDate) {
@@ -63,15 +68,16 @@ class StudentsRepository implements IStudentsRepository {
             filteredStudents = studentsPerSchoolClass
 
             // Filtro por turma
+            
             if (schoolClassID) {
                 const studentsPerSchoolClass: Students[] = []
+
 
                 filteredStudents.map(student => {
 
                     const check = student.purcharsedSubscriptions.map(sub => {
 
                         if (sub.schoolClassID == schoolClassID) {
-
                             if (!paymentStatus) {
                                 return true
 
@@ -90,21 +96,12 @@ class StudentsRepository implements IStudentsRepository {
 
                 })
 
-                // studentsPerSchoolClass.filter(
-                //     (v, i, a) => {
-                //         console.log(v, i, a)
-                //         a.findIndex(v2 => (v2.id === v.id)) === i
-                //     }
-                // )
-
-                // // console.log(filteredStudents)
-
-
 
                 return {
                     isValid: true,
                     statusCode: 202,
-                    studentsList: studentsPerSchoolClass
+                    studentsList: studentsPerSchoolClass,
+                    totalDocuments: totalStudents
                 }
             }
 
@@ -125,14 +122,16 @@ class StudentsRepository implements IStudentsRepository {
                 return {
                     isValid: true,
                     statusCode: 202,
-                    studentsList: studentsPerPaymentStatus
+                    studentsList: studentsPerPaymentStatus,
+                    totalDocuments: totalStudents
                 }
             }
 
             return {
                 isValid: true,
                 statusCode: 202,
-                studentsList: filteredStudents
+                studentsList: filteredStudents,
+                totalDocuments: totalStudents
             }
 
         } catch (error: unknown) {

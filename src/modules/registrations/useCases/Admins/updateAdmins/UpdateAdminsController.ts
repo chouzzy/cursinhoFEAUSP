@@ -23,7 +23,7 @@ class UpdateAdminsController {
         const updateAdminsUseCase = new UpdateAdminsUseCase(adminsRepository)
         const response = await updateAdminsUseCase.execute(adminData, adminID)
 
-        return res.status(response.statusCode).json({response})
+        return res.status(response.statusCode).json(response)
 
     }
 }

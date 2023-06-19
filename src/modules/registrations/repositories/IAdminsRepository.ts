@@ -13,7 +13,8 @@ interface IAdminsRepository {
         name: Admins["name"] | undefined,
         email: Admins["email"] | undefined,
         username: Admins["username"] | undefined,
-        actualPage: number
+        page: number,
+        pageRange: number
     ): Promise<validationResponse>
 
     createAdmin(adminData: CreateAdminRequestProps): Promise<validationResponse>

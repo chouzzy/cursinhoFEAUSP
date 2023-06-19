@@ -25,20 +25,36 @@ class ListAdminsUseCase {
             name,
             email,
             username,
-            page
+            page = '0', 
+            pageRange = '10'
         } = query
 
-        let actualPage = Number(page)
+        const pageNumber = parseInt(page)
+        const pageRangeNumber = parseInt(pageRange)
 
-        if (page == undefined) { actualPage = 0}
+        if (isNaN(pageNumber)) {
+            return {
+                isValid: false,
+                statusCode: 400,
+                errorMessage: 'page must be a number',
+            }
+        }
 
+        if (isNaN(pageRangeNumber)) {
+            return {
+                isValid: false,
+                statusCode: 400,
+                errorMessage: 'pageRange must be a number',
+            }
+        }
 
         const admins = await this.adminsRepository.filterAdmins(
             id,
             name,
             email,
             username,
-            actualPage
+            pageNumber,
+            pageRangeNumber
         )
         
         return admins

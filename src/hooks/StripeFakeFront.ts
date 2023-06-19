@@ -14,6 +14,8 @@ class StripeFakeFront {
 
         // Período diurno teste 1105.1400 - "prod_NsNpalHn8d9nB8"
 
+        //usa esse     "id": "prod_O52pzdSA5Db60q",
+
         try {
 
             //Criando método de pagamento fake
@@ -40,7 +42,7 @@ class StripeFakeFront {
                         quantity: 1,
                         price_data: {
                             currency: 'brl',
-                            product: 'prod_NsNpalHn8d9nB8',
+                            product: 'prod_O52pzdSA5Db60q',
                             recurring: {
                                 interval: 'month',
                                 interval_count: 1

@@ -226,7 +226,6 @@ class StripeCustomer {
     async updatePurchasedSubscriptions({ subscriptionCreated }: { subscriptionCreated: CustomerSubscriptionCreated; }): Promise<validationResponse> {
 
         try {
-            console.log(subscriptionCreated)
             const stripeProductCreatedID = subscriptionCreated.items.data[0].price.product
 
             const isTheProductASchoolClass = await prisma.schoolClass.findFirst({
@@ -280,8 +279,6 @@ class StripeCustomer {
                     }
                 })
 
-                console.log(schoolClassBought)
-
 
                 if (!schoolClassBought) {
                     return {
@@ -309,6 +306,7 @@ class StripeCustomer {
 
                     }
                 })
+
 
 
 

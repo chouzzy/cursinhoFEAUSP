@@ -18,7 +18,7 @@ class DeleteDonationController {
         const deleteDonationUseCase = new DeleteDonationUseCase(donationsRepository)
         const response = await deleteDonationUseCase.execute(donationID, donationData)
 
-        return res.status(response.statusCode).json({response})
+        return res.status(response.statusCode).json(response)
 
     }
 }

@@ -22,7 +22,7 @@ class CreateAdminsController {
         const createAdminUseCase = new CreateAdminUseCase(adminsRepository)
         const response = await createAdminUseCase.execute(adminData)
 
-        return res.status(response.statusCode).json({response})
+        return res.status(response.statusCode).json(response)
 
     }
 }

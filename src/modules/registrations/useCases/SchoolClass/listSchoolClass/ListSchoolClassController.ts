@@ -4,15 +4,24 @@ import { SchoolClassRepository } from "../../../repositories/implementations/Sch
 import { ErrorValidation } from "./ListSchoolClassCheck";
 import { ListSchoolClassUseCase } from "./ListSchoolClassUseCase";
 
+interface ListSchoolClassProps {
+    page?: number,
+    pageRange?: number
+}
+
 class ListSchoolClassController {
+    
     async handle(req: Request, res: Response): Promise<Response> {
 
         // Instanciando o useCase no repositório com as funções
+
+        const { page, pageRange } = req.body
+
         const schoolClassRepository = new SchoolClassRepository()
 
         const listSchoolClassUseCase = new ListSchoolClassUseCase(schoolClassRepository);
 
-        const schoolClassResponse = await listSchoolClassUseCase.execute()
+        const schoolClassResponse = await listSchoolClassUseCase.execute({ page, pageRange })
 
         return res.status(
             schoolClassResponse.statusCode
@@ -21,4 +30,4 @@ class ListSchoolClassController {
     }
 }
 
-export { ListSchoolClassController }
+export { ListSchoolClassController, ListSchoolClassProps }

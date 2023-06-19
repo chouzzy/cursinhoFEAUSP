@@ -46,7 +46,7 @@ class UpdateStudentController {
         const updateStudentUseCase = new UpdateStudentUseCase(studentsRepository)
         const response = await updateStudentUseCase.execute(studentData, studentID)
 
-        return res.status(response.statusCode).json({response})
+        return res.status(response.statusCode).json(response)
 
     }
 }
