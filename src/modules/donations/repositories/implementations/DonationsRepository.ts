@@ -74,8 +74,8 @@ class DonationsRepository implements IDonationsRepository {
             },
             having: {
                 valuePaid: {
-                    gt: initValue ?? 0,
-                    lt: endValue ?? 999999999999999
+                    gt: initValue,
+                    lt: endValue
                 },
                 paymentDate: {
                     gte:new Date(initDate),

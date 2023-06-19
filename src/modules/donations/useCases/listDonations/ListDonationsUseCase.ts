@@ -7,14 +7,13 @@ import { ListDonationsQuery } from "./ListDonationsController"
 
 class ListDonationsUseCase {
     constructor(
-        private donationsRepository: IDonationsRepository) 
-        { }
-    
-    async execute(donationsRequest:ListDonationsQuery): Promise<validationResponse> {
+        private donationsRepository: IDonationsRepository) { }
+
+    async execute(donationsRequest: ListDonationsQuery): Promise<validationResponse> {
 
         //Checando query
         const queryValidation = await checkQuery(donationsRequest)
-        
+
         if (queryValidation.isValid === false) {
             return ({
                 isValid: false,
@@ -23,17 +22,61 @@ class ListDonationsUseCase {
             })
         }
 
-        if (!donationsRequest.page) {donationsRequest.page = 0}
-        if (!donationsRequest.pageRange) {donationsRequest.pageRange = 10}
+        donationsRequest.page ??= 0;
+        donationsRequest.pageRange ??= 10;
+        donationsRequest.initValue ??= 0;
+        donationsRequest.endValue ??= 99999999999;
+        donationsRequest.initDate ??= '1979-01-01';
+        donationsRequest.endDate ??= '2999-01-01';
 
-        if (!donationsRequest.initDate) {donationsRequest.initDate = "1979-01-01"}
-        if (!donationsRequest.endDate) {donationsRequest.endDate = "2999-01-01"}
+        let { page, pageRange, initValue, endValue } = donationsRequest
 
-        const {page, pageRange} = donationsRequest
+        // Convertendo valores para números
+        const validatedPage = parseInt(page as any, 10)
+        if (isNaN(validatedPage)) {
+            return ({
+                isValid: false,
+                statusCode: 400,
+                errorMessage: "Page must be a number",
+            })
+        }
+
+        const validatedPageRange = parseInt(pageRange as any, 10)
+        if (isNaN(validatedPageRange)) {
+            return ({
+                isValid: false,
+                statusCode: 400,
+                errorMessage: "Page range must be a number",
+            })
+        }
+
+        const validatedInitValue = parseInt(initValue as any, 10)
+        if (isNaN(validatedInitValue)) {
+            return ({
+                isValid: false,
+                statusCode: 400,
+                errorMessage: "Init value must be a number",
+            })
+        }
+
+        const validatedEndValue = parseInt(endValue as any, 10)
+        if (isNaN(validatedEndValue)) {
+            return ({
+                isValid: false,
+                statusCode: 400,
+                errorMessage: "End value must be a number",
+            })
+        }
+
+        page = validatedPage
+        pageRange = validatedPageRange
+        donationsRequest.initValue = validatedInitValue
+        donationsRequest.endValue = validatedEndValue
+
         const donations = await this.donationsRepository.filterDonation(donationsRequest, page, pageRange)
         // console.log(donations)
         return donations
     }
 }
 
-export {ListDonationsUseCase}
+export { ListDonationsUseCase }

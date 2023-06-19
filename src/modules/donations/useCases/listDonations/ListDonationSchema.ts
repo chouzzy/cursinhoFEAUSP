@@ -9,7 +9,8 @@ const listDonationSchema = object({
     .max(10, 'A data deve estar no formato americano YYYY-DD-MM com os hífens'),
     endDate: string().min(10, "A data deve estar no formato americano YYYY-DD-MM com os hífens")
     .max(10, 'A data deve estar no formato americano YYYY-DD-MM com os hífens'),
-    page: string()
+    page: number(),
+    pageRange: number()
 })
 
 export {listDonationSchema}

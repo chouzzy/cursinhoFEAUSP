@@ -9,11 +9,19 @@ class ListSchoolClassUseCase {
         private schoolClassRepository: ISchoolClassRepository) { }
 
     async execute({ page, pageRange }: ListSchoolClassProps): Promise<validationResponse> {
+                
+        const pageAsNumber = parseInt(page.toString(), 10)
+        const pageRangeAsNumber = parseInt(pageRange.toString(), 10)
 
-        let validatedPage = typeof page === "number" && !isNaN(page) ? page : 0;
-        let validatedPageRange = typeof pageRange === "number" && !isNaN(pageRange) ? pageRange : 10;
+        if (isNaN(pageAsNumber) || isNaN(pageRangeAsNumber)) {
+            return {
+                isValid: false,
+                statusCode: 400,
+                errorMessage: "page and pageRange must be numbers",
+            }
+        }
 
-        const response = await this.schoolClassRepository.listAllSchoolClasses(validatedPage, validatedPageRange)
+        const response = await this.schoolClassRepository.listAllSchoolClasses(pageAsNumber, pageRangeAsNumber)
         
         return response
     }

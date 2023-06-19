@@ -21,18 +21,31 @@ class ListStudentsUseCase {
             })
         }
 
-        let {page, pageRange} = studentsRequestBody
-        if (!page) { page = 0}
-        if (!pageRange) { pageRange = 10}
+        const {
+            page = 0,
+            pageRange = 10,
+            initDate = "1979-01-01",
+            endDate = "2999-01-01",
+        } = studentsRequestBody
 
         
-        if (!studentsRequestBody.initDate) {studentsRequestBody.initDate = "1979-01-01"}
-        if (!studentsRequestBody.endDate) {studentsRequestBody.endDate = "2999-01-01"}
+        const pageAsNumber = parseInt(page.toString(), 10)
+        const pageRangeAsNumber = parseInt(pageRange.toString(), 10)
+
+        if (isNaN(pageAsNumber) || isNaN(pageRangeAsNumber)) {
+            return {
+                isValid: false,
+                statusCode: 400,
+                errorMessage: "page and pageRange must be numbers",
+            }
+        }
+
+
 
 
 
         const students = await this.studentsRepository.filterStudent(studentsRequestBody, page, pageRange)
-        
+
         return students
     }
 }

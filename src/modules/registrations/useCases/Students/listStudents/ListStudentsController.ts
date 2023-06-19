@@ -10,9 +10,8 @@ interface ListStudentsQuery {
     email?: Students["email"],
     cpf?: Students["cpf"],
     paymentStatus?: purcharsedSubscriptions["paymentStatus"],
-    schoolClassID?: purcharsedSubscriptions["schoolClassID"],
-    initDate: string,
-    endDate: string,
+    initDate?: string,
+    endDate?: string,
     page?: number,
     pageRange?: number
 }
@@ -20,12 +19,12 @@ interface ListStudentsQuery {
 class ListStudentsController {
     async handle(req: Request, res: Response): Promise<Response> {
 
-        const body: ListStudentsQuery = req.body
+        const query: ListStudentsQuery = req.query as unknown as ListStudentsQuery;
 
         // Instanciando o useCase no repositório com as funções
         const studentsRepository = new StudentsRepository()
         const listStudentsUseCase = new ListStudentsUseCase(studentsRepository);
-        const response = await listStudentsUseCase.execute(body)
+        const response = await listStudentsUseCase.execute(query)
 
         return res.status(response.statusCode).json(response)
 

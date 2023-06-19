@@ -5,17 +5,17 @@ import { ErrorValidation } from "./ListSchoolClassCheck";
 import { ListSchoolClassUseCase } from "./ListSchoolClassUseCase";
 
 interface ListSchoolClassProps {
-    page?: number,
-    pageRange?: number
+    page: number,
+    pageRange: number
 }
 
 class ListSchoolClassController {
-    
+
     async handle(req: Request, res: Response): Promise<Response> {
 
         // Instanciando o useCase no repositório com as funções
 
-        const { page, pageRange } = req.body
+        const { page, pageRange }: ListSchoolClassProps = req.query as unknown as ListSchoolClassProps;
 
         const schoolClassRepository = new SchoolClassRepository()
 
@@ -25,7 +25,7 @@ class ListSchoolClassController {
 
         return res.status(
             schoolClassResponse.statusCode
-        ).json({schoolClassResponse})
+        ).json({ schoolClassResponse })
 
     }
 }

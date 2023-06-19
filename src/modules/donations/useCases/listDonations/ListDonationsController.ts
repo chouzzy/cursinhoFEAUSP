@@ -28,14 +28,14 @@ interface ListDonationsQuery {
 class ListDonationsController {
     async handle(req: Request, res: Response): Promise<Response> {
 
-        const body:ListDonationsQuery = req.body
+        const query: ListDonationsQuery = req.query as unknown as ListDonationsQuery;
 
         // Instanciando o useCase no repositório com as funções
         const donationsRepository = new DonationsRepository()
         
         const listDonationsUseCase = new ListDonationsUseCase(donationsRepository);
         
-        const response = await listDonationsUseCase.execute(body)
+        const response = await listDonationsUseCase.execute(query)
         
         return res.status(response.statusCode).json(response)
 

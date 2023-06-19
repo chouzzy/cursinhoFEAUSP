@@ -15,7 +15,8 @@ interface IDonationsRepository {
         initValue,
         endValue,
         initDate,
-        endDate}:ListDonationsQuery,
+        endDate
+    }:ListDonationsQuery,
         page:number,
         pageRange:number
     ): Promise<validationResponse>
