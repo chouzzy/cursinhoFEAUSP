@@ -24,8 +24,10 @@ class StudentsRepository implements IStudentsRepository {
     ): Promise<validationResponse> {
 
         try {
+            if (page == 0) {
+                page = 1
+            }
 
-            const totalStudents = (await prisma.students.findMany()).length
 
             let filteredStudents = await prisma.students.findMany({
                 where: {
@@ -36,10 +38,9 @@ class StudentsRepository implements IStudentsRepository {
                         { cpf: cpf },
                     ]
                 },
-                skip: page * pageRange,
+                skip: (page -1) * pageRange,
                 take: pageRange
             })
-
 
             
             const studentsPerSchoolClass: Students[] = []
@@ -101,7 +102,7 @@ class StudentsRepository implements IStudentsRepository {
                     isValid: true,
                     statusCode: 202,
                     studentsList: studentsPerSchoolClass,
-                    totalDocuments: totalStudents
+                    totalDocuments: studentsPerSchoolClass.length
                 }
             }
 
@@ -123,7 +124,7 @@ class StudentsRepository implements IStudentsRepository {
                     isValid: true,
                     statusCode: 202,
                     studentsList: studentsPerPaymentStatus,
-                    totalDocuments: totalStudents
+                    totalDocuments: studentsPerPaymentStatus.length
                 }
             }
 
@@ -131,7 +132,7 @@ class StudentsRepository implements IStudentsRepository {
                 isValid: true,
                 statusCode: 202,
                 studentsList: filteredStudents,
-                totalDocuments: totalStudents
+                totalDocuments: filteredStudents.length
             }
 
         } catch (error: unknown) {

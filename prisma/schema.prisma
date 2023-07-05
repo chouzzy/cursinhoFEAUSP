@@ -104,6 +104,7 @@ model SchoolClass {
   informations    SchoolClassInformations
   subscriptions   SchoolClassSubscriptionInformations
   selectiveStages SchoolClassSelectiveStages[]
+  status          String // Changed from Boolean to String
   stripeProductID String
   documents       DocumentsTypes[]
 

@@ -32,15 +32,15 @@ class RefreshTokenRepository implements IRefreshTokenRepository {
             }
 
 
-            const adminFound = await prisma.admins.findFirst({
-                where: {
-                    id: adminRefreshToken.adminID
-                }
-            })
+            // const adminFound = await prisma.admins.findFirst({
+            //     where: {
+            //         id: adminRefreshToken.adminID
+            //     }
+            // })
 
-            if (!adminFound) {
-                return { isValid: false, errorMessage: "Refresh Token inválido", statusCode: 401 }
-            }
+            // if (!adminFound) {
+            //     return { isValid: false, errorMessage: "Refresh Token inválido", statusCode: 401 }
+            // }
 
 
             const refreshTokenExpired = dayjs().isAfter(dayjs.unix(adminRefreshToken.expires_at))
@@ -73,12 +73,12 @@ class RefreshTokenRepository implements IRefreshTokenRepository {
                 isValid: true,
                 token: token,
                 refreshToken: newRefreshToken.id,
-                admins: {
-                    id: adminFound.id,
-                    name: adminFound.name,
-                    username: adminFound.username,
-                    email: adminFound.email,
-                },
+                // admins: {
+                //     id: adminFound.id,
+                //     name: adminFound.name,
+                //     username: adminFound.username,
+                //     email: adminFound.email,
+                // },
                 statusCode: 202
             }
 

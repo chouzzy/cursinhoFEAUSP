@@ -3,6 +3,7 @@ import { Students, purcharsedSubscriptions } from "../../../entities/Students";
 import { StudentsRepository} from "../../../repositories/implementations/StudentsRepository";
 import { checkQuery, ErrorValidation } from "./ListStudentsCheck";
 import { ListStudentsUseCase } from "./ListStudentsUseCase";
+import { SchoolClass } from "../../../entities/SchoolClass";
 
 interface ListStudentsQuery {
     id?: Students["id"],
@@ -10,8 +11,9 @@ interface ListStudentsQuery {
     email?: Students["email"],
     cpf?: Students["cpf"],
     paymentStatus?: purcharsedSubscriptions["paymentStatus"],
-    initDate?: string,
-    endDate?: string,
+    schoolClassID?: SchoolClass["id"],
+    initDate: string,
+    endDate: string,
     page?: number,
     pageRange?: number
 }

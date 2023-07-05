@@ -4,10 +4,12 @@ import { AppError } from './errors/AppError'
 import { router } from './routes'
 import { webhooksRoutes } from './routes/webhooks';
 import bodyParser from 'body-parser';
+import cors from 'cors';
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 
 const app = express()
+app.use(cors());
 
 app.use('/webhooks', bodyParser.raw({ type: "*/*" }), webhooksRoutes)
 app.use(express.json())

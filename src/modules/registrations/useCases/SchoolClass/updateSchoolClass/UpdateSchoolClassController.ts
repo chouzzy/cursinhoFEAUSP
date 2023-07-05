@@ -10,6 +10,7 @@ interface UpdateSchoolClassRequestProps {
     informations: SchoolClass["informations"]
     subscriptions: SchoolClass["subscriptions"]
     selectiveStages: SchoolClass["selectiveStages"]
+    status: SchoolClass["status"]
     stripeProductID: SchoolClass["stripeProductID"]
     documents?: SchoolClass["documents"]
 }

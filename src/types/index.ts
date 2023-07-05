@@ -26,6 +26,11 @@ interface validationResponse {
     username: Admins["username"]
   }
   adminsList?: Admins[]
+  adminsListSimplified?: {
+    id: Admins["id"],
+    name: Admins["name"],
+    username: Admins["username"]
+  }[]
   donations?: Donations
   donationsList?: Donations[]
   totalDocuments?: number

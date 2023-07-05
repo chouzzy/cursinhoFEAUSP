@@ -3,6 +3,7 @@ import * as yup from "yup" ;
 const updateSchoolClassSchema = yup.object({
 
     title: yup.string().min(3, "O título precisa ter no mínimo três caracteres"),
+    status: yup.string().oneOf(['active', 'inactive'], "O status deve ser um dos seguintes valores: 'active' ou 'inactive' "),
 
     informations: yup.object({
         description:  yup.string(),

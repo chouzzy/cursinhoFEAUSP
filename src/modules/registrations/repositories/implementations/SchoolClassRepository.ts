@@ -69,9 +69,13 @@ class SchoolClassRepository implements ISchoolClassRepository {
     async listAllSchoolClasses(page: number, pageRange: number): Promise<validationResponse> {
 
         try {
-            const totalSchoolClasses = (await prisma.schoolClass.findMany()).length
+
+            if (page == 0) {
+                page = 1
+            }
+
             const allSchoolClasses = await prisma.schoolClass.findMany({
-                skip: page * pageRange,
+                skip: (page -1) * pageRange,
                 take: pageRange
             })
 
@@ -79,7 +83,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
                 isValid: true,
                 statusCode: 202,
                 schoolClassList: allSchoolClasses,
-                totalDocuments: totalSchoolClasses
+                totalDocuments: allSchoolClasses.length
             }
 
         } catch (error: unknown) {

@@ -32,8 +32,10 @@ class DonationsRepository implements IDonationsRepository {
         
         
         try {
-        const donations = await prisma.donations.findMany()
-        const totalDonations = donations.length
+
+            if (page == 0) {
+                page = 1
+            }
 
         const filteredDonations = await prisma.donations.groupBy({
             by:[
@@ -85,7 +87,7 @@ class DonationsRepository implements IDonationsRepository {
             orderBy: {
                 name: 'asc'
             },
-            skip: page * pageRange,
+            skip: (page-1) * pageRange,
             take: pageRange
             
         })
@@ -94,7 +96,7 @@ class DonationsRepository implements IDonationsRepository {
             isValid: true,
             statusCode: 202,
             donationsList: filteredDonations,
-            totalDocuments: totalDonations
+            totalDocuments: filteredDonations.length
         }
 
         } catch (error: unknown) {

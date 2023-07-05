@@ -12,6 +12,7 @@ interface CreateSchoolClassRequestProps {
     subscriptions: SchoolClass["subscriptions"]
     selectiveStages: SchoolClass["selectiveStages"]
     stripeProductID: SchoolClass["stripeProductID"]
+    status: SchoolClass["status"]
     documents?: SchoolClass["documents"]
 }
 

@@ -35,7 +35,9 @@ class AdminsRepository implements IAdminsRepository {
         // Função do prisma para buscar todos os admins
         try {
 
-            const totalAdmins = (await prisma.admins.findMany()).length
+            if (page == 0) {
+                page = 1
+            }
 
             const admins = await prisma.admins.findMany({
                 where: {
@@ -46,23 +48,25 @@ class AdminsRepository implements IAdminsRepository {
                         { username: username },
                     ],
                 },
-                skip: page * pageRange,
-                take: pageRange
+                skip: (page -1) * pageRange,
+                take: pageRange,
             })
 
-            if (admins.length == 0) {
+            //Tentativa de redução de tempo na requisição //aumentou 100ms na requisição do banco
+            const adminsSimplified = admins.map( (admin => {
                 return {
-                    isValid: false,
-                    statusCode: 404,
-                    errorMessage: '🔴 Admin not found 🔴'
+                    id: admin.id,
+                    name: admin.name,
+                    username: admin.username,
                 }
-            }
+            }))
+
 
             return {
                 isValid: true,
                 statusCode: 202,
-                adminsList: admins,
-                totalDocuments: totalAdmins
+                adminsListSimplified: admins,
+                totalDocuments: admins.length
             }
         } catch (error: unknown) {
 
@@ -93,7 +97,7 @@ class AdminsRepository implements IAdminsRepository {
             if (searchedAdmin.length > 0) {
 
                 if (searchedAdmin[0].email == adminData.email && searchedAdmin[0].username == adminData.username) {
-                    return { isValid: false, errorMessage: `E-mail and nome de usuário já existem `, statusCode: 403 }
+                    return { isValid: false, errorMessage: `E-mail e nome de usuário já existem `, statusCode: 403 }
                 }
 
                 if (searchedAdmin[0].email == adminData.email) {
@@ -205,12 +209,25 @@ class AdminsRepository implements IAdminsRepository {
                 return { isValid: false, errorMessage: 'Administrador não encontrado.', statusCode: 403 }
             }
 
+            const passwordHash = await hash(adminData.password, 8)
+
+            //Checando se o a nova senha é igual a antiga
+            const passwordMatch = await compare(adminData.password, admin.password)
+            if (passwordMatch) {
+                
+                return {
+                    isValid: false,
+                    statusCode: 403,
+                    errorMessage: 'A nova senha não pode ser igual a anterior.'
+                }
+            }
+
             const updatedAdmin = await prisma.admins.update({
                 where: {
                     id: adminID
                 },
                 data: {
-                    password: adminData.password ?? admin.password,
+                    password: passwordHash,
                 }
             })
             return {

@@ -9,9 +9,9 @@ class ListStudentsUseCase {
     constructor(
         private studentsRepository: IStudentsRepository) { }
 
-    async execute(studentsRequestBody: ListStudentsQuery): Promise<validationResponse> {
+    async execute(studentsRequest: ListStudentsQuery): Promise<validationResponse> {
 
-        const bodyValidation = await checkQuery(studentsRequestBody)
+        const bodyValidation = await checkQuery(studentsRequest)
 
         if (bodyValidation.isValid === false) {
             return ({
@@ -21,16 +21,21 @@ class ListStudentsUseCase {
             })
         }
 
-        const {
-            page = 0,
-            pageRange = 10,
-            initDate = "1979-01-01",
-            endDate = "2999-01-01",
-        } = studentsRequestBody
 
+        let { page, pageRange, initDate, endDate } = studentsRequest
+
+        console.log(initDate, endDate)
+
+        if (initDate === undefined || endDate === undefined) {
+            return {
+                isValid: false,
+                statusCode: 400,
+                errorMessage: "initDate and endDate cannot be undefined",
+            };
+        }
         
-        const pageAsNumber = parseInt(page.toString(), 10)
-        const pageRangeAsNumber = parseInt(pageRange.toString(), 10)
+        const pageAsNumber = parseInt(page?.toString() || "0", 10);
+        const pageRangeAsNumber = parseInt(pageRange?.toString() || "10", 10);
 
         if (isNaN(pageAsNumber) || isNaN(pageRangeAsNumber)) {
             return {
@@ -40,11 +45,7 @@ class ListStudentsUseCase {
             }
         }
 
-
-
-
-
-        const students = await this.studentsRepository.filterStudent(studentsRequestBody, page, pageRange)
+        const students = await this.studentsRepository.filterStudent(studentsRequest, pageAsNumber, pageRangeAsNumber)
 
         return students
     }

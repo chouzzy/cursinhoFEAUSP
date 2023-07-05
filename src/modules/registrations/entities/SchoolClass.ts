@@ -7,6 +7,7 @@ class SchoolClass {
   subscriptions!: SchoolClassSubscriptionInformations
   selectiveStages!: SchoolClassSelectiveStages[]
   stripeProductID!: string
+  status!: string
   documents?: DocumentsTypes[]
 }
 

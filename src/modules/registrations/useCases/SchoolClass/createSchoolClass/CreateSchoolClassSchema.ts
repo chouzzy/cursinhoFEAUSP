@@ -4,6 +4,7 @@ YupPassword(yup)
 
 const createSchoolClassSchema = yup.object({
     title: yup.string().required("O título é obrigatório").min(3, "O título precisa ter no mínimo três caracteres"),
+    status: yup.string().oneOf(['active', 'inactive'], "O status deve ser um dos seguintes valores: 'active' ou 'inactive' ").required("O status é obrigatório"),
 
     informations: yup.object({
         description:  yup.string().required("description required"),
