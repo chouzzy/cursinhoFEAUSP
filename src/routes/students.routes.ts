@@ -4,11 +4,15 @@ import { DeleteStudentController } from "../modules/registrations/useCases/Stude
 import { ListStudentsController } from "../modules/registrations/useCases/Students/listStudents/ListStudentsController"
 import { UpdateStudentController } from "../modules/registrations/useCases/Students/updateStudents/UpdateStudentController"
 import { ensureAuthenticated } from "../modules/registrations/middleware/ensureAuthenticate"
+import { ExcelListStudentsController } from "../modules/registrations/useCases/Students/excelListStudents/ExcelListStudentsController"
 
 const studentsRoutes = Router()
 
 const listStudentsController = new ListStudentsController()
 studentsRoutes.get('/', ensureAuthenticated, listStudentsController.handle)
+
+const excellistStudentsController = new ExcelListStudentsController()
+studentsRoutes.get('/excel', ensureAuthenticated, excellistStudentsController.handle)
 
 const createStudentController = new CreateStudentController()
 studentsRoutes.post('/create', createStudentController.handle)

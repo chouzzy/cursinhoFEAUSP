@@ -42,7 +42,7 @@ class StripeFakeFront {
                         quantity: 1,
                         price_data: {
                             currency: 'brl',
-                            product: 'prod_O52pzdSA5Db60q',
+                            product: 'prod_NwqGmvpORCudCp',
                             recurring: {
                                 interval: 'month',
                                 interval_count: 1
@@ -56,7 +56,7 @@ class StripeFakeFront {
                 currency: 'brl',
                 collection_method: 'charge_automatically',
                 metadata: {
-                    subscriptionType: 'SchoolClass',
+                    subscriptionType: 'Donation',
                     cpf: cpf,
                     rg: rg,
                     stripeCustomerID: stripeCustomerID,

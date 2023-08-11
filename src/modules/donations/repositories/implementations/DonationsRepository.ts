@@ -55,6 +55,7 @@ class DonationsRepository implements IDonationsRepository {
                 'street',
                 'cpf',
                 'rg',
+                'ufrg',
 
                 'valuePaid',
                 'paymentMethod',
@@ -68,7 +69,7 @@ class DonationsRepository implements IDonationsRepository {
             ],
             where: {
                 AND: [
-                    {name: name},
+                    {name: {contains: name}},
                     {email: email},
                     {cpf: cpf},
                     {paymentStatus: paymentStatus}
@@ -136,6 +137,7 @@ class DonationsRepository implements IDonationsRepository {
                     zipCode: donationData.zipCode,
                     cpf: donationData.cpf,
                     rg: donationData.rg,
+                    ufrg: donationData.ufrg,
                     valuePaid: donationData.valuePaid,
                     paymentDate: new Date(),
                     paymentMethod: 'Sem informação ainda',

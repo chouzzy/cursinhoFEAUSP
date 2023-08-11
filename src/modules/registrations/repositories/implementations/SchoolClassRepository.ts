@@ -277,9 +277,8 @@ class SchoolClassRepository implements ISchoolClassRepository {
                 }
             }
 
-
-
-            await prisma.schoolClass.update({
+            // Updating the documents
+            const schoolClassUpdated = await prisma.schoolClass.update({
                 where: { id: schoolClassID },
                 data: {
                     documents: documentsReadyToUpdate
@@ -290,6 +289,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
                 isValid: true,
                 successMessage: "Document was successfully registered",
                 statusCode: 201,
+                schoolClassDocs: schoolClassUpdated.documents,
             }
 
         } catch (error: unknown) {
@@ -338,7 +338,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
             const stagesToUpdate = [...stagesWithID, ...schoolClass.selectiveStages]
             console.log(stagesToUpdate)
 
-            await prisma.schoolClass.update({
+            const schoolClassUpdated = await prisma.schoolClass.update({
                 where: { id: schoolClassID },
                 data: {
                     selectiveStages: stagesToUpdate
@@ -349,6 +349,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
                 isValid: true,
                 successMessage: "Documento registrado com sucesso.",
                 statusCode: 201,
+                schoolClassStages: schoolClassUpdated.selectiveStages
             }
 
         } catch (error: unknown) {

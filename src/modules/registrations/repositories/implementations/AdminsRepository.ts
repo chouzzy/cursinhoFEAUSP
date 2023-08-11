@@ -65,7 +65,7 @@ class AdminsRepository implements IAdminsRepository {
             return {
                 isValid: true,
                 statusCode: 202,
-                adminsListSimplified: admins,
+                adminsListSimplified: adminsSimplified,
                 totalDocuments: admins.length
             }
         } catch (error: unknown) {
@@ -116,7 +116,7 @@ class AdminsRepository implements IAdminsRepository {
             const createAdmin = await prisma.admins.create({
                 data: {
                     name: adminData.name,
-                    email: adminData.email,
+                    email: adminData.email?? '',
                     username: adminData.username,
                     password: passwordHash,
                 }
@@ -171,10 +171,17 @@ class AdminsRepository implements IAdminsRepository {
                     username: adminData.username ?? admin.username,
                 }
             })
+
+            const adminSimplified = {
+                id: updatedAdmin.id,
+                name: updatedAdmin.name,
+                username: updatedAdmin.username
+            }
+
             return {
                 isValid: true,
                 statusCode: 202,
-                admins: updatedAdmin,
+                adminSimplified: adminSimplified,
                 successMessage: 'Administrador atualizado com sucesso.'
             }
 

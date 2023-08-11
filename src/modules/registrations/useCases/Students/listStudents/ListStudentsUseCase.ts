@@ -26,12 +26,12 @@ class ListStudentsUseCase {
 
         console.log(initDate, endDate)
 
-        if (initDate === undefined || endDate === undefined) {
-            return {
-                isValid: false,
-                statusCode: 400,
-                errorMessage: "initDate and endDate cannot be undefined",
-            };
+        if (initDate === undefined) {
+            studentsRequest.initDate = '1979-01-01'
+        }
+
+        if (endDate === undefined) {
+            studentsRequest.endDate = '2999-01-01'
         }
         
         const pageAsNumber = parseInt(page?.toString() || "0", 10);

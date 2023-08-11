@@ -29,6 +29,7 @@ model Donations {
 
   cpf String
   rg  String
+  ufrg String
 
   valuePaid     Int
   paymentMethod String

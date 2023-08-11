@@ -9,7 +9,7 @@ const createSchoolClassSchema = yup.object({
     informations: yup.object({
         description:  yup.string().required("description required"),
         whoCanParticipate:  yup.string().required("whoCanParticipate required"),
-        observations:  yup.string().required("observations required"),
+        observations:  yup.string(),
         classContent:  yup.string().required("classContent required"),
         dateSchedule:  yup.string().required("dateSchedule required"),
         hourSchedule:  yup.string().required("hourSchedule required"),
@@ -25,7 +25,7 @@ const createSchoolClassSchema = yup.object({
     selectiveStages: yup.array().of(
         yup.object().shape({
             when: yup.string().required("when required"),
-            resultsDate: yup.date().required("resultsDate required"),
+            resultsDate: yup.date().nullable().required("resultsDate required"),
             description: yup.string().required("description required"),
         })
     ).required("selectiveStages required"),

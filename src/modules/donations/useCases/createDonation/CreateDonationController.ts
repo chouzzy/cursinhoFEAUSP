@@ -19,6 +19,7 @@ interface CreateDonationProps {
     zipCode:Donations["zipCode"]
     cpf: Donations["cpf"]
     rg: Donations["rg"]
+    ufrg: Donations["ufrg"]
     valuePaid: Donations["valuePaid"]
 }
 

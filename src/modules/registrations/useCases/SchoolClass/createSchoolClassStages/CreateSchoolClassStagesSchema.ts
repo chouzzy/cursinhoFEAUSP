@@ -4,7 +4,7 @@ YupPassword(yup)
 
 const createSchoolClassStagesSchema = yup.array(yup.object({
     when: yup.string().required("when required"),
-    resultsDate: yup.date().required("resultsDate required"),
+    resultsDate: yup.date().nullable().required("resultsDate required"),
     description: yup.string().required("description required"),
 }))
 export { createSchoolClassStagesSchema }

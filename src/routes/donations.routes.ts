@@ -4,11 +4,15 @@ import { DeleteDonationController } from "../modules/donations/useCases/deleteDo
 import { ListDonationsController } from "../modules/donations/useCases/listDonations/ListDonationsController"
 import { UpdateDonationController } from "../modules/donations/useCases/updateDonation/UpdateDonationController"
 import { ensureAuthenticated } from "../modules/registrations/middleware/ensureAuthenticate"
+import { ExcelListDonationsController } from "../modules/donations/useCases/excelListDonations/ExcelListDonationsController"
 
 const donationsRoutes = Router()
 
 const listDonationsController = new ListDonationsController()
 donationsRoutes.get('/', ensureAuthenticated, listDonationsController.handle)
+
+const excellistDonationsController = new ExcelListDonationsController()
+donationsRoutes.get('/excel', ensureAuthenticated, excellistDonationsController.handle)
 
 const createDonationController = new CreateDonationController()
 donationsRoutes.post('/create', createDonationController.handle)

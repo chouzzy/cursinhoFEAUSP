@@ -24,7 +24,7 @@ const updateSchoolClassSchema = yup.object({
     selectiveStages: yup.array().of(
         yup.object().shape({
             when: yup.string(),
-            resultsDate: yup.date(),
+            resultsDate: yup.date().nullable(),
             description: yup.string(),
         })
     ),

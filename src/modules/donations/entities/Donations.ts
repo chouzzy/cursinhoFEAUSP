@@ -17,6 +17,7 @@ class Donations {
 
     cpf!: string
     rg!: string
+    ufrg!: string
 
     valuePaid!: number
     paymentMethod!: string

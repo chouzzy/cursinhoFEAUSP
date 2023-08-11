@@ -16,7 +16,37 @@ const donationSchema = object({
     zipCode:string().required("O CEP é obrigatório").min(9, "O CEP deve conter 8 algarismos e um hífen. Ex: 08230-030"),
 
     cpf: string().required().min(11, "O CPF deve conter ao menos 11 caracteres").max(11, "O CPF deve conter 11 caracteres"),
-    rg : string().required().min(9, "O RG deve conter ao menos 9 caracteres").max(9, "O RG deve conter ao menos 9 caracteres"),
+    rg : string().min(9, "O RG deve conter ao menos 9 caracteres").max(9, "O RG deve conter ao menos 9 caracteres"),
+    ufrg: string().required("O estado de emissão do RG é obrigatório.").oneOf([
+      'AC',
+      'AL',
+      'AP',
+      'AM',
+      'BA',
+      'CE',
+      'DF',
+      'ES',
+      'GO',
+      'MA',
+      'MT',
+      'MS',
+      'MG',
+      'PA',
+      'PB',
+      'PR',
+      'PE',
+      'PI',
+      'RJ',
+      'RN',
+      'RS',
+      'RO',
+      'RR',
+      'SC',
+      'SP',
+      'SE',
+      'TO',
+    ]),
+
     valuePaid: number().required()
 })
 

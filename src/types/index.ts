@@ -17,6 +17,8 @@ interface validationResponse {
   stripeCreatedProductID?: string;
   schoolClass?: SchoolClass
   schoolClassList?: SchoolClass[]
+  schoolClassDocs?: SchoolClass["documents"]
+  schoolClassStages?: SchoolClass["selectiveStages"]
   students?: Students
   studentsList?: Students[]
   admins?: {
@@ -26,6 +28,11 @@ interface validationResponse {
     username: Admins["username"]
   }
   adminsList?: Admins[]
+  adminSimplified?: {
+    id: Admins["id"],
+    name: Admins["name"],
+    username: Admins["username"]
+  }
   adminsListSimplified?: {
     id: Admins["id"],
     name: Admins["name"],
@@ -33,6 +40,7 @@ interface validationResponse {
   }[]
   donations?: Donations
   donationsList?: Donations[]
+  fileBuffer?: ArrayBuffer
   totalDocuments?: number
   subscriptionsDuplicated?: purcharsedSubscriptions["schoolClassID"][]
 }
