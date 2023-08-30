@@ -10,6 +10,10 @@ class UpdateStudentUseCase {
 
     async execute(studentData: UpdateStudentRequestProps, studentID: Students["id"]): Promise<validationResponse> {
 
+        if (!studentData.rg) {
+            studentData.ufrg = "Não informado"
+        }
+
         const bodyValidation = await checkBody(studentData)
 
         if (bodyValidation.isValid === false) {

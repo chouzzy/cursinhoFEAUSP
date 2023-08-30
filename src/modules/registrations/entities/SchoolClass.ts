@@ -14,7 +14,7 @@ class SchoolClass {
 interface SchoolClassInformations {
   description: string
   whoCanParticipate: string
-  observations: string
+  observations: string | null
   classContent: string
   dateSchedule: string
   hourSchedule: string
@@ -37,7 +37,7 @@ interface SchoolClassSubscriptionInformations {
 interface SchoolClassSelectiveStages {
   stagesID: string
   when: string
-  resultsDate: Date
+  resultsDate: Date | null
   description: string
 }
 

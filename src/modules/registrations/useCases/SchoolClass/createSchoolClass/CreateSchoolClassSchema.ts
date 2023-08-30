@@ -23,9 +23,9 @@ const createSchoolClassSchema = yup.object({
     }).required("subscriptions required"),
 
     selectiveStages: yup.array().of(
-        yup.object().shape({
+        yup.object().shape({    
             when: yup.string().required("when required"),
-            resultsDate: yup.date().nullable().required("resultsDate required"),
+            resultsDate: yup.date().nullable().typeError("resultsDate must be a valid date"),
             description: yup.string().required("description required"),
         })
     ).required("selectiveStages required"),

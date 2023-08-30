@@ -27,8 +27,8 @@ model Donations {
   district   String
   zipCode    String
 
-  cpf String
-  rg  String
+  cpf  String
+  rg   String?
   ufrg String
 
   valuePaid     Int
@@ -61,7 +61,8 @@ model Students {
   zipCode         String
 
   cpf                      String
-  rg                       String
+  rg                       String?
+  ufrg                     String
   selfDeclaration          String
   oldSchool                String
   oldSchoolAdress          String
@@ -131,7 +132,7 @@ type DocumentsTypes {
 type SchoolClassInformations {
   description       String
   whoCanParticipate String
-  observations      String
+  observations      String?
   classContent      String
   dateSchedule      String
   hourSchedule      String
@@ -147,6 +148,6 @@ type SchoolClassSubscriptionInformations {
 type SchoolClassSelectiveStages {
   stagesID    String
   when        String
-  resultsDate DateTime
+  resultsDate DateTime?
   description String
 }

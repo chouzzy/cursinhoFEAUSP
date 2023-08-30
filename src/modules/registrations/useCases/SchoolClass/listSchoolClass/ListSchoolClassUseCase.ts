@@ -21,7 +21,7 @@ class ListSchoolClassUseCase {
             }
         }
 
-        const response = await this.schoolClassRepository.listAllSchoolClasses(pageAsNumber, pageRangeAsNumber)
+        const response = await this.schoolClassRepository.listSchoolClasses(pageAsNumber, pageRangeAsNumber)
         
         return response
     }

@@ -33,7 +33,7 @@ class StudentsRepository implements IStudentsRepository {
                 where: {
                     AND: [
                         { id: id },
-                        { name: name },
+                        { name: {contains: name} },
                         { email: email },
                         { cpf: cpf },
                     ]
@@ -164,7 +164,7 @@ class StudentsRepository implements IStudentsRepository {
             // Buscando o RG e CPF do customer no Stripe
             const stripeCustomer = new StripeCustomer()
             const { cpf, rg } = studentData
-            const stripeSearchedCustomerID = await stripeCustomer.searchCustomer(cpf, rg)
+            const stripeSearchedCustomerID = await stripeCustomer.searchCustomer(cpf)
 
 
             //create stripe customer
@@ -282,6 +282,7 @@ class StudentsRepository implements IStudentsRepository {
 
                     cpf: studentData.cpf,
                     rg: studentData.rg,
+                    ufrg: studentData.ufrg,
                     selfDeclaration: studentData.selfDeclaration,
                     oldSchool: studentData.oldSchool,
                     oldSchoolAdress: studentData.oldSchoolAdress,

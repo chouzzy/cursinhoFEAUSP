@@ -7,11 +7,15 @@ import { CreateSchoolClassDocsController } from "../modules/registrations/useCas
 import { CreateSchoolClassStagesController } from "../modules/registrations/useCases/SchoolClass/createSchoolClassStages/CreateSchoolClassStagesController"
 import { DeleteSchoolClassDocsController } from "../modules/registrations/useCases/SchoolClass/deleteSchoolClassDocs/DeleteSchoolClassDocsController"
 import { DeleteSchoolClassStagesController } from "../modules/registrations/useCases/SchoolClass/deleteSchoolClassStages/DeleteSchoolClassStagesController"
+import { ListAllSchoolClassController } from "../modules/registrations/useCases/SchoolClass/listAllSchoolClass/ListAllSchoolClassController"
 
 const schoolClassRoutes = Router()
 
 const listSchoolClassController = new ListSchoolClassController()
 schoolClassRoutes.get('/', listSchoolClassController.handle)
+
+const listAllSchoolClassController = new ListAllSchoolClassController()
+schoolClassRoutes.get('/:id/listAll', listAllSchoolClassController.handle)
 
 const createSchoolClassController = new CreateSchoolClassController()
 schoolClassRoutes.post('/create', createSchoolClassController.handle)

@@ -24,6 +24,12 @@ class CreateSchoolClassStagesUseCase {
             })
         }
 
+        schoolClassStagesData.map( stage => {
+            if (!stage.resultsDate) {
+                stage.resultsDate = null
+            }
+        })
+
         const createSchoolClassResponse = await this.schoolClassRepository.createStages(schoolClassStagesData, schoolClassID)
 
         return createSchoolClassResponse

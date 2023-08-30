@@ -66,7 +66,37 @@ class SchoolClassRepository implements ISchoolClassRepository {
         }
     }
 
-    async listAllSchoolClasses(page: number, pageRange: number): Promise<validationResponse> {
+    async listAllSchoolClasses(id: SchoolClass["id"], title: SchoolClass["title"]): Promise<validationResponse> {
+
+        try {
+
+            const allSchoolClasses = await prisma.schoolClass.findMany({
+                where: {
+                    OR:[
+                        {title: {contains:title}, id: id}
+                    ]
+                }
+            })
+
+            return {
+                isValid: true,
+                statusCode: 202,
+                schoolClassList: allSchoolClasses,
+                totalDocuments: allSchoolClasses.length
+            }
+
+        } catch (error: unknown) {
+
+            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+                return { isValid: false, errorMessage: error, statusCode: 403 }
+
+            } else {
+                return { isValid: false, errorMessage: String(error), statusCode: 403 }
+            }
+        }
+    }
+
+    async listSchoolClasses(page: number, pageRange: number): Promise<validationResponse> {
 
         try {
 
@@ -75,7 +105,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
             }
 
             const allSchoolClasses = await prisma.schoolClass.findMany({
-                skip: (page -1) * pageRange,
+                skip: (page - 1) * pageRange,
                 take: pageRange
             })
 
@@ -104,7 +134,6 @@ class SchoolClassRepository implements ISchoolClassRepository {
     ): Promise<validationResponse> {
 
         try {
-
             const schoolClass = await prisma.schoolClass.findUnique({
                 where: {
                     id: schoolClassID
@@ -116,8 +145,8 @@ class SchoolClassRepository implements ISchoolClassRepository {
             }
 
             //Se tiver o product ID, iremos atualizá-lo, pois se trata de um update do webhook
+            
             if (stripeProductID) {
-
                 const updatedSchoolClass = await prisma.schoolClass.update({
                     where: {
                         id: schoolClassID
@@ -326,17 +355,22 @@ class SchoolClassRepository implements ISchoolClassRepository {
             // Registrating UUID for each document
 
             const stagesWithID = schoolClassStagesData.map(stage => {
+
+
+                if (stage.resultsDate != null) {
+                    stage.resultsDate = new Date(stage.resultsDate)
+                    console.log('é null')
+                }
                 return {
                     stagesID: uuidV4(),
                     when: stage.when,
-                    resultsDate: new Date(stage.resultsDate),
+                    resultsDate: stage.resultsDate,
                     description: stage.description,
                 }
             })
 
 
             const stagesToUpdate = [...stagesWithID, ...schoolClass.selectiveStages]
-            console.log(stagesToUpdate)
 
             const schoolClassUpdated = await prisma.schoolClass.update({
                 where: { id: schoolClassID },

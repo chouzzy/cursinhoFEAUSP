@@ -411,7 +411,7 @@ class StripeCustomer {
 
     }
 
-    async searchCustomer(cpf: string, rg: string): Promise<string | undefined> {
+    async searchCustomer(cpf: string): Promise<string | undefined> {
 
         const customer = await stripe.customers.search({
             query: `metadata[\'cpf\']:\'${cpf}\'`,

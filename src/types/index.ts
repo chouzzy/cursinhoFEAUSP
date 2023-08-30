@@ -229,7 +229,8 @@ interface StripeCustomerData {
   city: string
   street: string
   cpf: string
-  rg: string
+  rg?: string | null
+  ufrg: string
 }
 
 export {

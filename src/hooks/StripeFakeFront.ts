@@ -3,7 +3,7 @@ import { stripe } from "../server"
 
 class StripeFakeFront {
 
-    async createSubscription(donationID: string | undefined = undefined, stripeCustomerID: string, cpf: string, rg: string, schoolClassID: string|undefined = undefined): Promise<unknown> {
+    async createSubscription(donationID: string | undefined = undefined, stripeCustomerID: string, cpf: string, rg: string|null, schoolClassID: string|undefined = undefined): Promise<unknown> {
 
         console.log('inside createSubscription FAKEFRONT')
 
@@ -42,7 +42,7 @@ class StripeFakeFront {
                         quantity: 1,
                         price_data: {
                             currency: 'brl',
-                            product: 'prod_NwqGmvpORCudCp',
+                            product: 'prod_NsNpalHn8d9nB8',
                             recurring: {
                                 interval: 'month',
                                 interval_count: 1

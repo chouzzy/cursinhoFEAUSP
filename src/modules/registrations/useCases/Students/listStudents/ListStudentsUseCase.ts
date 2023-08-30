@@ -24,8 +24,6 @@ class ListStudentsUseCase {
 
         let { page, pageRange, initDate, endDate } = studentsRequest
 
-        console.log(initDate, endDate)
-
         if (initDate === undefined) {
             studentsRequest.initDate = '1979-01-01'
         }

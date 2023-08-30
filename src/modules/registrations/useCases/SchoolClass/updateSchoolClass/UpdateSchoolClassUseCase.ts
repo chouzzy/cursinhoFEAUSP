@@ -20,6 +20,12 @@ class UpdateSchoolClassUseCase {
                 errorMessage: bodyValidation.errorMessage,
             })
         }
+
+        schoolClassData.selectiveStages.map( stage => {
+            if (!stage.resultsDate) {
+                stage.resultsDate = null
+            }
+        })
         
         const upatedSchoolClassResponse = await this.schoolClassRepository.updateSchoolClass(schoolClassData, schoolClassID)
         

@@ -17,7 +17,9 @@ class Students {
     zipCode!: string
 
     cpf!: string
-    rg!: string
+    rg!: string | null
+    ufrg!: string
+    
     selfDeclaration!: string
     oldSchool!: string
     oldSchoolAdress!: string
