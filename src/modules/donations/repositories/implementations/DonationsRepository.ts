@@ -56,6 +56,7 @@ class DonationsRepository implements IDonationsRepository {
                 'cpf',
                 'rg',
                 'ufrg',
+                
 
                 'valuePaid',
                 'paymentMethod',
@@ -136,7 +137,7 @@ class DonationsRepository implements IDonationsRepository {
                     district: donationData.district,
                     zipCode: donationData.zipCode,
                     cpf: donationData.cpf,
-                    rg: donationData.rg,
+                    rg: donationData.rg?? 'Não informado',
                     ufrg: donationData.ufrg,
                     valuePaid: donationData.valuePaid,
                     paymentDate: new Date(),
@@ -153,7 +154,7 @@ class DonationsRepository implements IDonationsRepository {
             // Buscando o RG e CPF do customer no Stripe
             const stripeCustomer = new StripeCustomer()
             const { cpf, rg } = createdDonation
-            const stripeCustomerID = await stripeCustomer.searchCustomer(cpf, rg)
+            const stripeCustomerID = await stripeCustomer.searchCustomer(cpf)
 
 
             // Validando existencia do customer, se ele não existir, a gente cria

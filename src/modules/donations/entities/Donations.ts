@@ -16,7 +16,7 @@ class Donations {
     zipCode!:string
 
     cpf!: string
-    rg!: string
+    rg!: string | null
     ufrg!: string
 
     valuePaid!: number
