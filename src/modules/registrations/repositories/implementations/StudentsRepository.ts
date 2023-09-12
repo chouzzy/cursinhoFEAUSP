@@ -48,13 +48,15 @@ class StudentsRepository implements IStudentsRepository {
 
                 const check = student.purcharsedSubscriptions.map(sub => {
 
+
                     if (sub.paymentDate) {
 
 
                         if ((new Date(endDate) > sub.paymentDate) && (sub.paymentDate > new Date(initDate))) {
+                            
                             return true
                         }
-
+                        
                         else {
                             return false
                         }

@@ -24,16 +24,13 @@ class ExcelListStudentsUseCase {
 
 
         let { page, pageRange, initDate, endDate } = studentsRequest
+        
+        if(!initDate) { studentsRequest.initDate = '1979-01-01'}
+        if(!endDate) { studentsRequest.endDate = '2999-01-01'}
 
-        console.log(initDate, endDate)
+        if (initDate == undefined) { studentsRequest.initDate = '1979-01-01'}
+        if (endDate == undefined) {  studentsRequest.endDate = '2999-01-01'}
 
-        if (initDate === undefined || endDate === undefined) {
-            return {
-                isValid: false,
-                statusCode: 400,
-                errorMessage: "initDate and endDate cannot be undefined",
-            };
-        }
 
         const pageAsNumber = parseInt(page?.toString() || "0", 10);
         const pageRangeAsNumber = parseInt(pageRange?.toString() || "10", 10);
@@ -45,9 +42,9 @@ class ExcelListStudentsUseCase {
                 errorMessage: "page and pageRange must be numbers",
             }
         }
-
+        
         const students = await this.studentsRepository.filterStudent(studentsRequest, pageAsNumber, pageRangeAsNumber)
-
+        
         if (students.statusCode != 202) {
             return students
         }
@@ -56,7 +53,7 @@ class ExcelListStudentsUseCase {
         const workbook = new Workbook()
 
         // Add a new worksheet to the workbook
-        const worksheet: Worksheet = workbook.addWorksheet("Donations")
+        const worksheet: Worksheet = workbook.addWorksheet("Students")
 
         // Set the columns headers in the worksheet
         worksheet.addRow([
@@ -131,7 +128,7 @@ class ExcelListStudentsUseCase {
 
         // You can save the file to disk or send it as a response
         // For example, to save the file to disk:
-        await workbook.xlsx.writeFile("students.xlsx")
+        await workbook.xlsx.writeFile("students1829.xlsx")
 
         return {
             isValid: true,

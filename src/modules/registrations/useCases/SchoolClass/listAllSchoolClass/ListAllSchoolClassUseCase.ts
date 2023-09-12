@@ -8,9 +8,12 @@ class ListAllSchoolClassUseCase {
     constructor(
         private schoolClassRepository: ISchoolClassRepository) { }
 
-    async execute({ id, title }: ListAllSchoolClassProps): Promise<validationResponse> {
+    async execute(title: SchoolClass["title"]): Promise<validationResponse> {
 
-        const response = await this.schoolClassRepository.listAllSchoolClasses(id, title)
+        console.log(title)
+        if (!title) { title = ''}
+        console.log(title)
+        const response = await this.schoolClassRepository.listAllSchoolClasses(title)
         
         return response
     }

@@ -15,7 +15,7 @@ const listSchoolClassController = new ListSchoolClassController()
 schoolClassRoutes.get('/', listSchoolClassController.handle)
 
 const listAllSchoolClassController = new ListAllSchoolClassController()
-schoolClassRoutes.get('/:id/listAll', listAllSchoolClassController.handle)
+schoolClassRoutes.get('/listAll', listAllSchoolClassController.handle)
 
 const createSchoolClassController = new CreateSchoolClassController()
 schoolClassRoutes.post('/create', createSchoolClassController.handle)

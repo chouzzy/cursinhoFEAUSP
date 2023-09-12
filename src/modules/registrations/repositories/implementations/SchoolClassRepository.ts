@@ -66,14 +66,14 @@ class SchoolClassRepository implements ISchoolClassRepository {
         }
     }
 
-    async listAllSchoolClasses(id: SchoolClass["id"], title: SchoolClass["title"]): Promise<validationResponse> {
+    async listAllSchoolClasses(title: SchoolClass["title"]): Promise<validationResponse> {
 
         try {
 
             const allSchoolClasses = await prisma.schoolClass.findMany({
                 where: {
                     OR:[
-                        {title: {contains:title}, id: id}
+                        {title: {contains:title}}
                     ]
                 }
             })

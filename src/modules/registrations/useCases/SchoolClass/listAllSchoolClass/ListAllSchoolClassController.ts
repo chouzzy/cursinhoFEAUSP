@@ -5,7 +5,7 @@ import { ErrorValidation } from "./ListAllSchoolClassCheck";
 import { ListAllSchoolClassUseCase } from "./ListAllSchoolClassUseCase";
 
 interface ListAllSchoolClassProps {
-    id: SchoolClass["id"],
+    // id: SchoolClass["id"],
     title: SchoolClass["title"]
 }
 
@@ -16,13 +16,13 @@ class ListAllSchoolClassController {
         // Instanciando o useCase no repositório com as funções
 
         const { title }: ListAllSchoolClassProps = req.query as unknown as ListAllSchoolClassProps;
-        const { id } = req.params
+        // const { id } = req.params
 
         const schoolClassRepository = new SchoolClassRepository()
 
         const listSchoolClassUseCase = new ListAllSchoolClassUseCase(schoolClassRepository);
 
-        const schoolClassResponse = await listSchoolClassUseCase.execute({ id, title })
+        const schoolClassResponse = await listSchoolClassUseCase.execute(title)
 
         return res.status(
             schoolClassResponse.statusCode
