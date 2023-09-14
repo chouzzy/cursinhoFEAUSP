@@ -75,14 +75,18 @@ class SchoolClassRepository implements ISchoolClassRepository {
                     OR:[
                         {title: {contains:title}}
                     ]
+                },
+                select:{
+                    id: true,
+                    title: true
                 }
             })
+
 
             return {
                 isValid: true,
                 statusCode: 202,
-                schoolClassList: allSchoolClasses,
-                totalDocuments: allSchoolClasses.length
+                listAllSchoolClassList: allSchoolClasses?? []
             }
 
         } catch (error: unknown) {

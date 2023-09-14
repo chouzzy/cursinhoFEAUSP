@@ -16,6 +16,10 @@ interface validationResponse {
   stripeCreatedCustomerID?: string;
   stripeCreatedProductID?: string;
   schoolClass?: SchoolClass
+  listAllSchoolClassList?: {
+    id: SchoolClass['id'],
+    title: SchoolClass['title']
+  }[] 
   schoolClassList?: SchoolClass[]
   schoolClassDocs?: SchoolClass["documents"]
   schoolClassStages?: SchoolClass["selectiveStages"]
