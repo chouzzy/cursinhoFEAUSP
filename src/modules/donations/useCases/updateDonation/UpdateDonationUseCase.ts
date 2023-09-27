@@ -11,9 +11,9 @@ class UpdateDonationUseCase {
 
     async execute(donationData:UpdateDonationProps): Promise<Donations | validationResponse> {
         
-        const updateDonation = await this.donationsRepository.createDonation(donationData)
+        // const updateDonation = await this.donationsRepository.createDonation(donationData)
         
-        return updateDonation
+        return { isValid: false, errorMessage: 'Rota de update não existente', statusCode: 403 }
     }
     
 }

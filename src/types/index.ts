@@ -232,7 +232,8 @@ interface StripeCustomerData {
   state: string
   city: string
   street: string
-  cpf: string
+  cpf: string | null
+  cnpj?: string | null
   rg?: string | null
   ufrg: string
 }

@@ -2,10 +2,10 @@ import { ValidationError } from "yup";
 import { errorSchema } from "../../../../errors/ErrorSchema";
 import { validationResponse } from "../../../../types";
 import { Donations } from "../../entities/Donations";
-import { CreateDonationProps } from "./UpdateDonationController";
+import { UpdateDonationProps } from "./UpdateDonationController";
 import { donationSchema } from "./UpdateDonationSchema";
 
-async function checkBody(donationData:CreateDonationProps): Promise<validationResponse> {
+async function checkBody(donationData:UpdateDonationProps): Promise<validationResponse> {
     // check body properties
     try {
         const yupValidation = await donationSchema.validate(donationData, {

@@ -13,6 +13,7 @@ interface UpdateSchoolClassRequestProps {
     status: SchoolClass["status"]
     stripeProductID: SchoolClass["stripeProductID"]
     documents?: SchoolClass["documents"]
+    registrations?: SchoolClass["registrations"]
 }
 
 class UpdateSchoolClassController {

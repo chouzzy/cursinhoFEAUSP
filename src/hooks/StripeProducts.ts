@@ -49,6 +49,7 @@ class StripeProducts {
                 }
             })
 
+
             return {
                 isValid: true,
                 statusCode: 202,

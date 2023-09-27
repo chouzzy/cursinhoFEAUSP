@@ -21,6 +21,7 @@ class DonationsRepository implements IDonationsRepository {
         {name,
         email,
         cpf,
+        cnpj,
         paymentStatus,
         initValue,
         endValue,
@@ -55,6 +56,7 @@ class DonationsRepository implements IDonationsRepository {
                 'street',
                 'cpf',
                 'rg',
+                'cnpj',
                 'ufrg',
                 
 
@@ -73,6 +75,7 @@ class DonationsRepository implements IDonationsRepository {
                     {name: {contains: name}},
                     {email: email},
                     {cpf: cpf},
+                    {cnpj: cnpj},
                     {paymentStatus: paymentStatus}
                 ]
             },
@@ -93,6 +96,8 @@ class DonationsRepository implements IDonationsRepository {
             take: pageRange
             
         })
+
+        // console.log(filteredDonations)
 
         return {
             isValid: true,
@@ -138,6 +143,7 @@ class DonationsRepository implements IDonationsRepository {
                     zipCode: donationData.zipCode,
                     cpf: donationData.cpf,
                     rg: donationData.rg?? 'Não informado',
+                    cnpj: donationData.cnpj ?? 'Não informado',
                     ufrg: donationData.ufrg,
                     valuePaid: donationData.valuePaid,
                     paymentDate: new Date(),
@@ -153,8 +159,11 @@ class DonationsRepository implements IDonationsRepository {
 
             // Buscando o RG e CPF do customer no Stripe
             const stripeCustomer = new StripeCustomer()
-            const { cpf, rg } = createdDonation
-            const stripeCustomerID = await stripeCustomer.searchCustomer(cpf)
+            const { cpf, rg, cnpj } = createdDonation
+            const stripeCustomerID = await stripeCustomer.searchCustomer(cpf, cnpj)
+
+            // console.log('SEARCHED: stripeCustomerID')
+            // console.log(stripeCustomerID)
 
 
             // Validando existencia do customer, se ele não existir, a gente cria
@@ -163,6 +172,8 @@ class DonationsRepository implements IDonationsRepository {
 
                 // Não existe nenhum customer com esse RG e CPF no stripe, por isso vamos criar
                 const stripeCustomerCreatedID = await stripeCustomer.createCustomer(donationData)
+                // console.log('CREATED: stripeCustomerCreatedID')
+                // console.log(stripeCustomerCreatedID)
 
                 // Atribuindo o stripeCustomerID a donation recém criada
                 await prisma.donations.update({
@@ -175,7 +186,13 @@ class DonationsRepository implements IDonationsRepository {
                 ////TESTE SUBSCRIPTION
                 const stripeFrontEnd = new StripeFakeFront()
 
-                await stripeFrontEnd.createSubscription(createdDonation.id, stripeCustomerCreatedID, cpf, rg)
+                await stripeFrontEnd.createSubscription({
+                    donationID: createdDonation.id,
+                    stripeCustomerID: stripeCustomerCreatedID,
+                    cpf,
+                    cnpj,
+                    rg
+                })
 
             } else {
 
@@ -191,7 +208,13 @@ class DonationsRepository implements IDonationsRepository {
                 ////TESTE SUBSCRIPTION
                 const stripeFrontEnd = new StripeFakeFront()
 
-                await stripeFrontEnd.createSubscription(createdDonation.id, stripeCustomerID, cpf, rg)
+                await stripeFrontEnd.createSubscription({
+                    donationID: createdDonation.id,
+                    stripeCustomerID: stripeCustomerID,
+                    cpf,
+                    cnpj,
+                    rg
+                })
             }
 
             return { isValid: true, successMessage: 'Doação criada com sucesso!', statusCode: 202 }

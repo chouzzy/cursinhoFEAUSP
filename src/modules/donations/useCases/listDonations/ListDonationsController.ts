@@ -14,6 +14,7 @@ interface ListDonationsQuery {
     name?: string;
     email?: string,
     cpf?: string,
+    cnpj?: string,
     paymentStatus?: string,
     initValue?: number,
     endValue?: number,

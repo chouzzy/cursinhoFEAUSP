@@ -12,7 +12,15 @@ class ListDonationsUseCase {
     async execute(donationsRequest: ListDonationsQuery): Promise<validationResponse> {
 
         //Checando query
+        if (!donationsRequest.cpf) {
+            donationsRequest.cpf = 'Não informado'
+        }
+
         const queryValidation = await checkQuery(donationsRequest)
+
+        if (donationsRequest.cpf === 'Não informado') {
+            donationsRequest.cpf = undefined
+        }
 
         if (queryValidation.isValid === false) {
             return ({
@@ -73,8 +81,8 @@ class ListDonationsUseCase {
         donationsRequest.initValue = validatedInitValue
         donationsRequest.endValue = validatedEndValue
 
+        console.log(donationsRequest, page, pageRange)
         const donations = await this.donationsRepository.filterDonation(donationsRequest, page, pageRange)
-        // console.log(donations)
         return donations
     }
 }

@@ -33,16 +33,16 @@ class StudentsRepository implements IStudentsRepository {
                 where: {
                     AND: [
                         { id: id },
-                        { name: {contains: name} },
+                        { name: { contains: name } },
                         { email: email },
                         { cpf: cpf },
                     ]
                 },
-                skip: (page -1) * pageRange,
+                skip: (page - 1) * pageRange,
                 take: pageRange
             })
 
-            
+
             const studentsPerSchoolClass: Students[] = []
             filteredStudents.map(student => {
 
@@ -53,10 +53,10 @@ class StudentsRepository implements IStudentsRepository {
 
 
                         if ((new Date(endDate) > sub.paymentDate) && (sub.paymentDate > new Date(initDate))) {
-                            
+
                             return true
                         }
-                        
+
                         else {
                             return false
                         }
@@ -71,7 +71,7 @@ class StudentsRepository implements IStudentsRepository {
             filteredStudents = studentsPerSchoolClass
 
             // Filtro por turma
-            
+
             if (schoolClassID) {
                 const studentsPerSchoolClass: Students[] = []
 
@@ -228,14 +228,19 @@ class StudentsRepository implements IStudentsRepository {
 
                 const updatedStudent = await prisma.students.update({
                     where: { id: searchedStudent.id },
-                    data: {...studentData}
+                    data: { ...studentData }
                 })
 
 
                 const stripeFrontEnd = new StripeFakeFront()
                 studentData.pursharsedSubscriptions.map(async (subscription) => {
 
-                    await stripeFrontEnd.createSubscription('', stripeSearchedCustomerID, cpf, rg, subscription.schoolClassID)
+                    await stripeFrontEnd.createSubscription({
+                        stripeCustomerID: stripeSearchedCustomerID,
+                        cpf: cpf,
+                        rg: rg,
+                        schoolClassID: subscription.schoolClassID
+                    })
                 })
 
                 return {
@@ -274,7 +279,7 @@ class StudentsRepository implements IStudentsRepository {
                     phoneNumber: studentData.phoneNumber,
                     isPhoneWhatsapp: studentData.isPhoneWhatsapp,
                     state: studentData.state,
-                    
+
                     city: studentData.city,
                     street: studentData.street,
                     homeNumber: studentData.homeNumber,
@@ -303,7 +308,12 @@ class StudentsRepository implements IStudentsRepository {
             const stripeFrontEnd = new StripeFakeFront()
             studentData.pursharsedSubscriptions.map(async (subscription) => {
 
-                await stripeFrontEnd.createSubscription('', stripeCustomerCreatedID, cpf, rg, subscription.schoolClassID)
+                await stripeFrontEnd.createSubscription({
+                    stripeCustomerID: stripeCustomerCreatedID,
+                    cpf: cpf,
+                    rg: rg,
+                    schoolClassID: subscription.schoolClassID
+                })
             })
 
 

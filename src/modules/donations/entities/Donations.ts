@@ -17,6 +17,7 @@ class Donations {
 
     cpf!: string
     rg!: string | null
+    cnpj!: string | null
     ufrg!: string
 
     valuePaid!: number

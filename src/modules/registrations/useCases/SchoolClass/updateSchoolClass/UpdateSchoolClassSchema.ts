@@ -34,7 +34,13 @@ const updateSchoolClassSchema = yup.object({
             title: yup.string().min(3, 'O título deve conter ao menos 3 caracteres'),
             downloadLink: yup.string().min(3, 'O título deve conter ao menos 3 caracteres')
         })
-    )
+    ),
+
+    registrations: yup.object({
+        description: yup.string(),
+        value: yup.number(),
+        
+    }),
 })
 
 export { updateSchoolClassSchema }

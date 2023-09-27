@@ -20,6 +20,8 @@ interface UpdateDonationProps {
     zipCode: Donations["zipCode"]
     cpf: Donations["cpf"]
     rg: Donations["rg"]
+    ufrg: Donations["ufrg"]
+    cnpj: Donations["cnpj"]
     valuePaid: Donations["valuePaid"]
 }
 
@@ -30,6 +32,11 @@ class UpdateDonationController {
         const donationData: UpdateDonationProps = req.body
 
         //é responsabilidade do controller validar os dados recebidos na requisição
+
+        if (!donationData.cpf && donationData.cnpj) {
+            donationData.cpf = "Não informado"
+        }
+
         const bodyValidation = await checkBody(donationData)
 
         if (bodyValidation.isValid === false) {

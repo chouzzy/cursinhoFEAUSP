@@ -9,6 +9,7 @@ class SchoolClass {
   stripeProductID!: string
   status!: string
   documents?: DocumentsTypes[]
+  registrations!: Registrations
 }
 
 interface SchoolClassInformations {
@@ -39,6 +40,11 @@ interface SchoolClassSelectiveStages {
   when: string
   resultsDate: Date | null
   description: string
+}
+
+interface Registrations {
+  description: string
+  value: number
 }
 
 export { SchoolClass, DocumentsTypes, SchoolClassSelectiveStages }

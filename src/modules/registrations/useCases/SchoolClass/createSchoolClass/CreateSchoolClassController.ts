@@ -14,6 +14,7 @@ interface CreateSchoolClassRequestProps {
     stripeProductID: SchoolClass["stripeProductID"]
     status: SchoolClass["status"]
     documents?: SchoolClass["documents"]
+    registrations: SchoolClass["registrations"]
 }
 
 class CreateSchoolClassController {

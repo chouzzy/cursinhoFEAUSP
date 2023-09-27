@@ -29,6 +29,7 @@ model Donations {
 
   cpf  String
   rg   String?
+  cnpj String?
   ufrg String
 
   valuePaid     Int
@@ -109,6 +110,7 @@ model SchoolClass {
   status          String // Changed from Boolean to String
   stripeProductID String
   documents       DocumentsTypes[]
+  registrations   Registrations
 
   @@map("SchoolClass")
 }
@@ -150,4 +152,9 @@ type SchoolClassSelectiveStages {
   when        String
   resultsDate DateTime?
   description String
+}
+
+type Registrations {
+  description String
+  value       Int
 }

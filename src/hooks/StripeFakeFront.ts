@@ -1,9 +1,25 @@
 import { stripe } from "../server"
 
+interface Subscription {
+    donationID?: string,
+    stripeCustomerID: string,
+    cpf: string,
+    rg: string | null,
+    cnpj?: string | null,
+    schoolClassID?: string
+}
 
 class StripeFakeFront {
 
-    async createSubscription(donationID: string | undefined = undefined, stripeCustomerID: string, cpf: string, rg: string|null, schoolClassID: string|undefined = undefined): Promise<unknown> {
+    async createSubscription(
+        {donationID = undefined,
+        stripeCustomerID,
+        cpf,
+        rg,
+        cnpj = "Não informado",
+        schoolClassID = undefined,
+        }:Subscription 
+    ): Promise<unknown> {
 
         console.log('inside createSubscription FAKEFRONT')
 
@@ -42,12 +58,12 @@ class StripeFakeFront {
                         quantity: 1,
                         price_data: {
                             currency: 'brl',
-                            product: 'prod_NsNpalHn8d9nB8',
+                            product: 'prod_NwqGmvpORCudCp',
                             recurring: {
                                 interval: 'month',
                                 interval_count: 1
                             },
-                            unit_amount: 1000
+                            unit_amount: 21892
                         }
                     }
                 ],
@@ -58,6 +74,7 @@ class StripeFakeFront {
                 metadata: {
                     subscriptionType: 'Donation',
                     cpf: cpf,
+                    cnpj: cnpj,
                     rg: rg,
                     stripeCustomerID: stripeCustomerID,
                     donationID: donationID,

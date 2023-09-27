@@ -15,9 +15,13 @@ const donationSchema = object({
     district: string().required("O bairro é obrigatório"),
     zipCode:string().required("O CEP é obrigatório").min(9, "O CEP deve conter 8 algarismos e um hífen. Ex: 08230-030"),
     
-    cpf: string().required().min(11, "O CPF deve conter ao menos 11 caracteres").max(11, "O CPF deve conter 11 caracteres"),
+    cpf: string().test('cpf-validation', 'O CPF deve conter ao menos 11 caracteres ou "Não informado"', (value) => {
+        // Check if the value is either "Não informado" or a string with length 11
+        return value === "Não informado" || (typeof value === "string" && value.length === 11);
+      }),
     rg : string().min(9, "O RG deve conter ao menos 9 caracteres").max(9, "O RG deve conter ao menos 9 caracteres"),
-    valuePaid: number().required()
+    valuePaid: number().required(),
+    cnpj: string().min(14, "O CNPJ deve conter 14 caracteres").max(14, "O CNPJ deve conter 14 caracteres"),
 })
 
 export {donationSchema}

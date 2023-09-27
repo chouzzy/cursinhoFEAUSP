@@ -12,6 +12,11 @@ class CreateDonationUseCase {
     async execute(donationData: CreateDonationProps): Promise<validationResponse> {
 
         //é responsabilidade do controller validar os dados recebidos na requisição
+
+        if (!donationData.cpf && donationData.cnpj) {
+            donationData.cpf = "Não informado"
+        }
+
         if (!donationData.rg) {
             donationData.ufrg = "Não informado"
         }

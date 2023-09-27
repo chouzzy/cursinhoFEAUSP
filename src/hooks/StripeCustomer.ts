@@ -165,6 +165,7 @@ class StripeCustomer {
                     OR: [
                         { email: donationData.email },
                         { cpf: donationData.cpf },
+                        { cnpj: donationData.cnpj },
                     ]
                 }
 
@@ -191,7 +192,8 @@ class StripeCustomer {
                 metadata: {
                     customerType: 'Donation',
                     donationValue: donationData.valuePaid,
-                    cpf: donationData.cpf
+                    cpf: donationData.cpf,
+                    cnpj: donationData.cnpj
                 }
             })
 
@@ -411,22 +413,47 @@ class StripeCustomer {
 
     }
 
-    async searchCustomer(cpf: string): Promise<string | undefined> {
-
-        const customer = await stripe.customers.search({
-            query: `metadata[\'cpf\']:\'${cpf}\'`,
-        });
+    async searchCustomer(cpf: string, cnpj: string|null): Promise<string | undefined> {
 
 
+        if (cpf != "Não informado" && cnpj != null) {
+            const customer = await stripe.customers.search({
+                query: `metadata[\'cpf\']:\'${cpf}\'`,
+            });
 
-
-        if (customer.data.length == 0) {
-            return undefined
+            if (customer.data.length == 0) {
+                return undefined
+            }
+            return customer.data[0].id
         }
-        return customer.data[0].id
+
+        if (cnpj != null && cnpj) {
+
+            const customer = await stripe.customers.search({
+                query: `metadata[\'cnpj\']:\'${cnpj}\'`,
+            });
+
+
+            if (customer.data.length == 0) {
+                return undefined
+            }
+            return customer.data[0].id
+        }
+
     }
 
     async createCustomer(customerData: StripeCustomerData): Promise<string> {
+
+        let {cpf, rg, cnpj} = customerData
+
+
+        if (cpf === "Não informado") {
+            cpf = null
+        }
+
+        if (cnpj === "Não informado") {
+            cnpj = null
+        }
 
         const customer = await stripe.customers.create({
             description: `Customer criado por awer na data: ${(new Date()).toLocaleDateString('pt-BR')}`,
@@ -439,8 +466,9 @@ class StripeCustomer {
             name: customerData.name,
             phone: customerData.phoneNumber,
             metadata: {
-                cpf: customerData.cpf,
-                rg: customerData.rg,
+                cpf: cpf,
+                rg: rg,
+                cnpj: cnpj
             }
         });
 

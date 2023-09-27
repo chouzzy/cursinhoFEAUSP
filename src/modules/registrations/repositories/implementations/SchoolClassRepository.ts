@@ -34,7 +34,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
                 },
             })
 
-            //Checa se email e usuario ja existem
+            
             if (schoolClassFound) {
                 return { isValid: false, errorMessage: `Título de turma já existente`, statusCode: 403 }
             }
