@@ -10,6 +10,10 @@ import { StripeFakeFront } from "../../../../hooks/StripeFakeFront";
 import { ListStudentsQuery } from "../../useCases/Students/listStudents/ListStudentsController";
 
 
+interface purcharsedSubscriptionsID {
+    schoolClassID: string
+}
+
 class StudentsRepository implements IStudentsRepository {
 
     private students: Students[]
@@ -153,6 +157,34 @@ class StudentsRepository implements IStudentsRepository {
     async createStudent(studentData: CreateStudentRequestProps): Promise<validationResponse> {
 
         try {
+
+            //Checa duplicados no array purcharsed subs
+            function checkDuplicateSchoolClassIDs(purcharsedSubscriptions: Students["purcharsedSubscriptions"]) {
+                const uniqueIDs = new Set();
+
+                for (const subscription of purcharsedSubscriptions) {
+                    if (uniqueIDs.has(subscription.schoolClassID)) {
+                        return true; // Duplicate found
+                    }
+                    uniqueIDs.add(subscription.schoolClassID);
+                }
+
+                return false; // No duplicates found
+            }
+
+            const { purcharsedSubscriptions } = studentData
+
+            const hasDuplicateSchoolClassIDs = checkDuplicateSchoolClassIDs(purcharsedSubscriptions);
+
+            if (hasDuplicateSchoolClassIDs) {
+                return {
+                    isValid: false,
+                    errorMessage: `Não é possível comprar a mesma inscrição duas vezes.`,
+                    statusCode: 403
+                }
+            }
+
+
             const searchedStudent = await prisma.students.findFirst({
                 where: {
                     OR: [
@@ -160,22 +192,27 @@ class StudentsRepository implements IStudentsRepository {
                         { rg: studentData.rg }
                     ]
                 }
-
             })
+
+
 
             // Buscando o RG e CPF do customer no Stripe
             const stripeCustomer = new StripeCustomer()
             const { cpf, rg } = studentData
-            const stripeSearchedCustomerID = await stripeCustomer.searchCustomer(cpf)
+            const stripeSearchedCustomerID = await stripeCustomer.searchCustomer(cpf, null)
 
 
             //create stripe customer
             //pegar id do created stripe customer e atualizar o student ID
+
+
             if (searchedStudent && stripeSearchedCustomerID) {
+
 
                 let subscriptionsDuplicated: Array<purcharsedSubscriptions["schoolClassID"]> = []
 
-                studentData.pursharsedSubscriptions.map(
+                //Filtro para possível cadastro em turma que já foi paga.
+                studentData.purcharsedSubscriptions.map(
                     (subscription) => {
 
                         searchedStudent.purcharsedSubscriptions.map(
@@ -202,38 +239,110 @@ class StudentsRepository implements IStudentsRepository {
                     }
                 }
 
-                //push student pursharsed subscriptions
+                //push student purcharsed subscriptions
+                const isDuplicatedInactiveSubscription = checkDuplicateSchoolClassIDs(
+                    [...searchedStudent.purcharsedSubscriptions,
+                    ...studentData.purcharsedSubscriptions
+                    ])
 
-                searchedStudent.purcharsedSubscriptions = [...searchedStudent.purcharsedSubscriptions, ...studentData.pursharsedSubscriptions]
+                //Caso tenha subscription já comprada, mas que o pagamento não foi confirmado, será feito o fake front novamente (pagamento dnv)
+                if (isDuplicatedInactiveSubscription) {
 
-                studentData.pursharsedSubscriptions.map((subscription) => {
+                    const stripeFrontEnd = new StripeFakeFront()
+                    await stripeFrontEnd.createSubscription({
+                        stripeCustomerID: stripeSearchedCustomerID,
+                        cpf: cpf,
+                        rg: rg,
+                        schoolClassID: studentData.purcharsedSubscriptions[0].schoolClassID
+                    })
 
-                    searchedStudent.purcharsedSubscriptions.map(
-                        (subscriptionAlreadyRegistered) => {
+                    return {
+                        isValid: true,
+                        errorMessage: `Estudante atualizado com sucesso!`,
+                        students: searchedStudent,
+                        statusCode: 202
+                    }
 
-                            if (subscription.schoolClassID == subscriptionAlreadyRegistered.schoolClassID
-                            ) {
-                                subscriptionAlreadyRegistered.paymentDate = subscriptionAlreadyRegistered.paymentDate ?? null,
-                                    subscriptionAlreadyRegistered.paymentMethod = subscriptionAlreadyRegistered.paymentMethod ?? 'Pagamento não confirmado',
-                                    subscriptionAlreadyRegistered.paymentStatus = subscriptionAlreadyRegistered.paymentStatus ?? 'Pagamento não confirmado',
-                                    subscriptionAlreadyRegistered.productID = subscriptionAlreadyRegistered.productID ?? 'Pagamento não confirmado',
-                                    subscriptionAlreadyRegistered.productName = subscriptionAlreadyRegistered.productName ?? 'Pagamento não confirmado',
-                                    subscriptionAlreadyRegistered.valuePaid = subscriptionAlreadyRegistered.valuePaid ?? 0
+                }
 
-                            }
-                        })
+                console.log('searchedStudent')
+                console.log(searchedStudent)
+                console.log('studentData')
+                console.log(studentData)
 
-                })
+                // Só vaic hegar aqui a inscrição
+                studentData.purcharsedSubscriptions = [{
+                    schoolClassID: studentData.purcharsedSubscriptions[0].schoolClassID,
+                    paymentDate: null,
+                    paymentMethod: 'Pagamento não confirmado',
+                    paymentStatus: 'Pagamento não confirmado',
+                    productID: 'Pagamento não confirmado',
+                    productName: 'Pagamento não confirmado',
+                    valuePaid: 0
+                }]
+
+                searchedStudent.purcharsedSubscriptions = [...searchedStudent.purcharsedSubscriptions, ...studentData.purcharsedSubscriptions]
+
+
+                console.log('searchedStudent pós junção')
+                console.log(searchedStudent)
+
+
+                // studentData.purcharsedSubscriptions.map((subscription) => {
+
+                //     searchedStudent.purcharsedSubscriptions.map(
+                //         (subscriptionAlreadyRegistered) => {
+
+                //             if (subscription.schoolClassID == subscriptionAlreadyRegistered.schoolClassID
+                //             ) {
+                //                 subscriptionAlreadyRegistered.paymentDate = subscriptionAlreadyRegistered.paymentDate ?? null,
+                //                     subscriptionAlreadyRegistered.paymentMethod = subscriptionAlreadyRegistered.paymentMethod ?? 'Pagamento não confirmado',
+                //                     subscriptionAlreadyRegistered.paymentStatus = subscriptionAlreadyRegistered.paymentStatus ?? 'Pagamento não confirmado',
+                //                     subscriptionAlreadyRegistered.productID = subscriptionAlreadyRegistered.productID ?? 'Pagamento não confirmado',
+                //                     subscriptionAlreadyRegistered.productName = subscriptionAlreadyRegistered.productName ?? 'Pagamento não confirmado',
+                //                     subscriptionAlreadyRegistered.valuePaid = subscriptionAlreadyRegistered.valuePaid ?? 0
+
+                //             }
+                //         })
+
+                // })
+
+
 
 
                 const updatedStudent = await prisma.students.update({
                     where: { id: searchedStudent.id },
-                    data: { ...studentData }
+                    data: {
+                        name: searchedStudent.name,
+                        email: searchedStudent.email,
+                        gender: searchedStudent.gender,
+                        birth: searchedStudent.birth,
+                        phoneNumber: searchedStudent.phoneNumber,
+                        state: searchedStudent.state,
+                        city: searchedStudent.city,
+                        street: searchedStudent.street,
+                        homeNumber: searchedStudent.homeNumber,
+                        complement: searchedStudent.complement,
+                        district: searchedStudent.district,
+                        zipCode: searchedStudent.zipCode,
+                        isPhoneWhatsapp: searchedStudent.isPhoneWhatsapp,
+                        cpf: searchedStudent.cpf,
+                        rg: searchedStudent.rg,
+                        ufrg: searchedStudent.ufrg,
+                        selfDeclaration: searchedStudent.selfDeclaration,
+                        oldSchool: searchedStudent.oldSchool,
+                        oldSchoolAdress: searchedStudent.oldSchoolAdress,
+                        highSchoolGraduationDate: searchedStudent.highSchoolGraduationDate,
+                        highSchoolPeriod: searchedStudent.highSchoolPeriod,
+                        metUsMethod: searchedStudent.metUsMethod,
+                        exStudent: searchedStudent.exStudent,
+                        purcharsedSubscriptions: searchedStudent.purcharsedSubscriptions
+                    }
                 })
 
 
                 const stripeFrontEnd = new StripeFakeFront()
-                studentData.pursharsedSubscriptions.map(async (subscription) => {
+                studentData.purcharsedSubscriptions.map(async (subscription) => {
 
                     await stripeFrontEnd.createSubscription({
                         stripeCustomerID: stripeSearchedCustomerID,
@@ -258,7 +367,9 @@ class StudentsRepository implements IStudentsRepository {
 
             let studentSchoolClasses: purcharsedSubscriptions[] = []
 
-            studentData.pursharsedSubscriptions.map((subscription) => {
+
+
+            studentData.purcharsedSubscriptions.map((subscription) => {
                 studentSchoolClasses.push({
                     schoolClassID: subscription.schoolClassID,
                     paymentDate: subscription.paymentDate ?? null,
@@ -269,6 +380,7 @@ class StudentsRepository implements IStudentsRepository {
                     valuePaid: subscription.valuePaid ?? 0
                 })
             })
+
 
             const createdStudent = await prisma.students.create({
                 data: {
@@ -306,7 +418,7 @@ class StudentsRepository implements IStudentsRepository {
 
             ////TESTE SUBSCRIPTION
             const stripeFrontEnd = new StripeFakeFront()
-            studentData.pursharsedSubscriptions.map(async (subscription) => {
+            studentData.purcharsedSubscriptions.map(async (subscription) => {
 
                 await stripeFrontEnd.createSubscription({
                     stripeCustomerID: stripeCustomerCreatedID,

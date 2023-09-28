@@ -31,7 +31,7 @@ interface CreateStudentRequestProps {
     highSchoolPeriod: Students["highSchoolPeriod"],
     metUsMethod: Students["metUsMethod"],
     exStudent: Students["exStudent"],
-    pursharsedSubscriptions: {
+    purcharsedSubscriptions: {
         schoolClassID: purcharsedSubscriptions["schoolClassID"]
         productID: purcharsedSubscriptions["productID"]
         productName: purcharsedSubscriptions["productName"]

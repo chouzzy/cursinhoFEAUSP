@@ -58,7 +58,7 @@ const studentSchema = object({
     exStudent: string().required(),
     purcharsedSubscriptions: array().of(object({
         schoolClassID: string().required("O ID da turma deve ser informado").min(36, "O ID deve possuir 36 caracteres no formato UUID")
-    }))
+    })).required('É necessário comprar ao menos uma inscrição para prosseguir')
 })
 
 export { studentSchema }

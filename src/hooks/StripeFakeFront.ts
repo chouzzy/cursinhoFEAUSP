@@ -12,16 +12,23 @@ interface Subscription {
 class StripeFakeFront {
 
     async createSubscription(
-        {donationID = undefined,
-        stripeCustomerID,
-        cpf,
-        rg,
-        cnpj = "Não informado",
-        schoolClassID = undefined,
-        }:Subscription 
+        { donationID = undefined,
+            stripeCustomerID,
+            cpf,
+            rg,
+            cnpj = "Não informado",
+            schoolClassID = undefined,
+        }: Subscription
     ): Promise<unknown> {
 
         console.log('inside createSubscription FAKEFRONT')
+        let product = ''
+        let productType = ''
+
+        if (schoolClassID === 'c60a5d95-2b1e-4b45-85cf-7dbebdca792f') { product =  'prod_Ocu3Y6wBcUSpch', productType='Subscription'}
+        if (schoolClassID === '1e6141b6-4db3-46bd-b3f3-62cfc9e85e74') { product =  'prod_OiOOF5lKbyLB2o', productType='Subscription'}
+        if (schoolClassID === 'da43ee0a-bae3-471b-825f-a5fd58b13a82') { product =  'prod_OI2YFh3KiRL45i', productType='Subscription'}
+        if (!schoolClassID) { product =  'prod_NwqGmvpORCudCp', productType='Donation'}
 
         //price_1NAwZsHkzIzO4aMONf1wmRG2 - donation - prod_NwqGmvpORCudCp  
         //price_1N1FWXHkzIzO4aMONF3PGRqR - curso noturno - prod_NmpAHf1qPgwXHo
@@ -58,7 +65,7 @@ class StripeFakeFront {
                         quantity: 1,
                         price_data: {
                             currency: 'brl',
-                            product: 'prod_NwqGmvpORCudCp',
+                            product: product,
                             recurring: {
                                 interval: 'month',
                                 interval_count: 1
@@ -72,7 +79,7 @@ class StripeFakeFront {
                 currency: 'brl',
                 collection_method: 'charge_automatically',
                 metadata: {
-                    subscriptionType: 'Donation',
+                    subscriptionType: productType,
                     cpf: cpf,
                     cnpj: cnpj,
                     rg: rg,

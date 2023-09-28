@@ -6,9 +6,6 @@ import { Prisma } from "@prisma/client";
 import { CreateDonationProps } from "../modules/donations/useCases/createDonation/CreateDonationController";
 import { Donations } from "../modules/donations/entities/Donations";
 
-interface CreateCustomerRequestProps {
-}
-
 class StripeCustomer {
 
     // async updateStudent(
@@ -230,11 +227,19 @@ class StripeCustomer {
         try {
             const stripeProductCreatedID = subscriptionCreated.items.data[0].price.product
 
+            // console.log('subscriptionCreated.items.data')
+            // console.log(subscriptionCreated.items.data)
+
             const isTheProductASchoolClass = await prisma.schoolClass.findFirst({
                 where: {
                     stripeProductID: stripeProductCreatedID
                 }
             })
+
+            
+
+            // console.log('isTheProductASchoolClass')
+            // console.log(isTheProductASchoolClass)
 
             //Verifica se é Donation ou SchoolClass
             if (isTheProductASchoolClass) {
@@ -254,6 +259,9 @@ class StripeCustomer {
                     }
                 )
 
+                // console.log('customer')
+                // console.log(customer)
+
 
 
 
@@ -263,6 +271,9 @@ class StripeCustomer {
                         cpf: customer.metadata.cpf
                     }
                 })
+
+                // console.log('student')
+                // console.log(student)
 
 
 
@@ -280,6 +291,9 @@ class StripeCustomer {
                         stripeProductID: stripeProductCreatedID
                     }
                 })
+
+                // console.log('schoolClassBought')
+                // console.log(schoolClassBought)
 
 
                 if (!schoolClassBought) {
@@ -416,29 +430,36 @@ class StripeCustomer {
     async searchCustomer(cpf: string, cnpj: string|null): Promise<string | undefined> {
 
 
-        if (cpf != "Não informado" && cnpj != null) {
-            const customer = await stripe.customers.search({
-                query: `metadata[\'cpf\']:\'${cpf}\'`,
-            });
-
-            if (customer.data.length == 0) {
-                return undefined
-            }
-            return customer.data[0].id
-        }
-
-        if (cnpj != null && cnpj) {
+        console.log(cpf, cnpj)
+        
+        if (cnpj && cnpj != "Não informado"){
 
             const customer = await stripe.customers.search({
                 query: `metadata[\'cnpj\']:\'${cnpj}\'`,
             });
 
-
-            if (customer.data.length == 0) {
+            console.log('customer 2');
+            console.log(customer);
+            if (customer.data.length == 0 || customer == null) {
                 return undefined
             }
             return customer.data[0].id
         }
+        
+        if (cpf && cpf != "Não informado") {
+            const customer = await stripe.customers.search({
+                query: `metadata[\'cpf\']:\'${cpf}\'`,
+            });
+
+            console.log('customer 1');
+            console.log(customer);
+            if (!customer.data || customer.data.length === 0) {
+                return undefined
+            }
+            
+            return customer.data[0].id
+        }
+
 
     }
 
