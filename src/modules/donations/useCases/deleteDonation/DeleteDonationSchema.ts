@@ -1,7 +1,7 @@
 import { number, object, string } from "yup";
 
 const donationSchema = object({
-    paymentStatus: string().required("O paymentStatus é obrigatório").oneOf(['canceled'] as const)
+    donationID: string().required("O id da doação é obrigatório")
     
 })
 

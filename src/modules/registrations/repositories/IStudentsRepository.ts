@@ -8,7 +8,7 @@ import { UpdateStudentRequestProps } from "../useCases/Students/updateStudents/U
 interface IStudentsRepository {
 
     filterStudent(
-        {id, name, email, cpf, paymentStatus, schoolClassID}:ListStudentsQuery,
+        { id, name, email, cpf, paymentStatus, schoolClassID }: ListStudentsQuery,
         page: number,
         pageRange: number
     ): Promise<validationResponse>
@@ -16,8 +16,10 @@ interface IStudentsRepository {
     createStudent(studentData: CreateStudentRequestProps): Promise<validationResponse>
 
     updateStudent(studentData: UpdateStudentRequestProps, studentID: Students["id"]): Promise<validationResponse>
-    
-    deleteStudent(studentID: Students["id"]): Promise<validationResponse>
+
+    cancelSubscription(studentID: Students["id"], stripeSubscriptionID:Students["purcharsedSubscriptions"][0]["stripeSubscriptionID"]): Promise<validationResponse>
+    listChargesStudent(studentID: Students["id"]): Promise<validationResponse>
+    refundStudent(studentID: Students["id"], chargeID: string): Promise<validationResponse>
 }
 
-export {IStudentsRepository}
+export { IStudentsRepository }

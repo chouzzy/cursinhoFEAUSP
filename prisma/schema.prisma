@@ -39,6 +39,14 @@ model Donations {
 
   donationExpirationDate DateTime?
 
+  ciclesBought Int
+  ciclePaid Int
+  valueBought Int
+
+  stripeSubscriptionID String
+
+  canceledAt DateTime?
+
   stripeCustomerID String
   createdAt        DateTime @default(now())
 
@@ -117,6 +125,7 @@ model SchoolClass {
 
 type PurchasedSubscriptions {
   schoolClassID String
+  stripeSubscriptionID String
   productID     String
   productName   String
   paymentMethod String

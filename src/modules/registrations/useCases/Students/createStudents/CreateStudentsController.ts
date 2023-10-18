@@ -33,6 +33,7 @@ interface CreateStudentRequestProps {
     exStudent: Students["exStudent"],
     purcharsedSubscriptions: {
         schoolClassID: purcharsedSubscriptions["schoolClassID"]
+        stripeSubscriptionID: purcharsedSubscriptions["stripeSubscriptionID"]
         productID: purcharsedSubscriptions["productID"]
         productName: purcharsedSubscriptions["productName"]
         paymentMethod: purcharsedSubscriptions["paymentMethod"]

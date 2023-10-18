@@ -57,7 +57,10 @@ const donationSchema = object({
 
 
 
-  valuePaid: number().required()
+  valuePaid: number().required(),
+  paymentMethodID: string().required("O método de pagamento é necessário"),
+  productSelectedID: string().required("O produto é obrigatório"),
+  cycles: number().required("A quantidade de ciclos é necessária")
 })
 
 export { donationSchema }

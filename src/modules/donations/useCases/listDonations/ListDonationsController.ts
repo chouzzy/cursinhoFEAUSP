@@ -1,14 +1,7 @@
 import { Request, Response } from "express";
 import { DonationsRepository } from "../../repositories/implementations/DonationsRepository";
-import { checkQuery } from "./ListDonationsCheck";
 import { ListDonationsUseCase } from "./ListDonationsUseCase";
 
-// Nome
-// E-mail
-// CPF
-// Range de valores
-// Status de pagamento
-// Range de datas
 
 interface ListDonationsQuery {
     name?: string;
@@ -23,7 +16,6 @@ interface ListDonationsQuery {
     page?: number,
     pageRange?: number
 }
-
 
 
 class ListDonationsController {

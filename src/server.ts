@@ -5,8 +5,9 @@ import { router } from './routes'
 import { webhooksRoutes } from './routes/webhooks';
 import bodyParser from 'body-parser';
 import cors from 'cors';
+import Stripe from 'stripe';
 
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
+const stripe:Stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 
 const app = express()
 app.use(cors());

@@ -8,6 +8,7 @@ import { CreateSchoolClassStagesController } from "../modules/registrations/useC
 import { DeleteSchoolClassDocsController } from "../modules/registrations/useCases/SchoolClass/deleteSchoolClassDocs/DeleteSchoolClassDocsController"
 import { DeleteSchoolClassStagesController } from "../modules/registrations/useCases/SchoolClass/deleteSchoolClassStages/DeleteSchoolClassStagesController"
 import { ListAllSchoolClassController } from "../modules/registrations/useCases/SchoolClass/listAllSchoolClass/ListAllSchoolClassController"
+import { ensureAuthenticated } from "../modules/registrations/middleware/ensureAuthenticate"
 
 const schoolClassRoutes = Router()
 
@@ -15,28 +16,28 @@ const listSchoolClassController = new ListSchoolClassController()
 schoolClassRoutes.get('/', listSchoolClassController.handle)
 
 const listAllSchoolClassController = new ListAllSchoolClassController()
-schoolClassRoutes.get('/listAll', listAllSchoolClassController.handle)
+schoolClassRoutes.get('/listAll', ensureAuthenticated, listAllSchoolClassController.handle)
 
 const createSchoolClassController = new CreateSchoolClassController()
-schoolClassRoutes.post('/create', createSchoolClassController.handle)
+schoolClassRoutes.post('/create', ensureAuthenticated, createSchoolClassController.handle)
 
 const createSchoolClassDocsController = new CreateSchoolClassDocsController()
-schoolClassRoutes.post('/:schoolClassID/docs/create', createSchoolClassDocsController.handle)
+schoolClassRoutes.post('/:schoolClassID/docs/create', ensureAuthenticated, createSchoolClassDocsController.handle)
 
 const createSchoolClassStagesController = new CreateSchoolClassStagesController()
-schoolClassRoutes.post('/:schoolClassID/stages/create', createSchoolClassStagesController.handle)
+schoolClassRoutes.post('/:schoolClassID/stages/create', ensureAuthenticated, createSchoolClassStagesController.handle)
 
 const deleteSchoolClassDocsController = new DeleteSchoolClassDocsController()
-schoolClassRoutes.delete('/:schoolClassID/docs/:docsID/delete', deleteSchoolClassDocsController.handle)
+schoolClassRoutes.delete('/:schoolClassID/docs/:docsID/delete', ensureAuthenticated, deleteSchoolClassDocsController.handle)
 
 const deleteSchoolClassStagesController = new DeleteSchoolClassStagesController()
-schoolClassRoutes.delete('/:schoolClassID/stages/:stagesID/delete', deleteSchoolClassStagesController.handle)
+schoolClassRoutes.delete('/:schoolClassID/stages/:stagesID/delete', ensureAuthenticated, deleteSchoolClassStagesController.handle)
 
 const updateSchoolClassController = new UpdateSchoolClassController()
-schoolClassRoutes.put('/:schoolClassID/update', updateSchoolClassController.handle)
+schoolClassRoutes.put('/:schoolClassID/update', ensureAuthenticated, updateSchoolClassController.handle)
 
 const deleteSchoolClassController = new DeleteSchoolClassController()
-schoolClassRoutes.delete('/:schoolClassID/delete', deleteSchoolClassController.handle)
+schoolClassRoutes.delete('/:schoolClassID/delete', ensureAuthenticated, deleteSchoolClassController.handle)
 
 
 

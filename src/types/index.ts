@@ -3,6 +3,7 @@ import { SchoolClass } from "../modules/registrations/entities/SchoolClass";
 import { Students, purcharsedSubscriptions } from "../modules/registrations/entities/Students";
 import { Admins } from "../modules/registrations/entities/Admins";
 import { Donations } from "../modules/donations/entities/Donations";
+import Stripe from "stripe";
 
 
 interface validationResponse {
@@ -47,6 +48,8 @@ interface validationResponse {
   fileBuffer?: ArrayBuffer
   totalDocuments?: number
   subscriptionsDuplicated?: purcharsedSubscriptions["schoolClassID"][]
+  stripeSubscription?:Stripe.Response<Stripe.Subscription>
+  charges?:Stripe.Response<Stripe.ApiSearchResult<Stripe.Charge>>
 }
 
 interface StripeCheckoutCustomerPropsDetails {

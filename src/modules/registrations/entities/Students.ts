@@ -35,6 +35,7 @@ class Students {
 
 interface purcharsedSubscriptions {
     schoolClassID: string
+    stripeSubscriptionID: string
     productID: string
     productName: string
     paymentMethod: string

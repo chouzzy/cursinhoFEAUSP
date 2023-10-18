@@ -25,7 +25,7 @@ class ExcelListDonationsUseCase {
 
         donationsRequest.page ??= 0;
         donationsRequest.pageRange ??= 10;
-        donationsRequest.initValue ??= 0;
+        donationsRequest.initValue ??= -99999999999;
         donationsRequest.endValue ??= 99999999999;
         donationsRequest.initDate ??= '1979-01-01';
         donationsRequest.endDate ??= '2999-01-01';
@@ -73,9 +73,8 @@ class ExcelListDonationsUseCase {
         pageRange = validatedPageRange
         donationsRequest.initValue = validatedInitValue
         donationsRequest.endValue = validatedEndValue
-
+    
         const donations = await this.donationsRepository.filterDonation(donationsRequest, page, pageRange)
-        // console.log(donations)
 
         if (donations.statusCode != 202) {
             return donations

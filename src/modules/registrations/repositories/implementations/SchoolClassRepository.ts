@@ -10,6 +10,7 @@ import { CreateSchoolClassDocsRequestProps } from "../../useCases/SchoolClass/cr
 import { Students } from "../../entities/Students";
 import { CreateSchoolClassStagesRequestProps } from "../../useCases/SchoolClass/createSchoolClassStages/CreateSchoolClassStagesController";
 import { v4 as uuidV4, v4 } from "uuid";
+import { stripe } from "../../../../server";
 
 
 class SchoolClassRepository implements ISchoolClassRepository {
@@ -34,7 +35,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
                 },
             })
 
-            
+
             if (schoolClassFound) {
                 return { isValid: false, errorMessage: `Título de turma já existente`, statusCode: 403 }
             }
@@ -72,11 +73,11 @@ class SchoolClassRepository implements ISchoolClassRepository {
 
             const allSchoolClasses = await prisma.schoolClass.findMany({
                 where: {
-                    OR:[
-                        {title: {contains:title}}
+                    OR: [
+                        { title: { contains: title } }
                     ]
                 },
-                select:{
+                select: {
                     id: true,
                     title: true
                 }
@@ -86,7 +87,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
             return {
                 isValid: true,
                 statusCode: 202,
-                listAllSchoolClassList: allSchoolClasses?? []
+                listAllSchoolClassList: allSchoolClasses ?? []
             }
 
         } catch (error: unknown) {
@@ -149,15 +150,61 @@ class SchoolClassRepository implements ISchoolClassRepository {
             }
 
             //Se tiver o product ID, iremos atualizá-lo, pois se trata de um update do webhook
-            
+
             if (stripeProductID) {
+
+                const newDefaultPrice = schoolClassData.subscriptions.price
+                
+                if (!newDefaultPrice) {
+
+                    const updatedSchoolClass = await prisma.schoolClass.update({
+                        where: {
+                            id: schoolClassID
+                        },
+                        data: {
+                            stripeProductID: stripeProductID ?? schoolClass.stripeProductID
+                        }
+                    })
+
+                    return {
+                        isValid: true,
+                        statusCode: 202,
+                        successMessage: 'Turma criada no servidor Stripe e atualizada com sucesso no banco de dados.',
+                        schoolClass: updatedSchoolClass
+                    }
+                }
+
+                const stripeProduct = await stripe.products.retrieve(stripeProductID)
+                const { default_price } = stripeProduct
+
+                if (!default_price || typeof (default_price) != 'string') {
+                    return {
+                        isValid: false,
+                        errorMessage: 'Não foi possível encontrar o preço antigo do produto',
+                        statusCode: 403
+                    }
+                }
+
+                const price = await stripe.prices.create({
+                    unit_amount: newDefaultPrice,
+                    currency: 'brl',
+                    recurring: { interval: 'month' },
+                    product: stripeProduct.id,
+                });
+
+                await stripe.products.update(
+                    stripeProductID,
+                    { default_price: price.id,
+                      name: schoolClassData.title?? stripeProduct.name,
+                      description: schoolClassData.informations.description
+                    }
+                )
+
                 const updatedSchoolClass = await prisma.schoolClass.update({
                     where: {
                         id: schoolClassID
                     },
-                    data: {
-                        stripeProductID: stripeProductID ?? schoolClass.stripeProductID
-                    }
+                    data: schoolClassData
                 })
 
                 return {
@@ -363,7 +410,6 @@ class SchoolClassRepository implements ISchoolClassRepository {
 
                 if (stage.resultsDate != null) {
                     stage.resultsDate = new Date(stage.resultsDate)
-                    console.log('é null')
                 }
                 return {
                     stagesID: uuidV4(),
@@ -421,7 +467,6 @@ class SchoolClassRepository implements ISchoolClassRepository {
             }
 
             const docExists = schoolClass.documents.filter((doc) => {
-                console.log(doc.docsID, docsID)
                 return doc.docsID === docsID
             })
 
@@ -480,7 +525,6 @@ class SchoolClassRepository implements ISchoolClassRepository {
             }
 
             const stageExists = schoolClass.selectiveStages.filter((stage) => {
-                console.log(stage.stagesID, stagesID)
                 return stage.stagesID === stagesID
             })
 

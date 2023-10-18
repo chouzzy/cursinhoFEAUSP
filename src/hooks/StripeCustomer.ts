@@ -119,7 +119,6 @@ class StripeCustomer {
                     subscription.paymentStatus = 'refunded'
 
                 }
-
             })
 
             //Atualizando o status de pagamento para "refunded" no banco de dados 
@@ -227,8 +226,8 @@ class StripeCustomer {
         try {
             const stripeProductCreatedID = subscriptionCreated.items.data[0].price.product
 
-            // console.log('subscriptionCreated.items.data')
-            // console.log(subscriptionCreated.items.data)
+        
+        
 
             const isTheProductASchoolClass = await prisma.schoolClass.findFirst({
                 where: {
@@ -238,8 +237,8 @@ class StripeCustomer {
 
             
 
-            // console.log('isTheProductASchoolClass')
-            // console.log(isTheProductASchoolClass)
+        
+        
 
             //Verifica se é Donation ou SchoolClass
             if (isTheProductASchoolClass) {
@@ -259,8 +258,8 @@ class StripeCustomer {
                     }
                 )
 
-                // console.log('customer')
-                // console.log(customer)
+            
+            
 
 
 
@@ -272,8 +271,8 @@ class StripeCustomer {
                     }
                 })
 
-                // console.log('student')
-                // console.log(student)
+            
+            
 
 
 
@@ -292,8 +291,8 @@ class StripeCustomer {
                     }
                 })
 
-                // console.log('schoolClassBought')
-                // console.log(schoolClassBought)
+            
+            
 
 
                 if (!schoolClassBought) {
@@ -430,7 +429,6 @@ class StripeCustomer {
     async searchCustomer(cpf: string, cnpj: string|null): Promise<string | undefined> {
 
 
-        console.log(cpf, cnpj)
         
         if (cnpj && cnpj != "Não informado"){
 
@@ -438,8 +436,6 @@ class StripeCustomer {
                 query: `metadata[\'cnpj\']:\'${cnpj}\'`,
             });
 
-            console.log('customer 2');
-            console.log(customer);
             if (customer.data.length == 0 || customer == null) {
                 return undefined
             }
@@ -451,8 +447,6 @@ class StripeCustomer {
                 query: `metadata[\'cpf\']:\'${cpf}\'`,
             });
 
-            console.log('customer 1');
-            console.log(customer);
             if (!customer.data || customer.data.length === 0) {
                 return undefined
             }

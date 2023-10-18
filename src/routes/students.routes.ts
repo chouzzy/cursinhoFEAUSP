@@ -1,10 +1,12 @@
 import { Router } from "express"
 import { CreateStudentController } from "../modules/registrations/useCases/Students/createStudents/CreateStudentsController"
-import { DeleteStudentController } from "../modules/registrations/useCases/Students/deleteStudents/DeleteStudentController"
+import { CancelSubscriptionController } from "../modules/registrations/useCases/Students/cancelStudents/CancelSubscriptionController"
 import { ListStudentsController } from "../modules/registrations/useCases/Students/listStudents/ListStudentsController"
 import { UpdateStudentController } from "../modules/registrations/useCases/Students/updateStudents/UpdateStudentController"
 import { ensureAuthenticated } from "../modules/registrations/middleware/ensureAuthenticate"
 import { ExcelListStudentsController } from "../modules/registrations/useCases/Students/excelListStudents/ExcelListStudentsController"
+import { ListChargesStudentsController } from "../modules/registrations/useCases/Students/listChargesStudents/ListChargesStudentsController"
+import { RefundStudentController } from "../modules/registrations/useCases/Students/refundStudent/RefundStudentController"
 
 const studentsRoutes = Router()
 
@@ -20,8 +22,14 @@ studentsRoutes.post('/create', createStudentController.handle)
 const updateStudentController = new UpdateStudentController()
 studentsRoutes.put('/:studentID/update', ensureAuthenticated, updateStudentController.handle)
 
-const deleteStudentController = new DeleteStudentController()
-studentsRoutes.delete('/:studentID/delete', ensureAuthenticated, deleteStudentController.handle)
+const cancelSubscriptionController = new CancelSubscriptionController()
+studentsRoutes.put('/:studentID/:schoolClassID/cancel', ensureAuthenticated, cancelSubscriptionController.handle)
+
+const refundStudentController = new RefundStudentController()
+studentsRoutes.post('/:studentID/:chargeID/refund', ensureAuthenticated, refundStudentController.handle)
+
+const listChargesStudentsController = new ListChargesStudentsController()
+studentsRoutes.get('/:studentID/list', ensureAuthenticated, listChargesStudentsController.handle)
 
 
 export {studentsRoutes}

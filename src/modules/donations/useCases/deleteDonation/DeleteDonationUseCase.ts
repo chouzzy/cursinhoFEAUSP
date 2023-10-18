@@ -8,9 +8,9 @@ class DeleteDonationUseCase {
     constructor(
         private donationsRepository: IDonationsRepository) {}
 
-    async execute(donationID:Donations["id"], donationData: DeleteDonationProps): Promise<validationResponse> {
+    async execute(donationID:Donations["id"]): Promise<validationResponse> {
 
-        const bodyValidation = await checkBody(donationData)
+        const bodyValidation = await checkBody(donationID)
 
         if (bodyValidation.isValid === false) {
             return ({
@@ -20,7 +20,7 @@ class DeleteDonationUseCase {
             })
         }
         
-        const deletedDonation = await this.donationsRepository.deleteDonation(donationID, donationData)
+        const deletedDonation = await this.donationsRepository.deleteDonation(donationID)
         
         return deletedDonation
     }

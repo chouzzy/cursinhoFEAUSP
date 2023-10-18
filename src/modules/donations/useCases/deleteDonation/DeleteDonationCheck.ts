@@ -4,10 +4,10 @@ import { Donations } from "../../entities/Donations";
 import { DeleteDonationProps } from "./DeleteDonationController";
 import { donationSchema } from "./DeleteDonationSchema";
 
-async function checkBody(donationData:DeleteDonationProps): Promise<validationResponse> {
+async function checkBody(donationID:Donations["id"]): Promise<validationResponse> {
     // check body properties
     try {
-        const yupValidation = await donationSchema.validate(donationData, {
+        const yupValidation = await donationSchema.validate({donationID}, {
             abortEarly:false,
         })
         return {isValid:true, statusCode:202}

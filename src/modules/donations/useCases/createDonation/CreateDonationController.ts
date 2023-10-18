@@ -2,6 +2,7 @@ import { Request, Response } from "express"
 import { Donations } from "../../entities/Donations"
 import { DonationsRepository } from "../../repositories/implementations/DonationsRepository"
 import { CreateDonationUseCase } from "./CreateDonationUseCase"
+import crypto from "crypto-js";
 
 interface CreateDonationProps {
     name: Donations["name"]
@@ -22,6 +23,10 @@ interface CreateDonationProps {
     cnpj: Donations["cnpj"]
     ufrg: Donations["ufrg"]
     valuePaid: Donations["valuePaid"]
+    token: string
+    paymentMethodID: string
+    productSelectedID: string
+    cycles: number
 }
 
 
@@ -29,9 +34,17 @@ class CreateDonationController {
     async handle(req: Request, res: Response): Promise<Response> {
 
         const donationData: CreateDonationProps = req.body
+        
+        const {token } = donationData
 
+        const decryptedPaymentMethodString = crypto.AES.decrypt(token, "vasco").toString(crypto.enc.Utf8);
+
+        const paymentMethodID = decryptedPaymentMethodString
+    
         const donationsRepository = new DonationsRepository()
         const createDonationUseCase = new CreateDonationUseCase(donationsRepository)
+
+        donationData.paymentMethodID = paymentMethodID
 
         const response = await createDonationUseCase.execute(donationData)
 

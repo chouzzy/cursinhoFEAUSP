@@ -5,6 +5,9 @@ import { ListDonationsController } from "../modules/donations/useCases/listDonat
 import { UpdateDonationController } from "../modules/donations/useCases/updateDonation/UpdateDonationController"
 import { ensureAuthenticated } from "../modules/registrations/middleware/ensureAuthenticate"
 import { ExcelListDonationsController } from "../modules/donations/useCases/excelListDonations/ExcelListDonationsController"
+import { RefundDonationController } from "../modules/donations/useCases/refundDonation/RefundDonationController"
+import { ListChargesDonationController } from "../modules/donations/useCases/listChargesDonation/ListChargesDonationController"
+import { SyncDonationsController } from "../modules/donations/useCases/syncDonations/SyncDonationsController"
 
 const donationsRoutes = Router()
 
@@ -21,7 +24,16 @@ const updateDonationController = new UpdateDonationController()
 donationsRoutes.put('/:donationID/update', ensureAuthenticated, updateDonationController.handle)
 
 const deleteDonationController = new DeleteDonationController()
-donationsRoutes.delete('/:donationID/delete', ensureAuthenticated, deleteDonationController.handle)
+donationsRoutes.put('/:donationID/cancel', ensureAuthenticated, deleteDonationController.handle)
+
+const refundDonationController = new RefundDonationController()
+donationsRoutes.post('/:donationID/:chargeID/refund', ensureAuthenticated, refundDonationController.handle)
+
+const listChargesDonationController = new ListChargesDonationController()
+donationsRoutes.get('/:donationID/list', ensureAuthenticated, listChargesDonationController.handle)
+
+const syncDonationController = new SyncDonationsController()
+donationsRoutes.post('/sync', ensureAuthenticated, syncDonationController.handle)
 
 
 export {donationsRoutes}

@@ -10,9 +10,7 @@ class ListAllSchoolClassUseCase {
 
     async execute(title: SchoolClass["title"]): Promise<validationResponse> {
 
-        console.log(title)
         if (!title) { title = ''}
-        console.log(title)
         const response = await this.schoolClassRepository.listAllSchoolClasses(title)
         
         return response
