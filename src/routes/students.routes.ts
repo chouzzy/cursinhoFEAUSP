@@ -7,6 +7,7 @@ import { ensureAuthenticated } from "../modules/registrations/middleware/ensureA
 import { ExcelListStudentsController } from "../modules/registrations/useCases/Students/excelListStudents/ExcelListStudentsController"
 import { ListChargesStudentsController } from "../modules/registrations/useCases/Students/listChargesStudents/ListChargesStudentsController"
 import { RefundStudentController } from "../modules/registrations/useCases/Students/refundStudent/RefundStudentController"
+import { SyncStudentsController } from "../modules/registrations/useCases/Students/syncStudents/SyncStudentsController"
 
 const studentsRoutes = Router()
 
@@ -30,6 +31,9 @@ studentsRoutes.post('/:studentID/:chargeID/refund', ensureAuthenticated, refundS
 
 const listChargesStudentsController = new ListChargesStudentsController()
 studentsRoutes.get('/:studentID/list', ensureAuthenticated, listChargesStudentsController.handle)
+
+const syncStudentController = new SyncStudentsController()
+studentsRoutes.post('/sync', ensureAuthenticated, syncStudentController.handle)
 
 
 export {studentsRoutes}

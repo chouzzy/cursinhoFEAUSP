@@ -280,7 +280,10 @@ class StudentsRepository implements IStudentsRepository {
                         stripeCustomerID: stripeSearchedCustomerID,
                         cpf: cpf,
                         rg: rg,
-                        schoolClassID: sutdentDataSchoolClassID
+                        schoolClassID: sutdentDataSchoolClassID,
+                        cycles: 1,
+                        paymentMethodID: studentData.paymentMethodID,
+                        productSelectedID: studentData.productSelectedID
                     })
 
                     if (!stripeResponse.stripeSubscription) {
@@ -328,7 +331,10 @@ class StudentsRepository implements IStudentsRepository {
                     stripeCustomerID: stripeSearchedCustomerID,
                     cpf: cpf,
                     rg: rg,
-                    schoolClassID: sutdentDataSchoolClassID
+                    schoolClassID: sutdentDataSchoolClassID,
+                    cycles: 1,
+                    paymentMethodID: studentData.paymentMethodID,
+                    productSelectedID: studentData.productSelectedID
                 })
 
                 if (!stripeResponse.stripeSubscription) {
@@ -381,7 +387,10 @@ class StudentsRepository implements IStudentsRepository {
                 stripeCustomerID: stripeCustomerCreatedID,
                 cpf: cpf,
                 rg: rg,
-                schoolClassID: sutdentDataSchoolClassID
+                schoolClassID: sutdentDataSchoolClassID,
+                cycles: 1,
+                paymentMethodID: studentData.paymentMethodID,
+                productSelectedID: studentData.productSelectedID
             })
 
             if (stripeResponse.stripeSubscription) {
@@ -822,7 +831,88 @@ class StudentsRepository implements IStudentsRepository {
                 errorMessage: String(error),
             };
         }
-    }    
+    }
+
+    async syncStudents(): Promise<validationResponse> {
+
+        try {
+
+            const students = await prisma.students.findMany()
+
+            students.forEach(async (student) => {
+
+                const { purcharsedSubscriptions } = student
+
+
+                if (!purcharsedSubscriptions) {
+                    return student
+                }
+
+                purcharsedSubscriptions.forEach(async (subscription) => {
+
+                    const { stripeSubscriptionID } = subscription
+
+                    const stripeSubscription = await stripe.subscriptions.retrieve(stripeSubscriptionID)
+
+                    const { unit_amount } = stripeSubscription.items.data[0].price
+
+                    await prisma.students.update({
+                        where: { id: student.id },
+                        data: {
+                            purcharsedSubscriptions: {
+                                updateMany: {
+                                    where: {
+                                        stripeSubscriptionID: subscription.stripeSubscriptionID
+                                    }, data: {
+                                        paymentStatus: stripeSubscription.status ?? 'Not found',
+                                        valuePaid: unit_amount ?? 0
+                                    }
+                                }
+                            }
+                        }
+                    })
+
+                })
+
+            })
+
+            return {
+                statusCode: 200,
+                isValid: true,
+                successMessage: "Inscrições sincronizadas com sucesso."
+            }
+        } catch (error: any) {
+            // Trata os erros do Stripe.
+            if (error instanceof Stripe.errors.StripeError) {
+                // Retorna uma resposta de erro com o código de status do erro do Stripe.
+                return {
+                    statusCode: error.statusCode ?? 403,
+                    isValid: false,
+                    errorMessage: error.message,
+                };
+            }
+
+            // Trata os erros do Prisma.
+            if (error instanceof Prisma.PrismaClientValidationError) {
+                // Obtém o erro do MongoDB da mensagem de erro do Prisma.
+                const mongoDBError = error.message.slice(error.message.search('Argument'));
+
+                // Retorna uma resposta de erro com o erro do MongoDB.
+                return {
+                    isValid: false,
+                    errorMessage: mongoDBError,
+                    statusCode: 403,
+                };
+            }
+
+            // Trata os erros gerais.
+            return {
+                statusCode: 402,
+                isValid: false,
+                errorMessage: String(error),
+            };
+        }
+    }
 
 }
 

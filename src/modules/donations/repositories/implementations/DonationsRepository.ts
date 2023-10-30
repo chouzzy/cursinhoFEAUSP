@@ -219,7 +219,7 @@ class DonationsRepository implements IDonationsRepository {
 
                 const cancelAtDate = new Date(cancel_at * 1000).getTime()
                 const startAtDate = new Date(start_date * 1000).getTime()
-                const totalPaymentsBought = Math.floor((cancelAtDate - startAtDate) / 1000 / 60 / 60 / 24);
+                const totalPaymentsBought = Math.floor((cancelAtDate - startAtDate) / 1000 / 60 / 60);
 
                 await prisma.donations.update({
                     where: { id: createdDonation.id },
@@ -285,7 +285,7 @@ class DonationsRepository implements IDonationsRepository {
             }
             const cancelAtDate = new Date(cancel_at * 1000).getTime()
             const startAtDate = new Date(start_date * 1000).getTime()
-            const totalPaymentsBought = Math.floor((cancelAtDate - startAtDate) / 1000 / 60 / 60 / 24);
+            const totalPaymentsBought = Math.floor((cancelAtDate - startAtDate) / 1000 / 60 / 60);
 
             // // Atribuindo o stripeCustomerID a donation recém criada e atualizando os status de pagamento
             await prisma.donations.update({
@@ -560,26 +560,33 @@ class DonationsRepository implements IDonationsRepository {
 
                 const stripeSubscription = await stripe.subscriptions.retrieve(stripeSubscriptionID)
 
-                const { billing_cycle_anchor, cancel_at, start_date } = stripeSubscription
+                const { current_period_start, cancel_at, start_date } = stripeSubscription
 
                 const { unit_amount } = stripeSubscription.items.data[0].price
 
-                const billingDate = new Date(billing_cycle_anchor * 1000).getTime()
+                const billingDate = new Date(current_period_start * 1000).getTime()
 
                 if (cancel_at && unit_amount) {
 
                     const cancelAtDate = new Date(cancel_at * 1000).getTime()
                     const startAtDate = new Date(start_date * 1000).getTime()
 
-                    const totalPaymentsLeft = Math.floor((cancelAtDate - billingDate) / 1000 / 60 / 60 / 24);
-                    const totalPaymentsBought = Math.floor((cancelAtDate - startAtDate) / 1000 / 60 / 60 / 24);
+                    const totalPaymentsLeft = Math.floor((cancelAtDate - billingDate) / 1000 / 60 / 60);
+                    const totalPaymentsBought = Math.floor((cancelAtDate - startAtDate) / 1000 / 60 / 60);
 
+                    if (stripeSubscriptionID == 'sub_1O1zCnHkzIzO4aMOolEVV5Q0') {
+
+                        console.log('totalPaymentsLeft, totalPaymentsBought')
+                        console.log(totalPaymentsLeft, totalPaymentsBought)
+                        console.log('current_period_start')
+                        console.log(current_period_start)
+                    }
 
                     donation.paymentStatus = stripeSubscription.status
                     donation.ciclePaid = (totalPaymentsBought - (totalPaymentsLeft)+1) //ta errado aq
                     donation.ciclesBought = (totalPaymentsBought + 1)
                     donation.valueBought = ((totalPaymentsBought + 1) * unit_amount)
-                    donation.valuePaid = totalPaymentsLeft * unit_amount
+                    donation.valuePaid = (totalPaymentsBought - (totalPaymentsLeft)+1) * unit_amount
 
                 } else {
                     donation.paymentStatus = stripeSubscription.status

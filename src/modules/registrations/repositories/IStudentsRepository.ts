@@ -20,6 +20,8 @@ interface IStudentsRepository {
     cancelSubscription(studentID: Students["id"], stripeSubscriptionID:Students["purcharsedSubscriptions"][0]["stripeSubscriptionID"]): Promise<validationResponse>
     listChargesStudent(studentID: Students["id"]): Promise<validationResponse>
     refundStudent(studentID: Students["id"], chargeID: string): Promise<validationResponse>
+
+    syncStudents(): Promise<validationResponse>
 }
 
 export { IStudentsRepository }

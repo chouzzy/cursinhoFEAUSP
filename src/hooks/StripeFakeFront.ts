@@ -86,7 +86,7 @@ class StripeFakeFront {
                             currency: 'brl',
                             product: productSelectedID,
                             recurring: {
-                                interval: 'day',
+                                interval: 'month',
                                 interval_count: 1
                             },
                             unit_amount: unit_amount

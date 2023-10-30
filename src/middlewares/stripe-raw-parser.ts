@@ -54,7 +54,6 @@ export const config = {
 };
 
 const buffer = (req:Request) => {
-    console.log('vasco')
     return new Promise<Buffer>((resolve, reject) => {
 
         const chunks: Buffer[] = [];

@@ -37,7 +37,7 @@ class CreateDonationController {
         
         const {token } = donationData
 
-        const decryptedPaymentMethodString = crypto.AES.decrypt(token, "vasco").toString(crypto.enc.Utf8);
+        const decryptedPaymentMethodString = crypto.AES.decrypt(token, process.env.PCRYPTO_PKEY?? '').toString(crypto.enc.Utf8);
 
         const paymentMethodID = decryptedPaymentMethodString
     

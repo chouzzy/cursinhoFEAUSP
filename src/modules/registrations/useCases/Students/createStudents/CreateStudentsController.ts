@@ -3,6 +3,7 @@ import { Students, purcharsedSubscriptions } from "../../../entities/Students"
 import { checkBody, ErrorValidation } from "./CreateStudentCheck"
 import { CreateStudentUseCase } from "./CreateStudentUseCase"
 import { StudentsRepository } from "../../../repositories/implementations/StudentsRepository"
+import crypto from "crypto-js";
 
 interface CreateStudentRequestProps {
 
@@ -41,6 +42,9 @@ interface CreateStudentRequestProps {
         paymentDate: purcharsedSubscriptions["paymentDate"]
         valuePaid: purcharsedSubscriptions["valuePaid"]
     }[],
+    token: string
+    paymentMethodID: string
+    productSelectedID: string
 
 }
 
@@ -48,10 +52,19 @@ class CreateStudentController {
     async handle(req: Request, res: Response): Promise<Response> {
 
         const studentData: CreateStudentRequestProps = req.body
+        
+        const {token } = studentData
+
+        const decryptedPaymentMethodString = crypto.AES.decrypt(token, process.env.PCRYPTO_PKEY?? '').toString(crypto.enc.Utf8);
+
+        const paymentMethodID = decryptedPaymentMethodString
 
         /// instanciação da classe do caso de uso
         const studentsRepository = new StudentsRepository()
         const createStudentUseCase = new CreateStudentUseCase(studentsRepository)
+
+        studentData.paymentMethodID = paymentMethodID
+
         const response = await createStudentUseCase.execute(studentData)
 
         return res.status(response.statusCode).json({ response })

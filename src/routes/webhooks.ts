@@ -20,91 +20,102 @@ webhooksRoutes.post('/', async (req, res) => {
     const endpointSecret = process.env.STRIPE_SIGNIN_SECRET_KEY
     if (endpointSecret) {
         // Get the signature sent by Stripe
-        const signature = req.headers['stripe-signature'];
+        try {
 
-        if (signature) {
 
-            const stripeEvent = stripe.webhooks.constructEvent(
-                req.body,
-                signature,
-                endpointSecret
-            ) as DiscriminatedEvent;
+            const signature = req.headers['stripe-signature'];
 
-            if (stripeEvent.type === 'invoice.payment_failed') {
+            if (signature) {
 
-                const { id } = stripeEvent.data.object
-                const invoice = await stripe.invoices.retrieve(id)
+                const stripeEvent = stripe.webhooks.constructEvent(
+                    req.body,
+                    signature,
+                    endpointSecret
+                ) as DiscriminatedEvent;
 
-                const { subscription } = invoice
-                if (!subscription || typeof (subscription) != 'string') {
-                    return res.sendStatus(404).send('Subscription not found')
-                }
-                const donation = await prisma.donations.findFirst({
-                    where: { stripeSubscriptionID: subscription },
-                })
+                if (stripeEvent.type === 'invoice.payment_failed') {
 
-                //Proibe qualquer tipo de erro com student aqui. Se não for donation ou ela não for encontrada, é 404.
-                if (!donation) {
-                    return res.sendStatus(404).send('Donation not found')
-                }
+                    const { id } = stripeEvent.data.object
+                    const invoice = await stripe.invoices.retrieve(id)
 
-                await stripe.subscriptions.cancel(subscription)
-                await prisma.donations.update({
-                    where: { id: donation.id },
-                    data: {
-                        paymentStatus: 'canceled'
+                    const { subscription } = invoice
+                    if (!subscription || typeof (subscription) != 'string') {
+                        return res.sendStatus(200)
                     }
-                })
+                    const donation = await prisma.donations.findFirst({
+                        where: { stripeSubscriptionID: subscription },
+                    })
 
-                return res.sendStatus(200).send('Subscription and donation updated successfully')
-            }
+                    //Proibe qualquer tipo de erro com student aqui. Se não for donation ou ela não for encontrada, é 200.
+                    if (!donation) {
+                        return res.sendStatus(200)
+                    }
 
-            if (stripeEvent.type === "customer.subscription.updated") {
+                    await stripe.subscriptions.cancel(subscription)
+                    await prisma.donations.update({
+                        where: { id: donation.id },
+                        data: {
+                            paymentStatus: 'canceled'
+                        }
+                    })
 
-                // O evento é do tipo "invoice.payment_succeeded"
-
-                // Obtém o ID da fatura
-                const subscription = stripeEvent.data.object;
-                const { id, items } = subscription
-
-                // Obtém a doação associada à assinatura
-                const donation = await prisma.donations.findFirst({
-                    where: { stripeSubscriptionID: id },
-                });
-
-                console.log('donation --------------------- retrieved')
-                console.log(donation?.id)
-
-                if (!donation) {
-                    console.log('donation not found')
-                    return res.sendStatus(204).send('Donation not found')
+                    return res.sendStatus(200)
                 }
 
-                // Atualiza o status da doação para "paid"
-                console.log('Donation found')
+                if (stripeEvent.type === "customer.subscription.updated") {
 
-                await prisma.donations.update({
-                    where: { id: donation.id },
-                    data: {
-                        paymentStatus: 'active',
-                        ciclePaid: { increment: 1 },
-                        valuePaid: { increment: items.data[0].plan.amount ?? 0 }
+                    // O evento é do tipo "invoice.payment_succeeded"
+
+                    // Obtém o ID da fatura
+                    const subscription = stripeEvent.data.object;
+                    const { id, items, status } = subscription
+
+                    // Obtém a doação associada à assinatura
+                    const donation = await prisma.donations.findFirst({
+                        where: { stripeSubscriptionID: id },
+                    });
+
+                    console.log('donation --------------------- retrieved')
+                    console.log(donation?.id)
+
+                    if (!donation) {
+                        console.log('donation not found')
+                        return res.sendStatus(200)
                     }
-                })
 
-                console.log('donation incremented')
+                    // Atualiza o status da doação para "paid"
+                    console.log('Donation found')
 
-                return res.sendStatus(200).send('Subscription and donation updated successfully');
+                    await prisma.donations.update({
+                        where: { id: donation.id },
+                        data: {
+                            paymentStatus: status,
+                            ciclePaid: { increment: 1 },
+                            valuePaid: { increment: items.data[0].plan.amount ?? 0 }
+                        }
+                    })
+
+                    console.log('donation incremented')
+
+                    return res.sendStatus(200)
+                }
+
+                return res.sendStatus(202)
+                
+            } else {
+                console.log(('signature not found'))
+                return res.sendStatus(200)
             }
-
-            return res.sendStatus(202)
-
+        } catch (error) {
+            console.log(('signature error'))
+            console.log((error))
+            return res.sendStatus(200)
         }
-        console.log(('signature not found'))
-        return res.sendStatus(204).send('signature not found')
 
 
     }
+
+    res.sendStatus(200)
 })
 
 export { webhooksRoutes }
