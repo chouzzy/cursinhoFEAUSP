@@ -101,7 +101,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
         }
     }
 
-    async listSchoolClasses(page: number, pageRange: number): Promise<validationResponse> {
+    async listSchoolClasses(page: number, pageRange: number, status: SchoolClass["status"]): Promise<validationResponse> {
 
         try {
 
@@ -109,7 +109,26 @@ class SchoolClassRepository implements ISchoolClassRepository {
                 page = 1
             }
 
+            if (!status) {
+
+                const allSchoolClasses = await prisma.schoolClass.findMany({
+                    where: {
+                        status: status
+                    }
+                })
+
+                return {
+                    isValid: true,
+                    statusCode: 202,
+                    schoolClassList: allSchoolClasses,
+                    totalDocuments: allSchoolClasses.length
+                }
+            }
+
             const allSchoolClasses = await prisma.schoolClass.findMany({
+                where: {
+                    status: status
+                },
                 skip: (page - 1) * pageRange,
                 take: pageRange
             })
@@ -154,7 +173,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
             if (stripeProductID) {
 
                 const newDefaultPrice = schoolClassData.subscriptions.price
-                
+
                 if (!newDefaultPrice) {
 
                     const updatedSchoolClass = await prisma.schoolClass.update({
@@ -194,9 +213,10 @@ class SchoolClassRepository implements ISchoolClassRepository {
 
                 await stripe.products.update(
                     stripeProductID,
-                    { default_price: price.id,
-                      name: schoolClassData.title?? stripeProduct.name,
-                      description: schoolClassData.informations.description
+                    {
+                        default_price: price.id,
+                        name: schoolClassData.title ?? stripeProduct.name,
+                        description: schoolClassData.informations.description
                     }
                 )
 

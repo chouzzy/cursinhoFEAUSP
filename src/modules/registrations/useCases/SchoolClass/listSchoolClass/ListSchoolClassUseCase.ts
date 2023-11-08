@@ -8,7 +8,7 @@ class ListSchoolClassUseCase {
     constructor(
         private schoolClassRepository: ISchoolClassRepository) { }
 
-    async execute({ page, pageRange }: ListSchoolClassProps): Promise<validationResponse> {
+    async execute({ page, pageRange, status }: ListSchoolClassProps): Promise<validationResponse> {
                 
         const pageAsNumber = parseInt(page.toString(), 10)
         const pageRangeAsNumber = parseInt(pageRange.toString(), 10)
@@ -21,7 +21,7 @@ class ListSchoolClassUseCase {
             }
         }
 
-        const response = await this.schoolClassRepository.listSchoolClasses(pageAsNumber, pageRangeAsNumber)
+        const response = await this.schoolClassRepository.listSchoolClasses(pageAsNumber, pageRangeAsNumber, status)
         
         return response
     }
