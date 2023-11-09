@@ -109,7 +109,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
                 page = 1
             }
 
-            if (!status) {
+            if (status != 'all') {
 
                 const allSchoolClasses = await prisma.schoolClass.findMany({
                     where: {
@@ -125,9 +125,10 @@ class SchoolClassRepository implements ISchoolClassRepository {
                 }
             }
 
+
             const allSchoolClasses = await prisma.schoolClass.findMany({
                 where: {
-                    status: status
+                    status: undefined
                 },
                 skip: (page - 1) * pageRange,
                 take: pageRange

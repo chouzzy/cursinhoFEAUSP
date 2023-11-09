@@ -2,6 +2,7 @@ import { ISchoolClassRepository } from "../../../repositories/ISchoolClassReposi
 import { validationResponse } from "../../../../../types"
 import { SchoolClass } from "../../../entities/SchoolClass"
 import { ListSchoolClassProps } from "./ListSchoolClassController"
+import { checkBody } from "./ListSchoolClassCheck"
 //////
 
 class ListSchoolClassUseCase {
@@ -9,20 +10,22 @@ class ListSchoolClassUseCase {
         private schoolClassRepository: ISchoolClassRepository) { }
 
     async execute({ page, pageRange, status }: ListSchoolClassProps): Promise<validationResponse> {
-                
-        const pageAsNumber = parseInt(page.toString(), 10)
-        const pageRangeAsNumber = parseInt(pageRange.toString(), 10)
 
-        if (isNaN(pageAsNumber) || isNaN(pageRangeAsNumber)) {
-            return {
+        page = Number(page)
+        pageRange = Number(pageRange)
+
+        const bodyValidation = await checkBody({ page, pageRange, status })
+
+        if (bodyValidation.isValid === false) {
+            return ({
                 isValid: false,
-                statusCode: 400,
-                errorMessage: "page and pageRange must be numbers",
-            }
+                statusCode: 403,
+                errorMessage: bodyValidation.errorMessage,
+            })
         }
 
-        const response = await this.schoolClassRepository.listSchoolClasses(pageAsNumber, pageRangeAsNumber, status)
-        
+        const response = await this.schoolClassRepository.listSchoolClasses(page, pageRange, status)
+
         return response
     }
 }

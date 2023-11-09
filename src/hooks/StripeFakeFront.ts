@@ -70,8 +70,8 @@ class StripeFakeFront {
 
             const cancelDate = new Date(
                 hoje.getFullYear(),
-                hoje.getMonth(),
-                hoje.getDate() + cycles+1,
+                hoje.getMonth() + cycles+1,
+                hoje.getDate(),
                 hoje.getHours(),
                 hoje.getMinutes(),
                 hoje.getSeconds()
