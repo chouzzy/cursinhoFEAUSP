@@ -36,6 +36,6 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     })
 })
 
-app.listen(3333, () => console.log('Sir, we are back online! 🦥'))
+app.listen(8080, () => console.log('Sir, we are back online! 🦥'))
 
 export { stripe }
