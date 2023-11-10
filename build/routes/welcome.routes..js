@@ -14,5 +14,5 @@ const express_1 = require("express");
 const welcomeRoutes = (0, express_1.Router)();
 exports.welcomeRoutes = welcomeRoutes;
 welcomeRoutes.get('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    return ('seja bem vindo meu principe 🦥');
+    return res.sendStatus(200).send('seja bem vindo meu principe 🦥');
 }));

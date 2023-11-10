@@ -12,7 +12,7 @@ import { SyncDonationsController } from "../modules/donations/useCases/syncDonat
 const welcomeRoutes = Router()
 
 welcomeRoutes.get('/', async (req, res) => {
-    return ('seja bem vindo meu principe 🦥')
+    return res.sendStatus(200).send('seja bem vindo meu principe 🦥')
 })
 
 
