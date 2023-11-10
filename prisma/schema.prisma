@@ -1,0 +1,169 @@
+// This is your Prisma schema file
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Donations {
+  id              String  @id @default(uuid()) @map("_id")
+  name            String
+  email           String
+  phoneNumber     String
+  isPhoneWhatsapp Boolean
+  gender          String
+  birth           String
+
+  state      String
+  city       String
+  street     String
+  homeNumber String
+  complement String?
+  district   String
+  zipCode    String
+
+  cpf  String
+  rg   String?
+  cnpj String?
+  ufrg String
+
+  valuePaid     Int
+  paymentMethod String
+  paymentStatus String
+  paymentDate   DateTime?
+
+  donationExpirationDate DateTime?
+
+  ciclesBought Int
+  ciclePaid Int
+  valueBought Int
+
+  stripeSubscriptionID String
+
+  canceledAt DateTime?
+
+  stripeCustomerID String
+  createdAt        DateTime @default(now())
+
+  @@map("Donations")
+}
+
+model Students {
+  id              String  @id @default(uuid()) @map("_id")
+  name            String
+  email           String  @unique
+  gender          String
+  birth           String
+  phoneNumber     String
+  isPhoneWhatsapp Boolean
+  state           String
+  city            String
+  street          String
+  homeNumber      String
+  complement      String?
+  district        String
+  zipCode         String
+
+  cpf                      String
+  rg                       String?
+  ufrg                     String
+  selfDeclaration          String
+  oldSchool                String
+  oldSchoolAdress          String
+  highSchoolGraduationDate String
+  highSchoolPeriod         String
+  metUsMethod              String
+  exStudent                String
+  stripeCustomerID         String
+
+  purcharsedSubscriptions PurchasedSubscriptions[]
+  createdAt               DateTime                 @default(now())
+
+  @@map("Students")
+}
+
+model Admins {
+  id            String        @id @default(uuid()) @map("_id")
+  name          String
+  email         String        @unique
+  username      String        @unique
+  password      String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @default(now())
+  refresh_token RefreshToken?
+
+  @@map("Admins")
+}
+
+model RefreshToken {
+  id         String @id @default(uuid()) @map("_id")
+  expires_at Int
+  admin      Admins @relation(fields: [adminID], references: [id])
+  adminID    String @unique
+
+  @@map("refresh_token")
+}
+
+model SchoolClass {
+  id              String                              @id @default(uuid()) @map("_id")
+  title           String
+  informations    SchoolClassInformations
+  subscriptions   SchoolClassSubscriptionInformations
+  selectiveStages SchoolClassSelectiveStages[]
+  status          String // Changed from Boolean to String
+  stripeProductID String
+  documents       DocumentsTypes[]
+  registrations   Registrations
+
+  @@map("SchoolClass")
+}
+
+type PurchasedSubscriptions {
+  schoolClassID String
+  stripeSubscriptionID String
+  productID     String
+  productName   String
+  paymentMethod String
+  paymentStatus String
+  paymentDate   DateTime?
+  valuePaid     Int
+}
+
+type DocumentsTypes {
+  docsID       String
+  title        String
+  downloadLink String
+}
+
+type SchoolClassInformations {
+  description       String
+  whoCanParticipate String
+  observations      String?
+  classContent      String
+  dateSchedule      String
+  hourSchedule      String
+  color             String
+}
+
+type SchoolClassSubscriptionInformations {
+  status               String
+  price                Int
+  subscriptionSchedule String
+}
+
+type SchoolClassSelectiveStages {
+  stagesID    String
+  when        String
+  resultsDate DateTime?
+  description String
+}
+
+type Registrations {
+  description String
+  value       Int
+}
