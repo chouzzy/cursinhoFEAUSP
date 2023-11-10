@@ -5,6 +5,8 @@
   "license": "MIT",
   "scripts": {
     "dev": "ts-node-dev --inspect --transpile-only --ignore-watch node_modules --respawn src/server.ts",
+    "production": "node ./build/server.js",
+    "postinstall": "tsc",
     "typeorm": "ts-node-dev ./node_modules/typeorm/cli"
   },
   "dependencies": {
@@ -60,5 +62,8 @@
     "ts-node-dev": "^2.0.0",
     "typescript": "^4.8.4",
     "uuid": "^9.0.0"
+  },
+  "engines": {
+    "node": "18.x"
   }
 }
