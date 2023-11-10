@@ -9,8 +9,11 @@ const refreshToken_routes_1 = require("./refreshToken.routes");
 const schoolClass_routes_1 = require("./schoolClass.routes");
 const students_routes_1 = require("./students.routes");
 const webhooks_1 = require("./webhooks");
+const welcome_routes_1 = require("./welcome.routes.");
 const router = (0, express_1.Router)();
 exports.router = router;
+//donations routes
+router.use('/', welcome_routes_1.welcomeRoutes);
 //donations routes
 router.use('/donates', donations_routes_1.donationsRoutes);
 // students routes
