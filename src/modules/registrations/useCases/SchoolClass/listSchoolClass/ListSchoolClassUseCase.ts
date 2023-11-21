@@ -9,7 +9,7 @@ class ListSchoolClassUseCase {
     constructor(
         private schoolClassRepository: ISchoolClassRepository) { }
 
-    async execute({ page, pageRange, status }: ListSchoolClassProps): Promise<validationResponse> {
+    async execute({ page=0, pageRange=9999, status }: ListSchoolClassProps): Promise<validationResponse> {
 
         page = Number(page)
         pageRange = Number(pageRange)
