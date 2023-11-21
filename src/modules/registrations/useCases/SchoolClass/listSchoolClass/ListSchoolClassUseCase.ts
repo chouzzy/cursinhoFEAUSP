@@ -11,6 +11,13 @@ class ListSchoolClassUseCase {
 
     async execute({ page=0, pageRange=9999, status }: ListSchoolClassProps): Promise<validationResponse> {
 
+        if (!page) {
+            page = 0
+        }
+
+        if (!pageRange) {
+            pageRange = 9999
+        }
         page = Number(page)
         pageRange = Number(pageRange)
 
