@@ -28,13 +28,16 @@ class CreateSchoolClassUseCase {
 
         const createSchoolClassResponse = await this.schoolClassRepository.createSchoolClass(schoolClassData)
 
+
         if (!createSchoolClassResponse.schoolClass) {
             return createSchoolClassResponse
         }
 
+        
         const stripeProducts = new StripeProducts()
 
         const { schoolClass } = createSchoolClassResponse
+
 
         const product: StripeCreateProductProps = {
             name: schoolClass.title,
@@ -49,20 +52,23 @@ class CreateSchoolClassUseCase {
             }
         }
 
+
         const stripeProductCreated = await stripeProducts.createProduct(product)
+
 
         if (!stripeProductCreated.stripeCreatedProductID) {
             return stripeProductCreated
         }
 
+
         const { stripeCreatedProductID } = stripeProductCreated
+
 
         const updatedSchoolClassResponse = await this.schoolClassRepository.updateSchoolClass(
             schoolClass,
             schoolClass.id,
             stripeCreatedProductID
         )
-
 
         return updatedSchoolClassResponse
     }

@@ -40,6 +40,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
                 return { isValid: false, errorMessage: `Título de turma já existente`, statusCode: 403 }
             }
 
+
             schoolClassData.documents?.map(doc => {
                 doc.docsID = uuidV4()
             })
@@ -48,13 +49,17 @@ class SchoolClassRepository implements ISchoolClassRepository {
                 stage.stagesID = uuidV4()
             })
 
+
             const createdSchoolClass = await prisma.schoolClass.create({
                 data: schoolClassData
             })
+
+
             return { isValid: true, statusCode: 202, schoolClass: createdSchoolClass }
 
 
         } catch (error: unknown) {
+
             if (error instanceof Prisma.PrismaClientValidationError) {
 
                 const argumentPosition = error.message.search('Argument')
@@ -158,12 +163,23 @@ class SchoolClassRepository implements ISchoolClassRepository {
         stripeProductID?: SchoolClass["stripeProductID"] //enviado apenas na criação de um schoolClass, nunca num update
     ): Promise<validationResponse> {
 
+        // console.log('dentro do update schoolClass')
+        // console.log('schoolClassData')
+        // console.log(schoolClassData)
+        // console.log('schoolClassID')
+        // console.log(schoolClassID)
+        // console.log('stripeProductID')
+        // console.log(stripeProductID)
+
         try {
             const schoolClass = await prisma.schoolClass.findUnique({
                 where: {
                     id: schoolClassID
                 }
             })
+
+            // console.log('schoolClass')
+            // console.log(schoolClass)
 
             if (!schoolClass) {
                 return { isValid: false, errorMessage: 'Turma não encontrada.', statusCode: 403 }
@@ -172,6 +188,11 @@ class SchoolClassRepository implements ISchoolClassRepository {
             //Se tiver o product ID, iremos atualizá-lo, pois se trata de um update do webhook
 
             if (stripeProductID) {
+
+                
+                // console.log('stripeProductID')
+                // console.log(stripeProductID)
+
 
                 const newDefaultPrice = schoolClassData.subscriptions.price
 
@@ -195,6 +216,10 @@ class SchoolClassRepository implements ISchoolClassRepository {
                 }
 
                 const stripeProduct = await stripe.products.retrieve(stripeProductID)
+
+                // console.log('stripeProduct')
+                // console.log(stripeProduct)
+
                 const { default_price } = stripeProduct
 
                 if (!default_price || typeof (default_price) != 'string') {
@@ -212,6 +237,10 @@ class SchoolClassRepository implements ISchoolClassRepository {
                     product: stripeProduct.id,
                 });
 
+                // console.log('price')
+                // console.log(price)
+
+                //
                 await stripe.products.update(
                     stripeProductID,
                     {
@@ -225,8 +254,20 @@ class SchoolClassRepository implements ISchoolClassRepository {
                     where: {
                         id: schoolClassID
                     },
-                    data: schoolClassData
+                    data: {
+                        title: schoolClassData.title,
+                        informations: schoolClassData.informations,
+                        subscriptions: schoolClassData.subscriptions,
+                        selectiveStages: schoolClassData.selectiveStages,
+                        status: schoolClassData.status,
+                        stripeProductID: stripeProduct.id,
+                        documents: schoolClassData.documents,
+                        registrations: schoolClassData.registrations
+                    }
                 })
+
+                // console.log('updatedSchoolClass')
+                // console.log(updatedSchoolClass)
 
                 return {
                     isValid: true,
@@ -254,6 +295,9 @@ class SchoolClassRepository implements ISchoolClassRepository {
             }
 
         } catch (error: unknown) {
+
+            // console.log('error')
+            // console.log(error)
 
             if (error instanceof Prisma.PrismaClientValidationError) {
                 const argumentPosition = error.message.search('Argument')
