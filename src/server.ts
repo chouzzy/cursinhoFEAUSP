@@ -10,7 +10,9 @@ import Stripe from 'stripe';
 const stripe:Stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 
 const app = express()
-app.use(cors());
+app.use(cors({
+    origin: 'https://cursinho-feausp-client.vercel.app',
+  }));
 
 app.use('/webhooks', bodyParser.raw({ type: "*/*" }), webhooksRoutes)
 app.use(express.json())
