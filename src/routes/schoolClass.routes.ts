@@ -35,10 +35,7 @@ const deleteSchoolClassStagesController = new DeleteSchoolClassStagesController(
 schoolClassRoutes.delete('/:schoolClassID/stages/:stagesID/delete', ensureAuthenticated, deleteSchoolClassStagesController.handle)
 
 const updateSchoolClassController = new UpdateSchoolClassController()
-schoolClassRoutes.put('/:schoolClassID/update',
-    cors({ origin: "*", methods: ['GET', 'PUT', 'POST', 'DELETE', 'PATCH'], credentials: true}),
-    ensureAuthenticated, updateSchoolClassController.handle
-)
+schoolClassRoutes.put('/:schoolClassID/update', ensureAuthenticated, updateSchoolClassController.handle)
 
 const deleteSchoolClassController = new DeleteSchoolClassController()
 schoolClassRoutes.delete('/:schoolClassID/delete', ensureAuthenticated, deleteSchoolClassController.handle)
