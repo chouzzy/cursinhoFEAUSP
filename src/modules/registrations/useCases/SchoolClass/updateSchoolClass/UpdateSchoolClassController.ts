@@ -24,15 +24,13 @@ class UpdateSchoolClassController {
         const { schoolClassID } = req.params
 
         /// instanciação da classe do caso de uso
-        // const schoolClasssRepository = new SchoolClassRepository()
-        // const updateSchoolClassUseCase = new UpdateSchoolClassUseCase(schoolClasssRepository)
-        // const updatedSchoolClassResponse = await updateSchoolClassUseCase.execute(schoolClassData, schoolClassID)
+        const schoolClasssRepository = new SchoolClassRepository()
+        const updateSchoolClassUseCase = new UpdateSchoolClassUseCase(schoolClasssRepository)
+        const updatedSchoolClassResponse = await updateSchoolClassUseCase.execute(schoolClassData, schoolClassID)
 
         ///
-        // return res.status(updatedSchoolClassResponse.statusCode)
-        //     .json({updatedSchoolClassResponse})
-        return res.status(202)
-            .json({schoolClassData}).send('Update school calss controller')
+        return res.status(updatedSchoolClassResponse.statusCode)
+            .json({updatedSchoolClassResponse})
     }
 }
 
