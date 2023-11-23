@@ -12,7 +12,8 @@ const stripe:Stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 const app = express()
 
 app.use(cors({
-    allowedHeaders: ['GET', 'PUT', 'POST', 'DELETE', 'PATCH'],
+    origin:"*",
+    methods: ['GET', 'PUT', 'POST', 'DELETE', 'PATCH'],
 }));
 
 app.use('/webhooks', bodyParser.raw({ type: "*/*" }), webhooksRoutes)
