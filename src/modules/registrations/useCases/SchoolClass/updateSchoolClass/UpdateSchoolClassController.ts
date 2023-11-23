@@ -20,17 +20,19 @@ class UpdateSchoolClassController {
 
     async handle(req: Request, res: Response): Promise<Response> {
 
-        const schoolClassData: UpdateSchoolClassRequestProps = req.body
-        const { schoolClassID } = req.params
+        return res.status(203).json({message: "chegamos aqui"})
 
-        /// instanciação da classe do caso de uso
-        const schoolClasssRepository = new SchoolClassRepository()
-        const updateSchoolClassUseCase = new UpdateSchoolClassUseCase(schoolClasssRepository)
-        const updatedSchoolClassResponse = await updateSchoolClassUseCase.execute(schoolClassData, schoolClassID)
+        // const schoolClassData: UpdateSchoolClassRequestProps = req.body
+        // const { schoolClassID } = req.params
 
-        ///
-        return res.status(updatedSchoolClassResponse.statusCode)
-            .json({updatedSchoolClassResponse})
+        // /// instanciação da classe do caso de uso
+        // const schoolClasssRepository = new SchoolClassRepository()
+        // const updateSchoolClassUseCase = new UpdateSchoolClassUseCase(schoolClasssRepository)
+        // const updatedSchoolClassResponse = await updateSchoolClassUseCase.execute(schoolClassData, schoolClassID)
+
+        // ///
+        // return res.status(updatedSchoolClassResponse.statusCode)
+        //     .json({updatedSchoolClassResponse})
     }
 }
 
