@@ -27,7 +27,6 @@ class UpdateSchoolClassController {
         /// instanciação da classe do caso de uso
         const schoolClasssRepository = new SchoolClassRepository()
         const updateSchoolClassUseCase = new UpdateSchoolClassUseCase(schoolClasssRepository)
-        return res.status(203).json({message: "chegamos aqui"})
         const updatedSchoolClassResponse = await updateSchoolClassUseCase.execute(schoolClassData, schoolClassID)
 
         ///
