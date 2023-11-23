@@ -27,13 +27,6 @@ class UpdateSchoolClassUseCase {
                 stage.resultsDate = null
             }
         })
-
-    
-        return {
-            isValid: true,
-            successMessage: "paramos aqui",
-            statusCode: 203
-        }
         
         const upatedSchoolClassResponse = await this.schoolClassRepository.updateSchoolClass(schoolClassData, schoolClassID)
         
