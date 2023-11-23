@@ -9,6 +9,7 @@ import { DeleteSchoolClassDocsController } from "../modules/registrations/useCas
 import { DeleteSchoolClassStagesController } from "../modules/registrations/useCases/SchoolClass/deleteSchoolClassStages/DeleteSchoolClassStagesController"
 import { ListAllSchoolClassController } from "../modules/registrations/useCases/SchoolClass/listAllSchoolClass/ListAllSchoolClassController"
 import { ensureAuthenticated } from "../modules/registrations/middleware/ensureAuthenticate"
+import cors from 'cors';
 
 const schoolClassRoutes = Router()
 
@@ -34,11 +35,14 @@ const deleteSchoolClassStagesController = new DeleteSchoolClassStagesController(
 schoolClassRoutes.delete('/:schoolClassID/stages/:stagesID/delete', ensureAuthenticated, deleteSchoolClassStagesController.handle)
 
 const updateSchoolClassController = new UpdateSchoolClassController()
-schoolClassRoutes.put('/:schoolClassID/update', ensureAuthenticated, updateSchoolClassController.handle)
+schoolClassRoutes.put('/:schoolClassID/update',
+    cors({ origin: "*", methods: ['GET', 'PUT', 'POST', 'DELETE', 'PATCH'], credentials: true}),
+    ensureAuthenticated, updateSchoolClassController.handle
+)
 
 const deleteSchoolClassController = new DeleteSchoolClassController()
 schoolClassRoutes.delete('/:schoolClassID/delete', ensureAuthenticated, deleteSchoolClassController.handle)
 
 
 
-export {schoolClassRoutes}
+export { schoolClassRoutes }
