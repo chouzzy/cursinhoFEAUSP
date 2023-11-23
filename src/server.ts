@@ -12,7 +12,6 @@ const stripe:Stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 const app = express()
 
 app.use(cors({
-    origin: '*',
     allowedHeaders: ['GET', 'PUT', 'POST', 'DELETE', 'PATCH'],
 }));
 
