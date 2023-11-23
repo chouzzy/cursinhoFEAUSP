@@ -20,10 +20,10 @@ class UpdateSchoolClassController {
 
     async handle(req: Request, res: Response): Promise<Response> {
 
+        
+        const { schoolClassID } = req.params
         return res.status(203).json({message: "chegamos aqui"})
-
         // const schoolClassData: UpdateSchoolClassRequestProps = req.body
-        // const { schoolClassID } = req.params
 
         // /// instanciação da classe do caso de uso
         // const schoolClasssRepository = new SchoolClassRepository()
