@@ -22,8 +22,8 @@ class UpdateSchoolClassController {
 
         
         const { schoolClassID } = req.params
-        // return res.status(203).json({message: "chegamos aqui"})
         const schoolClassData: UpdateSchoolClassRequestProps = req.body
+        return res.status(203).json({message: "chegamos aqui"})
 
         /// instanciação da classe do caso de uso
         const schoolClasssRepository = new SchoolClassRepository()
