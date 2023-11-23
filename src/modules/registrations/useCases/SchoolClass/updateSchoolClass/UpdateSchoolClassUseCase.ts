@@ -13,6 +13,12 @@ class UpdateSchoolClassUseCase {
         // Validate the body sent from the frontend service
         const bodyValidation = await checkBody(schoolClassData)
 
+        return {
+            isValid: true,
+            successMessage: "paramos aqui",
+            statusCode: 203
+        }
+
         if (bodyValidation.isValid === false) {
             return ({
                 isValid: false,
@@ -27,11 +33,7 @@ class UpdateSchoolClassUseCase {
             }
         })
 
-        return {
-            isValid: true,
-            successMessage: "paramos aqui",
-            statusCode: 203
-        }
+    
         
         const upatedSchoolClassResponse = await this.schoolClassRepository.updateSchoolClass(schoolClassData, schoolClassID)
         
