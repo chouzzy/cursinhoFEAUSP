@@ -14,21 +14,28 @@ class UpdateSchoolClassUseCase {
         console.log('schoolClassData')
         console.log(schoolClassData)
 
-        // const bodyValidation = await checkBody(schoolClassData)
+        const bodyValidation = await checkBody(schoolClassData)
 
-        // if (bodyValidation.isValid === false) {
-        //     return ({
-        //         isValid: false,
-        //         statusCode: 403,
-        //         errorMessage: bodyValidation.errorMessage,
-        //     })
-        // }
+        console.log('after checkbody')
 
-        schoolClassData.selectiveStages.map( stage => {
-            if (!stage.resultsDate) {
-                stage.resultsDate = null
-            }
-        })
+        if (bodyValidation.isValid === false) {
+            return ({
+                isValid: false,
+                statusCode: 403,
+                errorMessage: bodyValidation.errorMessage,
+            })
+        }
+
+        if (schoolClassData.selectiveStages) {
+            schoolClassData.selectiveStages.map( stage => {
+                if (!stage.resultsDate) {
+                    stage.resultsDate = null
+                }
+            })
+        }
+
+        console.log('passamos o selective stages')
+
 
         // schoolClassData = {
         //     informations: {
