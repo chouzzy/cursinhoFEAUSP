@@ -178,9 +178,6 @@ class SchoolClassRepository implements ISchoolClassRepository {
                 }
             })
 
-            // console.log('schoolClass')
-            // console.log(schoolClass)
-
             if (!schoolClass) {
                 return { isValid: false, errorMessage: 'Turma não encontrada.', statusCode: 403 }
             }
@@ -189,12 +186,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
 
             if (stripeProductID) {
 
-                
-                // console.log('stripeProductID')
-                // console.log(stripeProductID)
-
-
-                const newDefaultPrice = schoolClassData.subscriptions.price
+                const newDefaultPrice = schoolClass.subscriptions.price
 
                 if (!newDefaultPrice) {
 
@@ -246,7 +238,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
                     {
                         default_price: price.id,
                         name: schoolClassData.title ?? stripeProduct.name,
-                        description: schoolClassData.informations.description
+                        description: schoolClassData.informations.description ?? stripeProduct.description
                     }
                 )
 
@@ -255,14 +247,14 @@ class SchoolClassRepository implements ISchoolClassRepository {
                         id: schoolClassID
                     },
                     data: {
-                        title: schoolClassData.title,
-                        informations: schoolClassData.informations,
-                        subscriptions: schoolClassData.subscriptions,
-                        selectiveStages: schoolClassData.selectiveStages,
-                        status: schoolClassData.status,
-                        stripeProductID: stripeProduct.id,
-                        documents: schoolClassData.documents,
-                        registrations: schoolClassData.registrations
+                        title: schoolClassData.title ?? schoolClassData.title,
+                        informations: schoolClassData.informations ?? schoolClassData.informations,
+                        subscriptions: schoolClassData.subscriptions ?? schoolClassData.subscriptions,
+                        selectiveStages: schoolClassData.selectiveStages ?? schoolClassData.selectiveStages,
+                        status: schoolClassData.status ?? schoolClassData.status,
+                        stripeProductID: stripeProduct.id ?? stripeProduct.id,
+                        documents: schoolClassData.documents ?? schoolClassData.documents,
+                        registrations: schoolClassData.registrations ?? schoolClassData.registrations
                     }
                 })
 
