@@ -275,7 +275,16 @@ class SchoolClassRepository implements ISchoolClassRepository {
                 where: {
                     id: schoolClassID
                 },
-                data: schoolClassData
+                data: {
+                    title: schoolClassData.title ?? schoolClass.title,
+                    status: schoolClassData.status ?? schoolClass.status,
+                    documents: schoolClassData.documents ?? schoolClass.documents,
+                    informations: schoolClassData.informations ?? schoolClass.informations,
+                    registrations: schoolClassData.registrations ?? schoolClass.registrations,
+                    selectiveStages: schoolClassData.selectiveStages ?? schoolClass.selectiveStages,
+                    stripeProductID: schoolClassData.stripeProductID ?? schoolClass.stripeProductID,
+                    subscriptions: schoolClassData.subscriptions ?? schoolClass.subscriptions,
+                }
             })
 
 
