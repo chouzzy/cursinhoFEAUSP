@@ -21,7 +21,7 @@ interface CreateStudentRequestProps {
     complement?: Students["complement"]
     district: Students["district"]
     zipCode: Students["zipCode"]
-    
+
     cpf: Students["cpf"],
     rg: Students["rg"],
     ufrg: Students["ufrg"],
@@ -52,26 +52,34 @@ class CreateStudentController {
     async handle(req: Request, res: Response): Promise<Response> {
 
         const studentData: CreateStudentRequestProps = req.body
-        
-        // const {token} = studentData
 
-        // const decryptedPaymentMethodString = crypto.AES.decrypt(token, process.env.PCRYPTO_PKEY?? '').toString(crypto.enc.Utf8);
+        const { token } = studentData
 
-        // const paymentMethodID = decryptedPaymentMethodString
-        console.log('studentData.paymentMethodID')
-        console.log(studentData.paymentMethodID)
+        try {
+            const decryptedPaymentMethodString = crypto.AES.decrypt(token, process.env.PCRYPTO_PKEY ?? '').toString(crypto.enc.Utf8);
 
-        /// instanciação da classe do caso de uso
-        const studentsRepository = new StudentsRepository()
-        const createStudentUseCase = new CreateStudentUseCase(studentsRepository)
+            console.log('decryptedPaymentMethodString')
+            console.log(decryptedPaymentMethodString)
 
-        // studentData.paymentMethodID = paymentMethodID
-        // studentData.paymentMethodID = 'pm_1OmLGuHkzIzO4aMOoxSTDivn'
+            const paymentMethodID = decryptedPaymentMethodString
 
-        console.log('prestes a entrar no usecase')
-        const response = await createStudentUseCase.execute(studentData)
+            console.log('paymentMethodID')
+            console.log(paymentMethodID)
 
-        return res.status(response.statusCode).json({ response })
+            /// instanciação da classe do caso de uso
+            const studentsRepository = new StudentsRepository()
+            const createStudentUseCase = new CreateStudentUseCase(studentsRepository)
+
+            // studentData.paymentMethodID = paymentMethodID
+            // studentData.paymentMethodID = 'pm_1OmLGuHkzIzO4aMOoxSTDivn'
+
+            console.log('prestes a entrar no usecase')
+            const response = await createStudentUseCase.execute(studentData)
+
+            return res.status(response.statusCode).json({ response })
+        } catch (error) {
+            return res.status(403).json({ error })
+        }
 
     }
 }
