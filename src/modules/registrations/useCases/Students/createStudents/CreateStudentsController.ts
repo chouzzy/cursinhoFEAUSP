@@ -56,7 +56,7 @@ class CreateStudentController {
         const { token } = studentData
 
         try {
-            const decryptedPaymentMethodString = crypto.AES.decrypt(token, process.env.PCRYPTO_PKEY ?? '').toString(crypto.enc.Utf8);
+            const decryptedPaymentMethodString = crypto.AES.decrypt(token, process.env.PCRYPTO_PKEY ?? 'vasco').toString(crypto.enc.Utf8);
 
             console.log('decryptedPaymentMethodString')
             console.log(decryptedPaymentMethodString)
@@ -70,7 +70,7 @@ class CreateStudentController {
             const studentsRepository = new StudentsRepository()
             const createStudentUseCase = new CreateStudentUseCase(studentsRepository)
 
-            // studentData.paymentMethodID = paymentMethodID
+            studentData.paymentMethodID = paymentMethodID
             // studentData.paymentMethodID = 'pm_1OmLGuHkzIzO4aMOoxSTDivn'
 
             console.log('prestes a entrar no usecase')
