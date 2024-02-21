@@ -39,10 +39,10 @@ class StripeFakeFront {
             if (schoolClassID) { productType = 'Subscription' }
             if (donationID) { productType = 'Donation' }
 
-            // await stripe.paymentMethods.attach(
-            //     paymentMethodID,
-            //     { customer: stripeCustomerID }
-            // );
+            await stripe.paymentMethods.attach(
+                paymentMethodID,
+                { customer: stripeCustomerID }
+            );
 
             const stripeProduct = await stripe.products.retrieve(productSelectedID)
             const { default_price } = stripeProduct
