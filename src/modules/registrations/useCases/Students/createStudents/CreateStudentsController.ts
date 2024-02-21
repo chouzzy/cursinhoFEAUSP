@@ -53,7 +53,7 @@ class CreateStudentController {
 
         const studentData: CreateStudentRequestProps = req.body
         
-        const {token } = studentData
+        const {token} = studentData
 
         const decryptedPaymentMethodString = crypto.AES.decrypt(token, process.env.PCRYPTO_PKEY?? '').toString(crypto.enc.Utf8);
 

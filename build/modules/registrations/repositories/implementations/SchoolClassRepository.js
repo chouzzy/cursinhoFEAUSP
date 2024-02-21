@@ -132,8 +132,15 @@ class SchoolClassRepository {
     }
     updateSchoolClass(schoolClassData, schoolClassID, stripeProductID //enviado apenas na criação de um schoolClass, nunca num update
     ) {
-        var _a;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t;
         return __awaiter(this, void 0, void 0, function* () {
+            // console.log('dentro do update schoolClass')
+            // console.log('schoolClassData')
+            // console.log(schoolClassData)
+            // console.log('schoolClassID')
+            // console.log(schoolClassID)
+            // console.log('stripeProductID')
+            // console.log(stripeProductID)
             try {
                 const schoolClass = yield prisma_1.prisma.schoolClass.findUnique({
                     where: {
@@ -145,7 +152,7 @@ class SchoolClassRepository {
                 }
                 //Se tiver o product ID, iremos atualizá-lo, pois se trata de um update do webhook
                 if (stripeProductID) {
-                    const newDefaultPrice = schoolClassData.subscriptions.price;
+                    const newDefaultPrice = schoolClass.subscriptions.price;
                     if (!newDefaultPrice) {
                         const updatedSchoolClass = yield prisma_1.prisma.schoolClass.update({
                             where: {
@@ -163,6 +170,8 @@ class SchoolClassRepository {
                         };
                     }
                     const stripeProduct = yield server_1.stripe.products.retrieve(stripeProductID);
+                    // console.log('stripeProduct')
+                    // console.log(stripeProduct)
                     const { default_price } = stripeProduct;
                     if (!default_price || typeof (default_price) != 'string') {
                         return {
@@ -177,17 +186,31 @@ class SchoolClassRepository {
                         recurring: { interval: 'month' },
                         product: stripeProduct.id,
                     });
+                    // console.log('price')
+                    // console.log(price)
+                    //
                     yield server_1.stripe.products.update(stripeProductID, {
                         default_price: price.id,
                         name: (_a = schoolClassData.title) !== null && _a !== void 0 ? _a : stripeProduct.name,
-                        description: schoolClassData.informations.description
+                        description: (_b = schoolClassData.informations.description) !== null && _b !== void 0 ? _b : stripeProduct.description
                     });
                     const updatedSchoolClass = yield prisma_1.prisma.schoolClass.update({
                         where: {
                             id: schoolClassID
                         },
-                        data: schoolClassData
+                        data: {
+                            title: (_c = schoolClassData.title) !== null && _c !== void 0 ? _c : schoolClassData.title,
+                            informations: (_d = schoolClassData.informations) !== null && _d !== void 0 ? _d : schoolClassData.informations,
+                            subscriptions: (_e = schoolClassData.subscriptions) !== null && _e !== void 0 ? _e : schoolClassData.subscriptions,
+                            selectiveStages: (_f = schoolClassData.selectiveStages) !== null && _f !== void 0 ? _f : schoolClassData.selectiveStages,
+                            status: (_g = schoolClassData.status) !== null && _g !== void 0 ? _g : schoolClassData.status,
+                            stripeProductID: (_h = stripeProduct.id) !== null && _h !== void 0 ? _h : stripeProduct.id,
+                            documents: (_j = schoolClassData.documents) !== null && _j !== void 0 ? _j : schoolClassData.documents,
+                            registrations: (_k = schoolClassData.registrations) !== null && _k !== void 0 ? _k : schoolClassData.registrations
+                        }
                     });
+                    // console.log('updatedSchoolClass')
+                    // console.log(updatedSchoolClass)
                     return {
                         isValid: true,
                         statusCode: 202,
@@ -200,7 +223,16 @@ class SchoolClassRepository {
                     where: {
                         id: schoolClassID
                     },
-                    data: schoolClassData
+                    data: {
+                        title: (_l = schoolClassData.title) !== null && _l !== void 0 ? _l : schoolClass.title,
+                        status: (_m = schoolClassData.status) !== null && _m !== void 0 ? _m : schoolClass.status,
+                        documents: (_o = schoolClassData.documents) !== null && _o !== void 0 ? _o : schoolClass.documents,
+                        informations: (_p = schoolClassData.informations) !== null && _p !== void 0 ? _p : schoolClass.informations,
+                        registrations: (_q = schoolClassData.registrations) !== null && _q !== void 0 ? _q : schoolClass.registrations,
+                        selectiveStages: (_r = schoolClassData.selectiveStages) !== null && _r !== void 0 ? _r : schoolClass.selectiveStages,
+                        stripeProductID: (_s = schoolClassData.stripeProductID) !== null && _s !== void 0 ? _s : schoolClass.stripeProductID,
+                        subscriptions: (_t = schoolClassData.subscriptions) !== null && _t !== void 0 ? _t : schoolClass.subscriptions,
+                    }
                 });
                 return {
                     isValid: true,
@@ -210,6 +242,8 @@ class SchoolClassRepository {
                 };
             }
             catch (error) {
+                // console.log('error')
+                // console.log(error)
                 if (error instanceof client_1.Prisma.PrismaClientValidationError) {
                     const argumentPosition = error.message.search('Argument');
                     const mongoDBError = error.message.slice(argumentPosition);

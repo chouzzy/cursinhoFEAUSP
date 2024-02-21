@@ -14,7 +14,10 @@ const cors_1 = __importDefault(require("cors"));
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 exports.stripe = stripe;
 const app = (0, express_1.default)();
-app.use((0, cors_1.default)());
+app.use((0, cors_1.default)({
+    origin: "*",
+    methods: ['GET', 'PUT', 'POST', 'DELETE', 'PATCH'],
+}));
 app.use('/webhooks', body_parser_1.default.raw({ type: "*/*" }), webhooks_1.webhooksRoutes);
 app.use(express_1.default.json());
 app.use(body_parser_1.default.json({ type: 'application/json' }));

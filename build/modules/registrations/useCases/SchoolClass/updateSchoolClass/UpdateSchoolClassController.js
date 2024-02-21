@@ -15,8 +15,8 @@ const UpdateSchoolClassUseCase_1 = require("./UpdateSchoolClassUseCase");
 class UpdateSchoolClassController {
     handle(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
-            const schoolClassData = req.body;
             const { schoolClassID } = req.params;
+            const schoolClassData = req.body;
             /// instanciação da classe do caso de uso
             const schoolClasssRepository = new SchoolClassRepository_1.SchoolClassRepository();
             const updateSchoolClassUseCase = new UpdateSchoolClassUseCase_1.UpdateSchoolClassUseCase(schoolClasssRepository);

@@ -173,6 +173,8 @@ class StudentsRepository implements IStudentsRepository {
         try {
 
             //Checa duplicados no array purcharsed subs
+
+            console.log('dentro de createStudent')
             function checkDuplicateSchoolClassIDs(purcharsedSubscriptions: Students["purcharsedSubscriptions"]) {
                 const uniqueIDs = new Set();
 
@@ -185,6 +187,7 @@ class StudentsRepository implements IStudentsRepository {
 
                 return false; // No duplicates found
             }
+            console.log('depois de checkDuplicate')
 
             const { purcharsedSubscriptions } = studentData
 
@@ -377,7 +380,6 @@ class StudentsRepository implements IStudentsRepository {
 
             }
 
-
             // Student não encontrado no banco e no stripe:
             const stripeCustomerCreatedID = await stripeCustomer.createCustomer(studentData)
 
@@ -392,6 +394,15 @@ class StudentsRepository implements IStudentsRepository {
                 paymentMethodID: studentData.paymentMethodID,
                 productSelectedID: studentData.productSelectedID
             })
+
+
+            if (!stripeResponse.isValid) {
+                return {
+                    isValid: stripeResponse.isValid,
+                    errorMessage: stripeResponse.errorMessage,
+                    statusCode: stripeResponse.statusCode
+                }
+            }
 
             if (stripeResponse.stripeSubscription) {
 

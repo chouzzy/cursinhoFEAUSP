@@ -1,4 +1,7 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.schoolClassRoutes = void 0;
 const express_1 = require("express");
@@ -12,6 +15,7 @@ const DeleteSchoolClassDocsController_1 = require("../modules/registrations/useC
 const DeleteSchoolClassStagesController_1 = require("../modules/registrations/useCases/SchoolClass/deleteSchoolClassStages/DeleteSchoolClassStagesController");
 const ListAllSchoolClassController_1 = require("../modules/registrations/useCases/SchoolClass/listAllSchoolClass/ListAllSchoolClassController");
 const ensureAuthenticate_1 = require("../modules/registrations/middleware/ensureAuthenticate");
+const cors_1 = __importDefault(require("cors"));
 const schoolClassRoutes = (0, express_1.Router)();
 exports.schoolClassRoutes = schoolClassRoutes;
 const listSchoolClassController = new ListSchoolClassController_1.ListSchoolClassController();
@@ -29,6 +33,6 @@ schoolClassRoutes.delete('/:schoolClassID/docs/:docsID/delete', ensureAuthentica
 const deleteSchoolClassStagesController = new DeleteSchoolClassStagesController_1.DeleteSchoolClassStagesController();
 schoolClassRoutes.delete('/:schoolClassID/stages/:stagesID/delete', ensureAuthenticate_1.ensureAuthenticated, deleteSchoolClassStagesController.handle);
 const updateSchoolClassController = new UpdateSchoolClassController_1.UpdateSchoolClassController();
-schoolClassRoutes.put('/:schoolClassID/update', ensureAuthenticate_1.ensureAuthenticated, updateSchoolClassController.handle);
+schoolClassRoutes.put('/:schoolClassID/update', (0, cors_1.default)(), ensureAuthenticate_1.ensureAuthenticated, updateSchoolClassController.handle);
 const deleteSchoolClassController = new DeleteSchoolClassController_1.DeleteSchoolClassController();
 schoolClassRoutes.delete('/:schoolClassID/delete', ensureAuthenticate_1.ensureAuthenticated, deleteSchoolClassController.handle);

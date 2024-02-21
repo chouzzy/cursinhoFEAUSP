@@ -16,8 +16,14 @@ class ListSchoolClassUseCase {
     constructor(schoolClassRepository) {
         this.schoolClassRepository = schoolClassRepository;
     }
-    execute({ page, pageRange, status }) {
+    execute({ page = 0, pageRange = 9999, status }) {
         return __awaiter(this, void 0, void 0, function* () {
+            if (!page) {
+                page = 0;
+            }
+            if (!pageRange) {
+                pageRange = 9999;
+            }
             page = Number(page);
             pageRange = Number(pageRange);
             const bodyValidation = yield (0, ListSchoolClassCheck_1.checkBody)({ page, pageRange, status });
