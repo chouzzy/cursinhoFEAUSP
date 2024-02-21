@@ -44,6 +44,8 @@ class StripeFakeFront {
                 { customer: stripeCustomerID }
             );
 
+            console.log('após o paymentAttach')
+
             const stripeProduct = await stripe.products.retrieve(productSelectedID)
             const { default_price } = stripeProduct
 
