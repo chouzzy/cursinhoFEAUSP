@@ -58,13 +58,7 @@ class CreateStudentController {
         try {
             const decryptedPaymentMethodString = crypto.AES.decrypt(token, process.env.PCRYPTO_PKEY ?? 'vasco').toString(crypto.enc.Utf8);
 
-            console.log('decryptedPaymentMethodString')
-            console.log(decryptedPaymentMethodString)
-
             const paymentMethodID = decryptedPaymentMethodString
-
-            console.log('paymentMethodID')
-            console.log(paymentMethodID)
 
             /// instanciação da classe do caso de uso
             const studentsRepository = new StudentsRepository()
@@ -72,8 +66,6 @@ class CreateStudentController {
 
             studentData.paymentMethodID = paymentMethodID
             // studentData.paymentMethodID = 'pm_1OmLGuHkzIzO4aMOoxSTDivn'
-
-            console.log('prestes a entrar no usecase')
             const response = await createStudentUseCase.execute(studentData)
 
             return res.status(response.statusCode).json({ response })

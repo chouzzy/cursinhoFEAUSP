@@ -44,8 +44,6 @@ class StripeFakeFront {
                 { customer: stripeCustomerID }
             );
 
-            console.log('após o paymentAttach')
-
             const stripeProduct = await stripe.products.retrieve(productSelectedID)
             const { default_price } = stripeProduct
 
@@ -72,7 +70,7 @@ class StripeFakeFront {
 
             const cancelDate = new Date(
                 hoje.getFullYear(),
-                hoje.getMonth() + cycles+1,
+                hoje.getMonth() + cycles,
                 hoje.getDate(),
                 hoje.getHours(),
                 hoje.getMinutes(),

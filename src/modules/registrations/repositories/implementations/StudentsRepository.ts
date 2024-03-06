@@ -12,10 +12,6 @@ import { stripe } from "../../../../server";
 import Stripe from "stripe";
 
 
-interface purcharsedSubscriptionsID {
-    schoolClassID: string
-}
-
 class StudentsRepository implements IStudentsRepository {
 
     private students: Students[]
@@ -172,9 +168,7 @@ class StudentsRepository implements IStudentsRepository {
 
         try {
 
-            //Checa duplicados no array purcharsed subs
-
-            console.log('dentro de createStudent')
+            // CHECA SE A SCHOOLCLASS JÁ FOI COMPRADA
             function checkDuplicateSchoolClassIDs(purcharsedSubscriptions: Students["purcharsedSubscriptions"]) {
                 const uniqueIDs = new Set();
 
@@ -187,7 +181,6 @@ class StudentsRepository implements IStudentsRepository {
 
                 return false; // No duplicates found
             }
-            console.log('depois de checkDuplicate')
 
             const { purcharsedSubscriptions } = studentData
 
@@ -196,11 +189,13 @@ class StudentsRepository implements IStudentsRepository {
             if (hasDuplicateSchoolClassIDs) {
                 return {
                     isValid: false,
-                    errorMessage: `Não é possível comprar a mesma inscrição duas vezes.`,
+                    errorMessage: `A inscrição já foi comprada anteriormente.`,
                     statusCode: 403
                 }
             }
 
+
+            // CHECA SE A TURMA EXISTE
             const sutdentDataSchoolClassID = studentData.purcharsedSubscriptions[0].schoolClassID
             const searchedSchoolClass = await prisma.schoolClass.findFirst({
                 where: { id: sutdentDataSchoolClassID }
@@ -214,7 +209,7 @@ class StudentsRepository implements IStudentsRepository {
                 }
             }
 
-
+            // CHECA SE O ESTUDANTE JÁ TEM ALGUMA INSCRIÇÃO ANTERIOR
             const searchedStudent = await prisma.students.findFirst({
                 where: {
                     OR: [
@@ -224,41 +219,35 @@ class StudentsRepository implements IStudentsRepository {
                 }
             })
 
-
-
-            // Buscando o RG e CPF do customer no Stripe
             const stripeCustomer = new StripeCustomer()
             const { cpf, rg } = studentData
             const stripeSearchedCustomerID = await stripeCustomer.searchCustomer(cpf, null)
 
 
-            //create stripe customer
-            //pegar id do created stripe customer e atualizar o student ID
 
-            // CASO JA EXISTA O ESTUDANTE NO STRIPE E NO BANCO
+            // CHECA SE JA EXISTE O ESTUDANTE NO STRIPE E NO BANCO
             if (searchedStudent && stripeSearchedCustomerID) {
 
-                //Checa se a inscrição já foi comprada e o pagamento está active
+                //CHECA SE A INSCRIÇÃO JÁ FOI COMPRADA ANTERIORMENTE  E O PAGAMENTO ESTÁ ACTIVE
                 let subscriptionsDuplicated: Array<purcharsedSubscriptions["schoolClassID"]> = []
 
                 //Filtro para possível cadastro em turma que já foi paga.
-                studentData.purcharsedSubscriptions.map(
-                    (subscription) => {
+                studentData.purcharsedSubscriptions.map((subscription) => {
 
-                        searchedStudent.purcharsedSubscriptions.map(
-                            (subscriptionAlreadyRegistered) => {
+                    searchedStudent.purcharsedSubscriptions.map(
+                        (subscriptionAlreadyRegistered) => {
 
-                                if (subscriptionAlreadyRegistered.schoolClassID == subscription.schoolClassID
-                                    &&
-                                    subscriptionAlreadyRegistered.paymentStatus == "active"
-                                ) {
+                            if (subscriptionAlreadyRegistered.schoolClassID == subscription.schoolClassID
+                                &&
+                                subscriptionAlreadyRegistered.paymentStatus == "active"
+                            ) {
 
-                                    subscriptionsDuplicated.push(subscription.schoolClassID)
-                                }
-                            })
-                    })
+                                subscriptionsDuplicated.push(subscription.schoolClassID)
+                            }
+                        })
+                })
 
-
+                // RETORNA CASO A INSCRIÇÃO JÁ TENHA SIDO COMPRADA, caso contrario, continua
                 if (subscriptionsDuplicated.length > 0) {
 
                     return {
@@ -269,13 +258,15 @@ class StudentsRepository implements IStudentsRepository {
                     }
                 }
 
-                //push student purcharsed subscriptions
+                // CHECA SE A INSCRIÇÃO JÁ FOI COMPRADA ANTERIORMENTE, MAS O PAGAMENTO NÃO FOI APROVADO
                 const isDuplicatedInactiveSubscription = checkDuplicateSchoolClassIDs(
-                    [...searchedStudent.purcharsedSubscriptions,
-                    ...studentData.purcharsedSubscriptions
-                    ])
+                    [
+                        ...searchedStudent.purcharsedSubscriptions,
+                        ...studentData.purcharsedSubscriptions
+                    ]
+                )
 
-                //Caso tenha subscription já comprada, mas que o pagamento não foi confirmado, será feito o fake front novamente (pagamento dnv)
+                //TENTANDO EFETUAR O PAGAMENTO NOVAMENTE DA INSCRIÇÃO NÃO APROVADA
                 if (isDuplicatedInactiveSubscription) {
 
                     const stripeFrontEnd = new StripeFakeFront()
