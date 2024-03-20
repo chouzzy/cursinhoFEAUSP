@@ -40,8 +40,8 @@ model Donations {
   donationExpirationDate DateTime?
 
   ciclesBought Int
-  ciclePaid Int
-  valueBought Int
+  ciclePaid    Int
+  valueBought  Int
 
   stripeSubscriptionID String
 
@@ -69,7 +69,7 @@ model Students {
   district        String
   zipCode         String
 
-  cpf                      String
+  cpf                      String  @unique
   rg                       String?
   ufrg                     String
   selfDeclaration          String
@@ -124,14 +124,14 @@ model SchoolClass {
 }
 
 type PurchasedSubscriptions {
-  schoolClassID String
+  schoolClassID        String
   stripeSubscriptionID String
-  productID     String
-  productName   String
-  paymentMethod String
-  paymentStatus String
-  paymentDate   DateTime?
-  valuePaid     Int
+  productID            String
+  productName          String
+  paymentMethod        String
+  paymentStatus        String
+  paymentDate          DateTime?
+  valuePaid            Int
 }
 
 type DocumentsTypes {

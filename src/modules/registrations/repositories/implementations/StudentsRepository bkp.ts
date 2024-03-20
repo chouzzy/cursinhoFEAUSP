@@ -168,129 +168,292 @@ class StudentsRepository implements IStudentsRepository {
 
         try {
 
-            // CHECANDO SE A TURMA EXISTE
-            const dbSchoolClass = await prisma.schoolClass.findFirst({
+            const subscription = await prisma.schoolClass.findFirst({
                 where: {
-                    stripeProductID: studentData.productSelectedID
+                    stripeProductID:studentData.productSelectedID
                 }
             })
 
-            if (!dbSchoolClass) {
+            if (!subscription) {
                 return {
                     isValid: false,
-                    errorMessage: `A turma não foi encontrada no sistema.`,
+                    errorMessage: `A inscrição não foi encontrada no sistema.`,
                     statusCode: 404
                 }
             }
+ 
+            // CHECA SE A SCHOOLCLASS JÁ FOI COMPRADA
+            function checkDuplicateSchoolClassIDs(purcharsedSubscriptions: Students["purcharsedSubscriptions"]) {
+                const uniqueIDs = new Set();
 
-            const { cpf, rg } = studentData
+                for (const subscription of purcharsedSubscriptions) {
+                    if (uniqueIDs.has(subscription.schoolClassID)) {
+                        return true; // Duplicate found
+                    }
+                    uniqueIDs.add(subscription.schoolClassID);
+                }
 
-            const stripeCustomer = new StripeCustomer()
-            let stripeSearchedCustomerID = await stripeCustomer.searchCustomer(cpf, null)
-
-            // CLIENTE NOVO
-            if (!stripeSearchedCustomerID) {
-                const stripeCustomerCreatedID = await stripeCustomer.createCustomer(studentData)
-                stripeSearchedCustomerID = stripeCustomerCreatedID
+                return false; // No duplicates found
             }
 
-            // CLIENTE JÁ EXISTE
-            const selectedSchoolClassID = dbSchoolClass.id
+         
 
-            // INSCRIÇÃO JÁ FOI COMPRADA ANTERIORMENTE?
-            const selectedSchoolClassAlreadyBought = await stripe.subscriptions.search({
-                query: `metadata[\'cpf\']:\'${cpf}\' AND metadata[\'schoolClassID\']:\'${selectedSchoolClassID}\'`,
-            });
+            const { purcharsedSubscriptions } = studentData
 
-            if (selectedSchoolClassAlreadyBought.data.length == 0) {
+            const hasDuplicateSchoolClassIDs = checkDuplicateSchoolClassIDs(purcharsedSubscriptions);
 
-                console.log('selectedSchoolClassAlreadyBought.data.length')
-                console.log(selectedSchoolClassAlreadyBought.data.length)
-                const existingStudent = await prisma.students.findFirst({
-                    where: { cpf: cpf }
-                })
+            console.log(hasDuplicateSchoolClassIDs)
+            console.log('hasDuplicateSchoolClassIDs')
 
-                if (existingStudent) {
-                 
-                    // Operador ta errado aqui
-                    const hasDuplicatedSubscription = existingStudent.purcharsedSubscriptions.some(sub => sub.schoolClassID === selectedSchoolClassID);
 
-                    // Se existir uma assinatura duplicada
-                    if (hasDuplicatedSubscription) {
-                        console.log('duplicated!!')
+            if (hasDuplicateSchoolClassIDs) {
+                return {
+                    isValid: false,
+                    errorMessage: `A inscrição já foi comprada anteriormente.`,
+                    statusCode: 403
+                }
+            }
+
+
+            // CHECA SE A TURMA EXISTE
+            const sutdentDataSchoolClassID = studentData.purcharsedSubscriptions[0].schoolClassID
+            const searchedSchoolClass = await prisma.schoolClass.findFirst({
+                where: { id: sutdentDataSchoolClassID }
+            })
+
+            if (!searchedSchoolClass) {
+                return {
+                    isValid: false,
+                    errorMessage: `Turma não encontrada.`,
+                    statusCode: 403
+                }
+            }
+
+            // CHECA SE O ESTUDANTE JÁ TEM ALGUMA INSCRIÇÃO ANTERIOR
+            const searchedStudent = await prisma.students.findFirst({
+                where: {
+                    OR: [
+                        { cpf: studentData.cpf },
+                        { rg: studentData.rg }
+                    ]
+                }
+            })
+
+            const stripeCustomer = new StripeCustomer()
+            const { cpf, rg } = studentData
+            const stripeSearchedCustomerID = await stripeCustomer.searchCustomer(cpf, null)
+
+
+
+            // CHECA SE JA EXISTE O ESTUDANTE NO STRIPE E NO BANCO
+            if (searchedStudent && stripeSearchedCustomerID) {
+
+                    //CHECA SE A INSCRIÇÃO JÁ FOI COMPRADA ANTERIORMENTE  E O PAGAMENTO ESTÁ ACTIVE
+                    let subscriptionsDuplicated: Array<purcharsedSubscriptions["schoolClassID"]> = []
+
+                    //Filtro para possível cadastro em turma que já foi paga.
+
+                    console.log('studentData')
+                    console.log(studentData)
+                    // studentData.purcharsedSubscriptions.map((subscription) => {
+
+                    //     searchedStudent.purcharsedSubscriptions.map(
+                    //         (subscriptionAlreadyRegistered) => {
+
+                    //             if (subscriptionAlreadyRegistered.schoolClassID == subscription.schoolClassID
+                    //                 &&
+                    //                 subscriptionAlreadyRegistered.paymentStatus == "active"
+                    //             ) {
+
+                    //                 subscriptionsDuplicated.push(subscription.schoolClassID)
+                    //             }
+                    //         })
+                    // })
+
+                    searchedStudent.purcharsedSubscriptions.map(
+                    (subscriptionAlreadyRegistered) => {
+
+                        if (subscriptionAlreadyRegistered.schoolClassID == subscription.id
+                            &&
+                            subscriptionAlreadyRegistered.paymentStatus == "active"
+                        ) {
+
+                            subscriptionsDuplicated.push(subscription.id)
+                        }
+                    })
+
+                    console.log('subscriptionsDuplicated')
+                    console.log(subscriptionsDuplicated)
+
+                    // RETORNA CASO A INSCRIÇÃO JÁ TENHA SIDO COMPRADA, caso contrario, continua
+                    if (subscriptionsDuplicated.length > 0) {
+
                         return {
                             isValid: false,
-                            errorMessage: `A inscrição já foi comprada anteriormente.`,
+                            errorMessage: `Uma ou mais inscrições já foram compradas pelo estudante.`,
+                            subscriptionsDuplicated: subscriptionsDuplicated,
                             statusCode: 403
                         }
                     }
-                }
-                console.log('after existingStudent')
 
-            }
+                    // CHECA SE A INSCRIÇÃO JÁ FOI COMPRADA ANTERIORMENTE, MAS O PAGAMENTO NÃO FOI APROVADO
+                    const isDuplicatedInactiveSubscription = checkDuplicateSchoolClassIDs(
+                        [
+                            ...searchedStudent.purcharsedSubscriptions,
+                            ...studentData.purcharsedSubscriptions
+                        ]
+                    )
 
+                    //TENTANDO EFETUAR O PAGAMENTO NOVAMENTE DA INSCRIÇÃO NÃO APROVADA
+                    if (isDuplicatedInactiveSubscription) {
 
-            // A INSCRIÇÃO JÁ FOI COMPRADA ANTERIORMENTE? SE SIM:
+                        const stripeFrontEnd = new StripeFakeFront()
+                        const stripeResponse = await stripeFrontEnd.createSubscription({
+                            stripeCustomerID: stripeSearchedCustomerID,
+                            cpf: cpf,
+                            rg: rg,
+                            schoolClassID: sutdentDataSchoolClassID,
+                            cycles: 1,
+                            paymentMethodID: studentData.paymentMethodID,
+                            productSelectedID: studentData.productSelectedID
+                        })
 
-            console.log('=====================================================================================================================================================================================================================')
-            if (selectedSchoolClassAlreadyBought.data.length > 0) {
+                        if (!stripeResponse.stripeSubscription) {
 
-                const invoice = await stripe.invoices.retrieve(String(selectedSchoolClassAlreadyBought.data[0].latest_invoice));
-                console.log('invoice')
-                console.log(invoice)
-                const charge = await stripe.charges.retrieve(`${invoice.charge ?? ""}`);
+                            return stripeResponse
+                        }
 
-                console.log('charge')
-                console.log(charge)
-                // JÁ FOI REEMBOLSADO? SE NÃO:
-                if (!charge.refunded) {
-                    return {
-                        isValid: false,
-                        errorMessage: `A inscrição já foi comprada anteriormente.`,
-                        statusCode: 403
+                        const { status, start_date, id } = stripeResponse.stripeSubscription
+                        const { unit_amount } = stripeResponse.stripeSubscription.items.data[0].price
+
+                        const { title, stripeProductID } = searchedSchoolClass
+
+                        searchedStudent.purcharsedSubscriptions.map(subscription => {
+
+                            if (subscription.schoolClassID == sutdentDataSchoolClassID) {
+                                subscription.productID = stripeProductID,
+                                    subscription.stripeSubscriptionID = id,
+                                    subscription.productName = title,
+                                    subscription.paymentMethod = 'creditcard',
+                                    subscription.paymentStatus = status,
+                                    subscription.paymentDate = new Date(start_date * 1000),
+                                    subscription.valuePaid = unit_amount ?? studentData.purcharsedSubscriptions[0].valuePaid
+                            }
+                        })
+
+                        await prisma.students.update({
+                            where: { id: searchedStudent.id },
+                            data: {
+                                purcharsedSubscriptions: searchedStudent.purcharsedSubscriptions
+                            }
+                        })
+
+                        return {
+                            isValid: true,
+                            successMessage: `Estudante atualizado com sucesso!`,
+                            students: searchedStudent,
+                            statusCode: 202
+                        }
+
                     }
-                }
 
-                // JÁ FOI REEMBOLSADO? SE SIM COMPRA MAIS UMA
+                    // Só vai chegar aqui a inscrição
+                    const stripeFrontEnd2 = new StripeFakeFront()
+                    const stripeResponse = await stripeFrontEnd2.createSubscription({
+                        stripeCustomerID: stripeSearchedCustomerID,
+                        cpf: cpf,
+                        rg: rg,
+                        schoolClassID: sutdentDataSchoolClassID,
+                        cycles: 1,
+                        paymentMethodID: studentData.paymentMethodID,
+                        productSelectedID: studentData.productSelectedID
+                    })
+
+                    if (!stripeResponse.stripeSubscription) {
+
+                        return stripeResponse
+                    }
+
+                    const { status, start_date, id } = stripeResponse.stripeSubscription
+                    const { unit_amount } = stripeResponse.stripeSubscription.items.data[0].price
+
+                    const { title, stripeProductID } = searchedSchoolClass
+
+                    studentData.purcharsedSubscriptions.map(async subscription => {
+
+                        if (subscription.schoolClassID == sutdentDataSchoolClassID) {
+                            subscription.productID = stripeProductID,
+                                subscription.stripeSubscriptionID = id,
+                                subscription.productName = title,
+                                subscription.paymentMethod = 'creditcard',
+                                subscription.paymentStatus = status,
+                                subscription.paymentDate = new Date(start_date * 1000),
+                                subscription.valuePaid = unit_amount ?? studentData.purcharsedSubscriptions[0].valuePaid
+                        }
+                    })
+
+                    const updatedStudent = await prisma.students.update({
+                        where: { id: searchedStudent.id },
+                        data: {
+                            purcharsedSubscriptions: searchedStudent.purcharsedSubscriptions.concat(studentData.purcharsedSubscriptions)
+                        }
+                    })
+
+                    const { statusCode, successMessage, isValid } = stripeResponse
+                    return {
+                        isValid,
+                        successMessage,
+                        students: updatedStudent,
+                        statusCode
+                    }
 
             }
 
-            // FAZENDO A COMPRA DA INSCRIÇÃO
+            // Student não encontrado no banco e no stripe:
+            const stripeCustomerCreatedID = await stripeCustomer.createCustomer(studentData)
+
             const stripeFrontEnd = new StripeFakeFront()
 
             const stripeResponse = await stripeFrontEnd.createSubscription({
-                stripeCustomerID: stripeSearchedCustomerID,
+                stripeCustomerID: stripeCustomerCreatedID,
                 cpf: cpf,
                 rg: rg,
-                schoolClassID: dbSchoolClass.id,
+                schoolClassID: sutdentDataSchoolClassID,
                 cycles: 1,
                 paymentMethodID: studentData.paymentMethodID,
                 productSelectedID: studentData.productSelectedID
             })
 
-            // INSCRIÇÃO FALHOU
-            if (!stripeResponse.stripeSubscription) {
-                return stripeResponse
+
+            if (!stripeResponse.isValid) {
+                return {
+                    isValid: stripeResponse.isValid,
+                    errorMessage: stripeResponse.errorMessage,
+                    statusCode: stripeResponse.statusCode
+                }
             }
 
-            // INSCRIÇÃO CRIADA COM SUCESSO
-            const { status, start_date, id } = stripeResponse.stripeSubscription
+            if (stripeResponse.stripeSubscription) {
 
-            const { unit_amount } = stripeResponse.stripeSubscription.items.data[0].price
+                const { status, start_date, id } = stripeResponse.stripeSubscription
+                const { unit_amount } = stripeResponse.stripeSubscription.items.data[0].price
+                const { title, stripeProductID } = searchedSchoolClass
 
-            const { title, stripeProductID } = dbSchoolClass
+                studentData.purcharsedSubscriptions.map(async subscription => {
 
+                    if (subscription.schoolClassID == sutdentDataSchoolClassID) {
 
-            let foundStudent = await prisma.students.findFirst({
-                where: { cpf: cpf }
-            })
+                        subscription.paymentDate = new Date(start_date * 1000),
+                            subscription.stripeSubscriptionID = id,
+                            subscription.paymentMethod = 'creditcard',
+                            subscription.paymentStatus = status,
+                            subscription.productID = stripeProductID,
+                            subscription.productName = title,
+                            subscription.valuePaid = unit_amount ?? studentData.purcharsedSubscriptions[0].valuePaid
+                    }
+                })
 
-
-
-            // ESTUDANTE NUNCA FOI CADASTRADO NO BANCO
-            if (!foundStudent) {
-
-                foundStudent = await prisma.students.create({
+                const createdStudent = await prisma.students.create({
                     data: {
                         name: studentData.name,
                         email: studentData.email,
@@ -317,83 +480,82 @@ class StudentsRepository implements IStudentsRepository {
                         highSchoolPeriod: studentData.highSchoolPeriod,
                         metUsMethod: studentData.metUsMethod,
                         exStudent: studentData.exStudent,
-                        stripeCustomerID: stripeSearchedCustomerID,
+                        stripeCustomerID: stripeCustomerCreatedID,
 
                         purcharsedSubscriptions: studentData.purcharsedSubscriptions
                     }
                 })
 
-            }
-
-            // SE A TURMA JÁ FOI COMPRADA ANTERIORMENTE E FALHOU/REEMBOLSO , SÓ ATUALIZA OS DADOS
-            const isStudentRegistered = foundStudent.purcharsedSubscriptions.some(
-                sub => sub.schoolClassID === dbSchoolClass.id
-            );
-
-
-            if (isStudentRegistered) {
-
-
-                const updatedStudent = await prisma.students.update({
-                    where: { cpf: cpf },
-                    data: {
-                        purcharsedSubscriptions: {
-                            updateMany: {
-                                where: {
-                                    schoolClassID: dbSchoolClass.id
-                                },
-                                data: {
-                                    productID: stripeProductID,
-                                    stripeSubscriptionID: id,
-                                    productName: title,
-                                    paymentMethod: 'creditcard',
-                                    paymentStatus: status,
-                                    paymentDate: new Date(start_date * 1000),
-                                    valuePaid: unit_amount ?? studentData.purcharsedSubscriptions[0].valuePaid,
-                                }
-                            }
-                        }
-                    }
-                })
-
+                const { statusCode, successMessage, isValid } = stripeResponse
                 return {
-                    isValid: true,
-                    successMessage: `Inscrição comprada e estudante atualizado com sucesso!`,
-                    students: updatedStudent,
-                    statusCode: 202
+                    isValid,
+                    successMessage,
+                    students: createdStudent,
+                    statusCode
                 }
-
             }
 
-            // SE A INSCRIÇÃO PARA A TURMA NUNCA COMPRADA, FAZ UM PUSH
-            const subscribedStudent = await prisma.students.update({
-                where: { cpf: cpf },
+            //STRIPE RESPONSE DEU ERRO
+            let studentSchoolClasses: purcharsedSubscriptions[] = []
+
+            studentData.purcharsedSubscriptions.map((subscription) => {
+                studentSchoolClasses.push({
+                    schoolClassID: subscription.schoolClassID,
+                    stripeSubscriptionID: subscription.stripeSubscriptionID,
+                    paymentDate: subscription.paymentDate ?? null,
+                    paymentMethod: subscription.paymentMethod ?? 'Pagamento não confirmado',
+                    paymentStatus: subscription.paymentStatus ?? 'Pagamento não confirmado',
+                    productID: subscription.productID ?? 'Pagamento não confirmado',
+                    productName: subscription.productName ?? 'Pagamento não confirmado',
+                    valuePaid: subscription.valuePaid ?? 0
+                })
+            })
+
+            const createdStudent = await prisma.students.create({
                 data: {
-                    purcharsedSubscriptions: {
-                        push: {
-                            schoolClassID: dbSchoolClass.id,
-                            productID: stripeProductID,
-                            stripeSubscriptionID: id,
-                            productName: title,
-                            paymentMethod: 'creditcard',
-                            paymentStatus: status,
-                            paymentDate: new Date(start_date * 1000),
-                            valuePaid: unit_amount ?? studentData.purcharsedSubscriptions[0].valuePaid,
-                        }
-                    }
+                    name: studentData.name,
+                    email: studentData.email,
+                    gender: studentData.gender ?? 'Não informado',
+                    birth: studentData.birth,
+                    phoneNumber: studentData.phoneNumber,
+                    isPhoneWhatsapp: studentData.isPhoneWhatsapp,
+                    state: studentData.state,
+
+                    city: studentData.city,
+                    street: studentData.street,
+                    homeNumber: studentData.homeNumber,
+                    complement: studentData.complement ?? 'Não informado',
+                    district: studentData.district,
+                    zipCode: studentData.zipCode,
+
+                    cpf: studentData.cpf,
+                    rg: studentData.rg,
+                    ufrg: studentData.ufrg,
+                    selfDeclaration: studentData.selfDeclaration,
+                    oldSchool: studentData.oldSchool,
+                    oldSchoolAdress: studentData.oldSchoolAdress,
+                    highSchoolGraduationDate: studentData.highSchoolGraduationDate,
+                    highSchoolPeriod: studentData.highSchoolPeriod,
+                    metUsMethod: studentData.metUsMethod,
+                    exStudent: studentData.exStudent,
+                    stripeCustomerID: stripeCustomerCreatedID,
+
+                    purcharsedSubscriptions: studentSchoolClasses
                 }
             })
 
+
+            const { statusCode, isValid, errorMessage } = stripeResponse
             return {
-                isValid: true,
-                successMessage: `Inscrição comprada com sucesso!`,
-                students: subscribedStudent,
-                statusCode: 202
+                isValid,
+                successMessage: 'Estudante criado no banco de dados',
+                errorMessage,
+                students: createdStudent,
+                statusCode
             }
 
-        }
 
-        catch (error: unknown) {
+        } catch (error: unknown) {
             if (error instanceof Prisma.PrismaClientValidationError) {
 
                 const argumentPosition = error.message.search('Argument')
@@ -716,28 +878,23 @@ class StudentsRepository implements IStudentsRepository {
         try {
 
             const students = await prisma.students.findMany()
+
             students.forEach(async (student) => {
 
-                const subscriptions = await stripe.subscriptions.search({
-                    query: `metadata[\'cpf\']:\'${student.cpf}\'`,
+                const { purcharsedSubscriptions } = student
 
 
-                });
+                if (!purcharsedSubscriptions) {
+                    return student
+                }
 
-                subscriptions.data.forEach(async (subscription) => {
+                purcharsedSubscriptions.forEach(async (subscription) => {
 
-                    const invoice = await stripe.invoices.retrieve(String(subscription.latest_invoice));
+                    const { stripeSubscriptionID } = subscription
 
-                    const charge = await stripe.charges.retrieve(`${invoice.charge ?? ""}`);
+                    const stripeSubscription = await stripe.subscriptions.retrieve(stripeSubscriptionID)
 
-                    let paymentStatus
-                    if (charge.refunded) {
-                        paymentStatus = 'refunded'
-                    } else {
-                        paymentStatus = 'active'
-                    }
-
-                    const { unit_amount } = subscription.items.data[0].price
+                    const { unit_amount } = stripeSubscription.items.data[0].price
 
                     await prisma.students.update({
                         where: { id: student.id },
@@ -745,17 +902,15 @@ class StudentsRepository implements IStudentsRepository {
                             purcharsedSubscriptions: {
                                 updateMany: {
                                     where: {
-                                        stripeSubscriptionID: subscription.id
+                                        stripeSubscriptionID: subscription.stripeSubscriptionID
                                     }, data: {
-                                        paymentStatus: `${paymentStatus}`,
+                                        paymentStatus: stripeSubscription.status ?? 'Not found',
                                         valuePaid: unit_amount ?? 0
                                     }
                                 }
                             }
                         }
                     })
-
-
 
                 })
 

@@ -65,7 +65,6 @@ class CreateStudentController {
             const createStudentUseCase = new CreateStudentUseCase(studentsRepository)
 
             studentData.paymentMethodID = paymentMethodID
-            // studentData.paymentMethodID = 'pm_1OmLGuHkzIzO4aMOoxSTDivn'
             const response = await createStudentUseCase.execute(studentData)
 
             return res.status(response.statusCode).json({ response })

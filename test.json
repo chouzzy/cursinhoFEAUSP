@@ -1,0 +1,34 @@
+{
+    "name": "usuario novo 1",
+    "email": "usuarionovo1@hotmail.com",
+    "gender": "Mulher cis",
+    "birth": "13/04/1998",
+    "phoneNumber": "11984539068",
+    "isPhoneWhatsapp": false,
+    "state": "SP",
+    "city": "São Paulo",
+    "street": "endereco do usuario novo",
+    "homeNumber": "numero do usuartio novo",
+    "complement": "complemento do usuario novo",
+    "district": "bairro do usuario novo",
+    "zipCode": "08051-390",
+    "cpf": "46057411111",
+    "rg": "500929038",
+    "ufrg": "DF",
+    "selfDeclaration": "usuario novo 1",
+    "oldSchool": "usuario novo 1",
+    "oldSchoolAdress": "usuario novo 1",
+    "highSchoolGraduationDate": "1998-04-13",
+    "highSchoolPeriod": "usuario novo 1",
+    "metUsMethod": "usuario novo 1",
+    "exStudent": "não",
+    "stripeCustomerID": "cus_PinPbqD8q5cLtL",
+    "purcharsedSubscriptions": [
+        {
+            "schoolClassID": "f6e631ca-fe35-4496-8104-4cc4eafd7132"
+        },
+        {
+            "schoolClassID": "d711de8d-0b0c-49a0-abed-e48535a9e5bb"
+        }
+    ]
+}
