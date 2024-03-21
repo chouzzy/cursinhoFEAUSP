@@ -31,6 +31,8 @@ class StudentsRepository implements IStudentsRepository {
             }
 
 
+            let allStudents = await prisma.students.findMany()
+
             let filteredStudents = await prisma.students.findMany({
                 where: {
                     AND: [
@@ -148,7 +150,7 @@ class StudentsRepository implements IStudentsRepository {
                 isValid: true,
                 statusCode: 202,
                 studentsList: filteredStudents,
-                totalDocuments: filteredStudents.length
+                totalDocuments: allStudents.length
             }
 
         } catch (error: unknown) {
