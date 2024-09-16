@@ -8,6 +8,7 @@ import { ExcelListDonationsController } from "../modules/donations/useCases/exce
 import { RefundDonationController } from "../modules/donations/useCases/refundDonation/RefundDonationController"
 import { ListChargesDonationController } from "../modules/donations/useCases/listChargesDonation/ListChargesDonationController"
 import { SyncDonationsController } from "../modules/donations/useCases/syncDonations/SyncDonationsController"
+import { PixDonationController } from "../modules/donations/useCases/pixDonation/PixDonationController"
 
 const donationsRoutes = Router()
 
@@ -19,6 +20,10 @@ donationsRoutes.get('/excel', ensureAuthenticated, excellistDonationsController.
 
 const createDonationController = new CreateDonationController()
 donationsRoutes.post('/create', createDonationController.handle)
+
+// PIX
+const pixDonationController = new PixDonationController()
+donationsRoutes.post('/pix', pixDonationController.handle)
 
 const updateDonationController = new UpdateDonationController()
 donationsRoutes.put('/:donationID/update', ensureAuthenticated, updateDonationController.handle)

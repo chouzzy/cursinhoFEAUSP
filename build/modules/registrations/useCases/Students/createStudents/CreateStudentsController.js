@@ -22,14 +22,20 @@ class CreateStudentController {
         return __awaiter(this, void 0, void 0, function* () {
             const studentData = req.body;
             const { token } = studentData;
-            const decryptedPaymentMethodString = crypto_js_1.default.AES.decrypt(token, (_a = process.env.PCRYPTO_PKEY) !== null && _a !== void 0 ? _a : '').toString(crypto_js_1.default.enc.Utf8);
-            const paymentMethodID = decryptedPaymentMethodString;
-            /// instanciação da classe do caso de uso
-            const studentsRepository = new StudentsRepository_1.StudentsRepository();
-            const createStudentUseCase = new CreateStudentUseCase_1.CreateStudentUseCase(studentsRepository);
-            studentData.paymentMethodID = paymentMethodID;
-            const response = yield createStudentUseCase.execute(studentData);
-            return res.status(response.statusCode).json({ response });
+            try {
+                const decryptedPaymentMethodString = crypto_js_1.default.AES.decrypt(token, (_a = process.env.PCRYPTO_PKEY) !== null && _a !== void 0 ? _a : 'vasco').toString(crypto_js_1.default.enc.Utf8);
+                const paymentMethodID = decryptedPaymentMethodString;
+                /// instanciação da classe do caso de uso
+                const studentsRepository = new StudentsRepository_1.StudentsRepository();
+                const createStudentUseCase = new CreateStudentUseCase_1.CreateStudentUseCase(studentsRepository);
+                studentData.paymentMethodID = paymentMethodID;
+                // studentData.paymentMethodID = 'pm_1OmLGuHkzIzO4aMOoxSTDivn'
+                const response = yield createStudentUseCase.execute(studentData);
+                return res.status(response.statusCode).json({ response });
+            }
+            catch (error) {
+                return res.status(403).json({ error });
+            }
         });
     }
 }

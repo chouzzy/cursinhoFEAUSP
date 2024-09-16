@@ -7,6 +7,7 @@ import { schoolClassRoutes } from "./schoolClass.routes"
 import { studentsRoutes } from "./students.routes"
 import { webhooksRoutes } from "./webhooks"
 import { welcomeRoutes } from "./welcome.routes."
+import { webhookEfiRoutes } from "./efi-webhookt"
 
 
 const router = Router()
@@ -29,6 +30,7 @@ router.get('/logintest', ensureAuthenticated, (req,res) => {
 
 router.use('/schoolClass', schoolClassRoutes)
 router.use('/webhooks', webhooksRoutes)
+router.use('/webhook-efi', webhookEfiRoutes)
 
 
 export {router}

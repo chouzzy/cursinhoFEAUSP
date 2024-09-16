@@ -6,6 +6,7 @@ import { webhooksRoutes } from './routes/webhooks';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import Stripe from 'stripe';
+import { webhookEfiRoutes } from './routes/efi-webhookt';
 
 const stripe:Stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 
@@ -16,7 +17,6 @@ app.use(cors({
     methods: ['GET', 'PUT', 'POST', 'DELETE', 'PATCH'],
 }));
 
-app.use('/webhooks', bodyParser.raw({ type: "*/*" }), webhooksRoutes)
 app.use(express.json())
 
 app.use(bodyParser.json({ type: 'application/json' }))
@@ -40,6 +40,6 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     })
 })
 
-app.listen(8080, () => console.log('Sir, we are back online! 🦥'))
+app.listen(3000, () => console.log('Sir, we are back online! 🦥'))
 
 export { stripe }
