@@ -6,13 +6,13 @@ import { refreshTokenRoutes } from "./refreshToken.routes"
 import { schoolClassRoutes } from "./schoolClass.routes"
 import { studentsRoutes } from "./students.routes"
 import { webhooksRoutes } from "./webhooks"
-import { welcomeRoutes } from "./welcome.routes."
-import { webhookEfiRoutes } from "./efi-webhookt"
+import { welcomeRoutes } from "./welcome.routes"
+import { webhookEfiRoutes } from "./efiwebhook"
 
 
 const router = Router()
 
-//donations routes
+//welcome routes
 router.use('/', welcomeRoutes)
 //donations routes
 router.use('/donates', donationsRoutes)

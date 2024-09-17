@@ -42,44 +42,44 @@ class PixDonationController {
 
 
         try {
-            const cert = fs.readFileSync(
-                path.resolve(__dirname, `./${process.env.EFI_CERT}`)
-            )
+            // const cert = fs.readFileSync(
+            //     path.resolve(__dirname, `./${process.env.EFI_CERT}`)
+            // )
 
-            const agent = new https.Agent({
-                pfx: cert,
-                passphrase: '',
-            })
+            // const agent = new https.Agent({
+            //     pfx: cert,
+            //     passphrase: '',
+            // })
 
-            const credentials = Buffer.from(`${process.env.EFI_CLIENT_ID}:${process.env.EFI_CLIENT_SECRET}`).toString('base64')
+            // const credentials = Buffer.from(`${process.env.EFI_CLIENT_ID}:${process.env.EFI_CLIENT_SECRET}`).toString('base64')
 
-            const config = {
-                method: 'post',
-                url: `${process.env.EFI_ENDPOINT}/oauth/token`, // Use uma variável de ambiente para a URL base
-                headers: {
-                    Authorization: `Basic ${credentials}`, // Substitua 'credentials' pelas suas credenciais
-                    'Content-Type': 'application/json'
-                },
-                httpsAgent: agent, // Opcional: para configurações de proxy ou outros agentes HTTP
-                data: {
-                    grant_type: 'client_credentials'
-                }
-            };
+            // const config = {
+            //     method: 'post',
+            //     url: `${process.env.EFI_ENDPOINT}/oauth/token`, // Use uma variável de ambiente para a URL base
+            //     headers: {
+            //         Authorization: `Basic ${credentials}`, // Substitua 'credentials' pelas suas credenciais
+            //         'Content-Type': 'application/json'
+            //     },
+            //     httpsAgent: agent, // Opcional: para configurações de proxy ou outros agentes HTTP
+            //     data: {
+            //         grant_type: 'client_credentials'
+            //     }
+            // };
 
-            await axios(config)
-                .then(response => {
-                    // Lógica para lidar com a resposta bem-sucedida
-                    console.log(response.data);
-                    return res.status(202).json({ response: response.data })
-                })
-                .catch(error => {
-                    // Lógica para lidar com erros
-                    console.error(error);
-                    return res.status(400).json({ response: "resposta" })
-                });
+            // await axios(config)
+            //     .then(response => {
+            //         // Lógica para lidar com a resposta bem-sucedida
+            //         console.log(response.data);
+            //         return res.status(202).json({ response: response.data })
+            //     })
+            //     .catch(error => {
+            //         // Lógica para lidar com erros
+            //         console.error(error);
+            //         return res.status(400).json({ response: "resposta" })
+            //     });
 
-            // return res.status(202).json({ response: "resposta" })
-
+            // // return res.status(202).json({ response: "resposta" })
+            return res.status(202).json('Pix Donation Controller acionado')
 
         } catch (error) {
             return res.status(403).send({ message: String(error) })

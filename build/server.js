@@ -8,7 +8,6 @@ require("reflect-metadata");
 const express_1 = __importDefault(require("express"));
 const AppError_1 = require("./errors/AppError");
 const routes_1 = require("./routes");
-const webhooks_1 = require("./routes/webhooks");
 const body_parser_1 = __importDefault(require("body-parser"));
 const cors_1 = __importDefault(require("cors"));
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
@@ -18,7 +17,6 @@ app.use((0, cors_1.default)({
     origin: "*",
     methods: ['GET', 'PUT', 'POST', 'DELETE', 'PATCH'],
 }));
-app.use('/webhooks', body_parser_1.default.raw({ type: "*/*" }), webhooks_1.webhooksRoutes);
 app.use(express_1.default.json());
 app.use(body_parser_1.default.json({ type: 'application/json' }));
 app.use(routes_1.router);
@@ -36,4 +34,4 @@ app.use((err, req, res, next) => {
         message: `⛔ Internal Server Error: ${err.message}⛔`
     });
 });
-app.listen(8081, () => console.log('Sir, we are back online! 🦥'));
+app.listen(3000, () => console.log('Sir, we are back online! 🦥'));

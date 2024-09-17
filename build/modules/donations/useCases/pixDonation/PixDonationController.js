@@ -8,25 +8,45 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PixDonationController = void 0;
-const fs_1 = __importDefault(require("fs"));
-const path_1 = __importDefault(require("path"));
-const https_1 = __importDefault(require("https"));
 class PixDonationController {
     handle(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const cert = fs_1.default.readFileSync(path_1.default.resolve(__dirname, `./${process.env.EFI_CERT}`));
-                const agent = new https_1.default.Agent({
-                    pfx: cert,
-                    passphrase: '',
-                });
-                const credentials = Buffer.from(`${process.env.EFI_CLIENT_ID}:${process.env.GEN_CLIENT_SECRET}`).toString('base64');
-                return res.status(202).json({ response: "resposta" });
+                // const cert = fs.readFileSync(
+                //     path.resolve(__dirname, `./${process.env.EFI_CERT}`)
+                // )
+                // const agent = new https.Agent({
+                //     pfx: cert,
+                //     passphrase: '',
+                // })
+                // const credentials = Buffer.from(`${process.env.EFI_CLIENT_ID}:${process.env.EFI_CLIENT_SECRET}`).toString('base64')
+                // const config = {
+                //     method: 'post',
+                //     url: `${process.env.EFI_ENDPOINT}/oauth/token`, // Use uma variável de ambiente para a URL base
+                //     headers: {
+                //         Authorization: `Basic ${credentials}`, // Substitua 'credentials' pelas suas credenciais
+                //         'Content-Type': 'application/json'
+                //     },
+                //     httpsAgent: agent, // Opcional: para configurações de proxy ou outros agentes HTTP
+                //     data: {
+                //         grant_type: 'client_credentials'
+                //     }
+                // };
+                // await axios(config)
+                //     .then(response => {
+                //         // Lógica para lidar com a resposta bem-sucedida
+                //         console.log(response.data);
+                //         return res.status(202).json({ response: response.data })
+                //     })
+                //     .catch(error => {
+                //         // Lógica para lidar com erros
+                //         console.error(error);
+                //         return res.status(400).json({ response: "resposta" })
+                //     });
+                // // return res.status(202).json({ response: "resposta" })
+                return res.status(202).json('Pix Donation Controller acionado');
             }
             catch (error) {
                 return res.status(403).send({ message: String(error) });

@@ -2,11 +2,9 @@ import 'reflect-metadata';
 import express, { NextFunction, Request, Response } from 'express'
 import { AppError } from './errors/AppError'
 import { router } from './routes'
-import { webhooksRoutes } from './routes/webhooks';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import Stripe from 'stripe';
-import { webhookEfiRoutes } from './routes/efi-webhookt';
 
 const stripe:Stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 
