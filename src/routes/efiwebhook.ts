@@ -1,6 +1,10 @@
 import { Router } from "express"
+import { Server } from "socket.io";
+import http from 'http';
+import { io } from "../server";
 
 const webhookEfiRoutes = Router()
+
 
 webhookEfiRoutes.post('/pix', async (req, res) => {
 
@@ -8,13 +12,19 @@ webhookEfiRoutes.post('/pix', async (req, res) => {
 
     console.log('req');
     console.log(req.body);
-    console.log('req.body');
-    console.log(req.body);
 
     try {
         // Validação básica (ajuste conforme a documentação da Efi)
         // Processar os dados da requisição
         // Salvar as informações do pagamento no banco de dados ou realizar outras ações
+
+        io.emit('pagamentoConfirmado', {
+            // Enviar os dados relevantes do pagamento
+            idTransacao: req.body.idTransacao,
+            valor: req.body.valor,
+            // ... outros dados relevantes
+        });
+
         console.log('tudo certo')
         res.sendStatus(200);
     } catch (error) {
@@ -66,6 +76,8 @@ webhookEfiRoutes.post('/pix', async (req, res) => {
 //         res.status(500).json({ error: 'Internal server error' });
 //     }
 // })
+
+
 
 
 export {webhookEfiRoutes}

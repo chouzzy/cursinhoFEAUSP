@@ -5,13 +5,20 @@ import { router } from './routes'
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import Stripe from 'stripe';
+import { Server } from "socket.io";
+import http from 'http';
 
-const stripe:Stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
+
+const stripe: Stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 
 const app = express()
 
+const server = http.createServer(app);
+
+const io = new Server(server);
+
 app.use(cors({
-    origin:"*",
+    origin: "*",
     methods: ['GET', 'PUT', 'POST', 'DELETE', 'PATCH'],
 }));
 
@@ -38,6 +45,16 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     })
 })
 
-app.listen(3000, () => console.log('Sir, we are back online! 🦥'))
+io.on('connection', (socket) => {
+    console.log('Um usuário se conectou');
 
-export { stripe }
+    // ... (implementar lógica para lidar com eventos e enviar mensagens)
+
+    socket.on('disconnect', () => {
+        console.log('Um usuário desconectou');
+    });
+});
+
+server.listen(3000, () => console.log('Sir, we are back online! 🦥'));
+
+export { stripe, io }
