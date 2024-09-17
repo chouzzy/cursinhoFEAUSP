@@ -31,8 +31,6 @@ class StripeFakeFront {
         }: Subscription
     ): Promise<validationResponse> {
 
-
-
         try {
 
             let productType = "Produto não reconhecido"

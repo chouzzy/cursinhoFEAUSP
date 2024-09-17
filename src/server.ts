@@ -2,7 +2,6 @@ import 'reflect-metadata';
 import express, { NextFunction, Request, Response } from 'express'
 import { AppError } from './errors/AppError'
 import { router } from './routes'
-import { webhooksRoutes } from './routes/webhooks';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import Stripe from 'stripe';
@@ -16,7 +15,6 @@ app.use(cors({
     methods: ['GET', 'PUT', 'POST', 'DELETE', 'PATCH'],
 }));
 
-app.use('/webhooks', bodyParser.raw({ type: "*/*" }), webhooksRoutes)
 app.use(express.json())
 
 app.use(bodyParser.json({ type: 'application/json' }))
@@ -40,6 +38,6 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     })
 })
 
-app.listen(8080, () => console.log('Sir, we are back online! 🦥'))
+app.listen(3000, () => console.log('Sir, we are back online! 🦥'))
 
 export { stripe }

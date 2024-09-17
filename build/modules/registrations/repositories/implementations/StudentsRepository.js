@@ -135,7 +135,7 @@ class StudentsRepository {
         var _a, _b, _c, _d, _e;
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                //Checa duplicados no array purcharsed subs
+                // CHECA SE A SCHOOLCLASS JÁ FOI COMPRADA
                 function checkDuplicateSchoolClassIDs(purcharsedSubscriptions) {
                     const uniqueIDs = new Set();
                     for (const subscription of purcharsedSubscriptions) {
@@ -151,10 +151,11 @@ class StudentsRepository {
                 if (hasDuplicateSchoolClassIDs) {
                     return {
                         isValid: false,
-                        errorMessage: `Não é possível comprar a mesma inscrição duas vezes.`,
+                        errorMessage: `A inscrição já foi comprada anteriormente.`,
                         statusCode: 403
                     };
                 }
+                // CHECA SE A TURMA EXISTE
                 const sutdentDataSchoolClassID = studentData.purcharsedSubscriptions[0].schoolClassID;
                 const searchedSchoolClass = yield prisma_1.prisma.schoolClass.findFirst({
                     where: { id: sutdentDataSchoolClassID }
@@ -166,6 +167,7 @@ class StudentsRepository {
                         statusCode: 403
                     };
                 }
+                // CHECA SE O ESTUDANTE JÁ TEM ALGUMA INSCRIÇÃO ANTERIOR
                 const searchedStudent = yield prisma_1.prisma.students.findFirst({
                     where: {
                         OR: [
@@ -174,15 +176,12 @@ class StudentsRepository {
                         ]
                     }
                 });
-                // Buscando o RG e CPF do customer no Stripe
                 const stripeCustomer = new StripeCustomer_1.StripeCustomer();
                 const { cpf, rg } = studentData;
                 const stripeSearchedCustomerID = yield stripeCustomer.searchCustomer(cpf, null);
-                //create stripe customer
-                //pegar id do created stripe customer e atualizar o student ID
-                // CASO JA EXISTA O ESTUDANTE NO STRIPE E NO BANCO
+                // CHECA SE JA EXISTE O ESTUDANTE NO STRIPE E NO BANCO
                 if (searchedStudent && stripeSearchedCustomerID) {
-                    //Checa se a inscrição já foi comprada e o pagamento está active
+                    //CHECA SE A INSCRIÇÃO JÁ FOI COMPRADA ANTERIORMENTE  E O PAGAMENTO ESTÁ ACTIVE
                     let subscriptionsDuplicated = [];
                     //Filtro para possível cadastro em turma que já foi paga.
                     studentData.purcharsedSubscriptions.map((subscription) => {
@@ -194,6 +193,7 @@ class StudentsRepository {
                             }
                         });
                     });
+                    // RETORNA CASO A INSCRIÇÃO JÁ TENHA SIDO COMPRADA, caso contrario, continua
                     if (subscriptionsDuplicated.length > 0) {
                         return {
                             isValid: false,
@@ -202,11 +202,12 @@ class StudentsRepository {
                             statusCode: 403
                         };
                     }
-                    //push student purcharsed subscriptions
-                    const isDuplicatedInactiveSubscription = checkDuplicateSchoolClassIDs([...searchedStudent.purcharsedSubscriptions,
+                    // CHECA SE A INSCRIÇÃO JÁ FOI COMPRADA ANTERIORMENTE, MAS O PAGAMENTO NÃO FOI APROVADO
+                    const isDuplicatedInactiveSubscription = checkDuplicateSchoolClassIDs([
+                        ...searchedStudent.purcharsedSubscriptions,
                         ...studentData.purcharsedSubscriptions
                     ]);
-                    //Caso tenha subscription já comprada, mas que o pagamento não foi confirmado, será feito o fake front novamente (pagamento dnv)
+                    //TENTANDO EFETUAR O PAGAMENTO NOVAMENTE DA INSCRIÇÃO NÃO APROVADA
                     if (isDuplicatedInactiveSubscription) {
                         const stripeFrontEnd = new StripeFakeFront_1.StripeFakeFront();
                         const stripeResponse = yield stripeFrontEnd.createSubscription({
@@ -302,6 +303,13 @@ class StudentsRepository {
                     paymentMethodID: studentData.paymentMethodID,
                     productSelectedID: studentData.productSelectedID
                 });
+                if (!stripeResponse.isValid) {
+                    return {
+                        isValid: stripeResponse.isValid,
+                        errorMessage: stripeResponse.errorMessage,
+                        statusCode: stripeResponse.statusCode
+                    };
+                }
                 if (stripeResponse.stripeSubscription) {
                     const { status, start_date, id } = stripeResponse.stripeSubscription;
                     const { unit_amount } = stripeResponse.stripeSubscription.items.data[0].price;

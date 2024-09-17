@@ -47,7 +47,7 @@ class StripeFakeFront {
                     };
                 }
                 const hoje = new Date();
-                const cancelDate = new Date(hoje.getFullYear(), hoje.getMonth() + cycles + 1, hoje.getDate(), hoje.getHours(), hoje.getMinutes(), hoje.getSeconds());
+                const cancelDate = new Date(hoje.getFullYear(), hoje.getMonth() + cycles, hoje.getDate(), hoje.getHours(), hoje.getMinutes(), hoje.getSeconds());
                 const subscription = yield server_1.stripe.subscriptions.create({
                     customer: stripeCustomerID,
                     items: [
