@@ -20,7 +20,7 @@ interface validationResponse {
   listAllSchoolClassList?: {
     id: SchoolClass['id'],
     title: SchoolClass['title']
-  }[] 
+  }[]
   schoolClassList?: SchoolClass[]
   schoolClassDocs?: SchoolClass["documents"]
   schoolClassStages?: SchoolClass["selectiveStages"]
@@ -48,8 +48,15 @@ interface validationResponse {
   fileBuffer?: ArrayBuffer
   totalDocuments?: number
   subscriptionsDuplicated?: purcharsedSubscriptions["schoolClassID"][]
-  stripeSubscription?:Stripe.Response<Stripe.Subscription>
-  charges?:Stripe.Response<Stripe.ApiSearchResult<Stripe.Charge>>
+  stripeSubscription?: Stripe.Response<Stripe.Subscription>
+  charges?: Stripe.Response<Stripe.ApiSearchResult<Stripe.Charge>>
+  txid?: pixCobDataProps["txid"]
+  pixCopiaECola?: pixCobDataProps["pixCopiaECola"]
+  pixQrCode?: pixCobDataProps["location"]
+  pixStatus?: pixCobDataProps["status"]
+  pixValor?: pixCobDataProps["valor"]
+  pixDate?: pixCobDataProps["calendario"]["criacao"],
+  pixExpiracaoEmSegundos?: pixCobDataProps["calendario"]["expiracao"]
 }
 
 interface StripeCheckoutCustomerPropsDetails {
@@ -241,6 +248,33 @@ interface StripeCustomerData {
   ufrg: string
 }
 
+interface pixCobDataProps {
+  calendario: {
+    criacao: string;
+    expiracao: number;
+  };
+  txid: string;
+  revisao: number;
+  status: 'ATIVA' | 'INATIVA' | 'CONCLUÍDA' // Adicionar outros status possíveis
+  valor: {
+    original: string;
+  };
+  chave: string;
+  devedor: {
+    cpf: string;
+    nome: string;
+  };
+  solicitacaoPagador: string;
+  loc: {
+    id: number;
+    location: string;
+    tipoCob: string;
+    criacao: string;
+  };
+  location: string;
+  pixCopiaECola: string;
+}
+
 export {
   validationResponse,
   StripeCheckoutCustomerPropsDetails,
@@ -251,5 +285,6 @@ export {
   StripeCreateProductProps,
   StripeDeactivatedProduct,
   StripeCustomerData,
-  InvoiceRetrieveProps
+  InvoiceRetrieveProps,
+  pixCobDataProps
 }

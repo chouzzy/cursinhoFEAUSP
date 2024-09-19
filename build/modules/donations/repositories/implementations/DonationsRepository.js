@@ -307,24 +307,85 @@ class DonationsRepository {
                         donationExpirationDate: null
                     }
                 });
+                // await axios({
+                //     method: 'POST',
+                //     url: `${process.env.EFI_ENDPOINT}/oauth/token`,
+                //     headers: {
+                //         Authorization: `Basic ${credentials}`,
+                //         'Content-Type': 'application/json'
+                //     },
+                //     httpsAgent: agent,
+                //     data: {
+                //         grant_type: 'client_credentials'
+                //     }
+                // }).then((response) => {
+                //     console.log('response.data')
+                //     console.log(response.data)
+                //     efiAccessToken = response.data.access_token
+                // });
                 const credentials = Buffer.from(`${process.env.EFI_CLIENT_ID}:${process.env.EFI_CLIENT_SECRET}`).toString('base64');
-                yield (0, axios_1.default)({
-                    method: 'POST',
-                    url: `${process.env.EFI_ENDPOINT}/oauth/token`,
-                    headers: {
-                        Authorization: `Basic ${credentials}`,
-                        'Content-Type': 'application/json'
+                function getEfíAccessToken(agent, credentials) {
+                    return __awaiter(this, void 0, void 0, function* () {
+                        try {
+                            const response = yield (0, axios_1.default)({
+                                method: 'POST',
+                                url: `${process.env.EFI_ENDPOINT}/oauth/token`,
+                                headers: {
+                                    Authorization: `Basic ${credentials}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                httpsAgent: agent,
+                                data: {
+                                    grant_type: 'client_credentials'
+                                }
+                            });
+                            return response.data.access_token;
+                        }
+                        catch (error) {
+                            console.error('Error obtaining Efí access token:', error);
+                            throw error; // Re-throw the error for further handling
+                        }
+                    });
+                }
+                function criarCobrancaPix(token, dadosCobranca) {
+                    return __awaiter(this, void 0, void 0, function* () {
+                        try {
+                            const response = yield (0, axios_1.default)({
+                                method: 'POST',
+                                url: `${process.env.EFI_ENDPOINT}/v2/cob`,
+                                headers: {
+                                    Authorization: `Bearer ${token}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                httpsAgent: server_1.agent,
+                                data: dadosCobranca
+                            });
+                            console.log('Cobrança criada com sucesso:', response.data);
+                            return response.data; // Retorna os dados da cobrança criada
+                        }
+                        catch (error) {
+                            console.error('Erro ao criar cobrança:', error);
+                            throw error; // Lança o erro para ser tratado em outro ponto da aplicação
+                        }
+                    });
+                }
+                const efiAccessToken = yield getEfíAccessToken(server_1.agent, credentials);
+                const pixData = yield criarCobrancaPix(efiAccessToken, JSON.stringify({
+                    calendario: {
+                        expiracao: 60 * 3
                     },
-                    httpsAgent: server_1.agent,
-                    data: {
-                        grant_type: 'client_credentials'
-                    }
-                }).then((response) => {
-                    console.log('Resposta do axios response');
-                    console.log(response);
-                    console.log('response.data');
-                    console.log(response.data);
-                });
+                    devedor: {
+                        cpf: "42453937855",
+                        nome: "Fernando"
+                    },
+                    valor: {
+                        original: "0.11"
+                    },
+                    chave: "32e9ee7b-f679-40f6-a443-2c38c6f21abe",
+                    solicitacaoPagador: "Se deus quiser a gente vai ganhar do fogão amanhã"
+                }));
+                console.log('pixData');
+                console.log(pixData);
                 // await axios.post('https://pix.api.efipay.com.br/v2/cob', {
                 // },).then(function (response) {
                 //     console.log('response');
@@ -333,6 +394,17 @@ class DonationsRepository {
                 //     console.log('error');
                 //     console.log(error);
                 // });
+                // {
+                //     pix: [
+                //       {
+                //         endToEndId: 'E60701190202409191639DY5SE87DGP2',
+                //         txid: '3f58d460804d4bbbb89c9e9c06b63c5e',
+                //         chave: '32e9ee7b-f679-40f6-a443-2c38c6f21abe',
+                //         valor: '0.11',
+                //         horario: '2024-09-19T16:39:29.000Z'
+                //       }
+                //     ]
+                //   }
                 return {
                     isValid: true,
                     successMessage: 'Post Recebido',

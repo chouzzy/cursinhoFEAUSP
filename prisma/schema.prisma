@@ -44,16 +44,20 @@ model Donations {
   ciclePaid    Int
   valueBought  Int
 
-  stripeSubscriptionID String
+  stripeSubscriptionID String?
 
   canceledAt DateTime?
 
   stripeCustomerID String
   createdAt        DateTime @default(now())
 
-  txid String
-  efiAccessToken String
-  efiPixStatus String
+  txid String?
+  pixCopiaECola String?
+  pixQrCode String?
+  pixStatus String?
+  pixValor String?
+  pixDate String?
+  pixExpiracaoEmSegundos Int?
 
   @@map("Donations")
 }

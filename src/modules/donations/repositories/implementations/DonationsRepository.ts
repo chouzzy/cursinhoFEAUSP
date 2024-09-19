@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../../../prisma";
-import { validationResponse } from "../../../../types";
+import { pixCobDataProps, validationResponse } from "../../../../types";
 import { Donations } from "../../entities/Donations";
 import { CreateDonationProps } from "../../useCases/createDonation/CreateDonationController";
 import { IDonationsRepository } from "../IDonationsRepository";
@@ -13,6 +13,7 @@ import Stripe from "stripe";
 import { CreatePixDonationProps } from "../../useCases/createPixDonation/CreatePixDonationController";
 import axios from "axios";
 import { response } from "express";
+import { criarCobrancaPix, getEfíAccessToken } from "../../../../hooks/efíHooks";
 
 
 class DonationsRepository implements IDonationsRepository {
@@ -333,172 +334,116 @@ class DonationsRepository implements IDonationsRepository {
 
     async createPixDonation(pixDonationData: CreatePixDonationProps): Promise<validationResponse> {
 
+
         try {
 
+            const {
+                name, email, phoneNumber, isPhoneWhatsapp, gender,
+                birth, state, city, street, homeNumber, complement,
+                district, zipCode, cpf, rg, cnpj, ufrg, valuePaid,
+            } = pixDonationData
 
             const createdDonation = await prisma.donations.create({
                 data: {
-                    name: pixDonationData.name,
-                    email: pixDonationData.email,
-                    phoneNumber: pixDonationData.phoneNumber,
-                    isPhoneWhatsapp: pixDonationData.isPhoneWhatsapp,
-                    gender: pixDonationData.gender ?? 'Não informado',
-                    birth: pixDonationData.birth,
-                    state: pixDonationData.state,
-                    city: pixDonationData.city,
-                    street: pixDonationData.street,
+                    name: name,
+                    email: email,
 
-                    homeNumber: pixDonationData.homeNumber,
-                    complement: pixDonationData.complement ?? 'Não informado',
-                    district: pixDonationData.district,
-                    zipCode: pixDonationData.zipCode,
-                    cpf: pixDonationData.cpf,
-                    rg: pixDonationData.rg ?? 'Não informado',
-                    cnpj: pixDonationData.cnpj ?? 'Não informado',
-                    ufrg: pixDonationData.ufrg,
+                    phoneNumber: phoneNumber,
+                    isPhoneWhatsapp: isPhoneWhatsapp,
+                    gender: gender ?? 'Não informado',
+
+                    birth: birth,
+                    state: state,
+                    city: city,
+                    street: street,
+                    homeNumber: homeNumber,
+                    complement: complement ?? 'Não informado',
+                    district: district,
+                    zipCode: zipCode,
+
+                    cpf: cpf,
+                    rg: rg ?? 'Não informado',
+                    cnpj: cnpj ?? 'Não informado',
+                    ufrg: ufrg,
+
                     valuePaid: 0,
-                    paymentDate: new Date(),
                     paymentMethod: 'Pix',
                     paymentStatus: 'Sem informação ainda',
-                    stripeCustomerID: 'Pagamento via Efí',
+                    paymentDate: new Date(),
+                    stripeCustomerID:'Sem informação ainda',
                     stripeSubscriptionID: 'Pagamento via Efí',
                     ciclePaid: 1,
                     ciclesBought: 1,
                     valueBought: pixDonationData.valuePaid,
 
+                    txid: null,
+                    pixCopiaECola: null,
+                    pixQrCode: null,
+                    pixStatus: null,
+                    pixValor: null,
+                    pixDate: null,
+                    pixExpiracaoEmSegundos: null,
+
                     donationExpirationDate: null
                 }
             })
+
 
             const credentials = Buffer.from(
                 `${process.env.EFI_CLIENT_ID}:${process.env.EFI_CLIENT_SECRET}`
             ).toString('base64');
 
+         
 
-            // await axios({
-            //     method: 'POST',
-            //     url: `${process.env.EFI_ENDPOINT}/oauth/token`,
-            //     headers: {
-            //         Authorization: `Basic ${credentials}`,
-            //         'Content-Type': 'application/json'
-            //     },
-            //     httpsAgent: agent,
-            //     data: {
-            //         grant_type: 'client_credentials'
-            //     }
-            // }).then((response) => {
-
-            //     console.log('response.data')
-            //     console.log(response.data)
-
-            //     efiAccessToken = response.data.access_token
-            // });
-
-
-
-            async function getEfíAccessToken(agent: any, credentials: any) {
-
-                try {
-                    const response = await axios({
-                        method: 'POST',
-                        url: `${process.env.EFI_ENDPOINT}/oauth/token`,
-                        headers: {
-                            Authorization: `Basic ${credentials}`,
-                            'Content-Type': 'application/json'
-                        },
-                        httpsAgent: agent,
-                        data: {
-                            grant_type:
-                                'client_credentials'
-                        }
-                    });
-
-                    return response.data.access_token;
-                } catch (error) {
-                    console.error('Error obtaining Efí access token:', error);
-                    throw error; // Re-throw the error for further handling
-                }
-            }
-
-
-            async function criarCobrancaPix(token: string, dadosCobranca: any) {
-                try {
-                    const response = await axios.post(
-                        'https://pix.api.efipay.com.br/v2/cob',
-                        dadosCobranca,
-                        {
-                            headers: {
-                                Authorization: `Bearer ${token}`
-                            }
-                        }
-                    );
-
-                    console.log('Cobrança criada com sucesso:', response.data);
-                    return response.data; // Retorna os dados da cobrança criada
-                } catch (error) {
-                    console.error('Erro ao criar cobrança:', error);
-                    throw error; // Lança o erro para ser tratado em outro ponto da aplicação
-                }
-            }
-            
 
             const efiAccessToken = await getEfíAccessToken(agent, credentials)
 
-            const pixData = await criarCobrancaPix(efiAccessToken, {
+            const pixData: pixCobDataProps = await criarCobrancaPix(agent, efiAccessToken, JSON.stringify({
 
                 calendario: {
-                    expiracao: 60*3
+                    expiracao: 60 * 3
                 },
                 devedor: {
-                    cpf: "42453937855",
-                    nome: "Fernando"
+                    cpf: `${cpf}`,
+                    nome: `${name}`
                 },
                 valor: {
-                    original: "0.11"
+                    original: `${valuePaid}`
                 },
-                chave: "32e9ee7b-f679-40f6-a443-2c38c6f21abe",
-                solicitacaoPagador: "Se deus quiser a gente vai ganhar do fogão amanhã"
+                chave: `${process.env.EFI_CHAVE_PIX}`,
+                solicitacaoPagador: `Muito obrigado pela sua contribuição, ${name}! :)`
 
+            }))
+
+            const { txid, pixCopiaECola, location, status, valor, calendario } = pixData
+
+            await prisma.donations.update({
+                where: {
+                    id: createdDonation.id
+                },
+                data: {
+                    txid: txid,
+                    pixCopiaECola: pixCopiaECola,
+                    pixQrCode: location,
+                    pixStatus: status,
+                    pixValor: valor.original,
+                    pixDate: calendario.criacao,
+                    pixExpiracaoEmSegundos: calendario.expiracao
+                }
             })
-
-            console.log('pixData')
-            console.log(pixData)
-
-
-
-            // await axios.post('https://pix.api.efipay.com.br/v2/cob', {
-
-
-
-            // },).then(function (response) {
-
-            //     console.log('response');
-            //     console.log(response);
-
-            // }).catch(function (error) {
-
-            //     console.log('error');
-            //     console.log(error);
-
-            // });
-
-
-            // {
-            //     pix: [
-            //       {
-            //         endToEndId: 'E60701190202409191639DY5SE87DGP2',
-            //         txid: '3f58d460804d4bbbb89c9e9c06b63c5e',
-            //         chave: '32e9ee7b-f679-40f6-a443-2c38c6f21abe',
-            //         valor: '0.11',
-            //         horario: '2024-09-19T16:39:29.000Z'
-            //       }
-            //     ]
-            //   }
 
             return {
                 isValid: true,
+                statusCode: 202,
                 successMessage: 'Post Recebido',
-                statusCode: 202
+                txid: txid,
+                pixCopiaECola: pixCopiaECola,
+                pixQrCode: location,
+                pixStatus: status,
+                pixValor: valor,
+                pixDate: calendario.criacao,
+                pixExpiracaoEmSegundos: calendario.expiracao
+
             }
 
 
@@ -533,7 +478,17 @@ class DonationsRepository implements IDonationsRepository {
                 }
             }
 
-            const subscription = await stripe.subscriptions.retrieve(donationExists.stripeSubscriptionID)
+            const { stripeSubscriptionID } = donationExists
+
+            if (stripeSubscriptionID == null) {
+                return {
+                    isValid: false,
+                    statusCode: 403,
+                    errorMessage: "Doação não encontrada no banco de dados."
+                }
+            }
+
+            const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionID)
 
             if (!subscription) {
                 return {
@@ -747,6 +702,13 @@ class DonationsRepository implements IDonationsRepository {
                 if (stripeSubscriptionID === 'Sem informação ainda') {
                     return donation
                 }
+
+
+                if (stripeSubscriptionID == null) {
+                    return donation
+
+                }
+
 
                 const stripeSubscription = await stripe.subscriptions.retrieve(stripeSubscriptionID)
 
