@@ -11,7 +11,7 @@ const ExcelListDonationsController_1 = require("../modules/donations/useCases/ex
 const RefundDonationController_1 = require("../modules/donations/useCases/refundDonation/RefundDonationController");
 const ListChargesDonationController_1 = require("../modules/donations/useCases/listChargesDonation/ListChargesDonationController");
 const SyncDonationsController_1 = require("../modules/donations/useCases/syncDonations/SyncDonationsController");
-const PixDonationController_1 = require("../modules/donations/useCases/pixDonation/PixDonationController");
+const CreatePixDonationController_1 = require("../modules/donations/useCases/createPixDonation/CreatePixDonationController");
 const donationsRoutes = (0, express_1.Router)();
 exports.donationsRoutes = donationsRoutes;
 const listDonationsController = new ListDonationsController_1.ListDonationsController();
@@ -21,7 +21,7 @@ donationsRoutes.get('/excel', ensureAuthenticate_1.ensureAuthenticated, excellis
 const createDonationController = new CreateDonationController_1.CreateDonationController();
 donationsRoutes.post('/create', createDonationController.handle);
 // PIX
-const pixDonationController = new PixDonationController_1.PixDonationController();
+const pixDonationController = new CreatePixDonationController_1.CreatePixDonationController();
 donationsRoutes.post('/pix', pixDonationController.handle);
 const updateDonationController = new UpdateDonationController_1.UpdateDonationController();
 donationsRoutes.put('/:donationID/update', ensureAuthenticate_1.ensureAuthenticated, updateDonationController.handle);

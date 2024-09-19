@@ -5,17 +5,29 @@ import { router } from './routes'
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import Stripe from 'stripe';
-import { Server } from "socket.io";
-import http from 'http';
+import fs from 'fs';
+import path from 'path';
+import https from 'https';
+
+
+
 
 
 const stripe: Stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 
+const cert = fs.readFileSync(
+    path.resolve(__dirname, `../certs/${process.env.EFI_CERT}`)
+);
+
+const agent = new https.Agent({
+    pfx: cert,
+    passphrase: ''
+});
+
 const app = express()
 
-const server = http.createServer(app);
 
-const io = new Server(server);
+
 
 app.use(cors({
     origin: "*",
@@ -45,16 +57,10 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     })
 })
 
-io.on('connection', (socket) => {
-    console.log('Um usuário se conectou');
+app.listen(3000, () => console.log('Sir, we are back online! 🦥'))
 
-    // ... (implementar lógica para lidar com eventos e enviar mensagens)
 
-    socket.on('disconnect', () => {
-        console.log('Um usuário desconectou');
-    });
-});
 
-server.listen(3000, () => console.log('Sir, we are back online! 🦥'));
 
-export { stripe, io }
+
+export { stripe, cert, agent }

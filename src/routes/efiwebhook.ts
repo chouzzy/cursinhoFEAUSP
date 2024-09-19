@@ -1,7 +1,17 @@
 import { Router } from "express"
-import { Server } from "socket.io";
-import http from 'http';
-import { io } from "../server";
+// import { io } from "../server";
+
+interface EfiWebhookResponse {
+    pix: PixTransaction[];
+  }
+  
+  interface PixTransaction {
+    endToEndId: string;
+    txid: string;
+    chave: string;
+    valor: number; // Ou string se precisar manter o formato original
+    horario: string; // Considerar usar uma biblioteca de data para melhor manipulação
+  }
 
 const webhookEfiRoutes = Router()
 
@@ -14,16 +24,20 @@ webhookEfiRoutes.post('/pix', async (req, res) => {
     console.log(req.body);
 
     try {
-        // Validação básica (ajuste conforme a documentação da Efi)
-        // Processar os dados da requisição
-        // Salvar as informações do pagamento no banco de dados ou realizar outras ações
 
-        io.emit('pagamentoConfirmado', {
-            // Enviar os dados relevantes do pagamento
-            idTransacao: req.body.idTransacao,
-            valor: req.body.valor,
-            // ... outros dados relevantes
-        });
+        // const webhookData: EfiWebhookResponse = req.body;
+
+        // const firstTransaction = webhookData.pix[0];
+
+        // const {chave, endToEndId, horario, txid, valor} = firstTransaction
+
+        // io.emit('pagamentoConfirmado', {
+        //     idTransacao: txid, // Usar endToEndId como identificador principal
+        //     valor,
+        //     chave,
+        //     horario,
+        //     // ... outros dados relevantes
+        // });
 
         console.log('tudo certo')
         res.sendStatus(200);
@@ -80,4 +94,4 @@ webhookEfiRoutes.post('/pix', async (req, res) => {
 
 
 
-export {webhookEfiRoutes}
+export { webhookEfiRoutes }

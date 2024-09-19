@@ -8,8 +8,11 @@ import { StripeCustomer } from "../../../../hooks/StripeCustomer";
 import { StripeFakeFront } from "../../../../hooks/StripeFakeFront";
 import { DeleteDonationProps } from "../../useCases/deleteDonation/DeleteDonationController";
 import { ListDonationsQuery } from "../../useCases/listDonations/ListDonationsController";
-import { stripe } from "../../../../server";
+import { agent, stripe } from "../../../../server";
 import Stripe from "stripe";
+import { CreatePixDonationProps } from "../../useCases/createPixDonation/CreatePixDonationController";
+import axios from "axios";
+import { response } from "express";
 
 
 class DonationsRepository implements IDonationsRepository {
@@ -60,7 +63,6 @@ class DonationsRepository implements IDonationsRepository {
                     'rg',
                     'cnpj',
                     'ufrg',
-
 
                     'valuePaid',
                     'paymentMethod',
@@ -221,7 +223,7 @@ class DonationsRepository implements IDonationsRepository {
                 const startAtDate = new Date(start_date * 1000).getTime()
                 const totalPaymentsBought = Math.floor(((cancelAtDate - startAtDate) / (1000 * 60 * 60 * 24 * 30))) - 1;
 
-                
+
 
                 await prisma.donations.update({
                     where: { id: createdDonation.id },
@@ -288,7 +290,7 @@ class DonationsRepository implements IDonationsRepository {
             const cancelAtDate = new Date(cancel_at * 1000).getTime()
             const startAtDate = new Date(start_date * 1000).getTime()
             const totalPaymentsBought = Math.floor((cancelAtDate - startAtDate) / (1000 * 60 * 60 * 24 * 30)) - 1;
-            
+
 
             // // Atribuindo o stripeCustomerID a donation recém criada e atualizando os status de pagamento
             await prisma.donations.update({
@@ -322,6 +324,191 @@ class DonationsRepository implements IDonationsRepository {
                 const argumentPosition = error.message.search('Argument')
                 const mongoDBError = error.message.slice(argumentPosition)
                 return { isValid: false, errorMessage: mongoDBError, statusCode: 403 }
+
+            } else {
+                return { isValid: false, errorMessage: String(error), statusCode: 403 }
+            }
+        }
+    }
+
+    async createPixDonation(pixDonationData: CreatePixDonationProps): Promise<validationResponse> {
+
+        try {
+
+
+            const createdDonation = await prisma.donations.create({
+                data: {
+                    name: pixDonationData.name,
+                    email: pixDonationData.email,
+                    phoneNumber: pixDonationData.phoneNumber,
+                    isPhoneWhatsapp: pixDonationData.isPhoneWhatsapp,
+                    gender: pixDonationData.gender ?? 'Não informado',
+                    birth: pixDonationData.birth,
+                    state: pixDonationData.state,
+                    city: pixDonationData.city,
+                    street: pixDonationData.street,
+
+                    homeNumber: pixDonationData.homeNumber,
+                    complement: pixDonationData.complement ?? 'Não informado',
+                    district: pixDonationData.district,
+                    zipCode: pixDonationData.zipCode,
+                    cpf: pixDonationData.cpf,
+                    rg: pixDonationData.rg ?? 'Não informado',
+                    cnpj: pixDonationData.cnpj ?? 'Não informado',
+                    ufrg: pixDonationData.ufrg,
+                    valuePaid: 0,
+                    paymentDate: new Date(),
+                    paymentMethod: 'Pix',
+                    paymentStatus: 'Sem informação ainda',
+                    stripeCustomerID: 'Pagamento via Efí',
+                    stripeSubscriptionID: 'Pagamento via Efí',
+                    ciclePaid: 1,
+                    ciclesBought: 1,
+                    valueBought: pixDonationData.valuePaid,
+
+                    donationExpirationDate: null
+                }
+            })
+
+            const credentials = Buffer.from(
+                `${process.env.EFI_CLIENT_ID}:${process.env.EFI_CLIENT_SECRET}`
+            ).toString('base64');
+
+
+            // await axios({
+            //     method: 'POST',
+            //     url: `${process.env.EFI_ENDPOINT}/oauth/token`,
+            //     headers: {
+            //         Authorization: `Basic ${credentials}`,
+            //         'Content-Type': 'application/json'
+            //     },
+            //     httpsAgent: agent,
+            //     data: {
+            //         grant_type: 'client_credentials'
+            //     }
+            // }).then((response) => {
+
+            //     console.log('response.data')
+            //     console.log(response.data)
+
+            //     efiAccessToken = response.data.access_token
+            // });
+
+
+
+            async function getEfíAccessToken(agent: any, credentials: any) {
+
+                try {
+                    const response = await axios({
+                        method: 'POST',
+                        url: `${process.env.EFI_ENDPOINT}/oauth/token`,
+                        headers: {
+                            Authorization: `Basic ${credentials}`,
+                            'Content-Type': 'application/json'
+                        },
+                        httpsAgent: agent,
+                        data: {
+                            grant_type:
+                                'client_credentials'
+                        }
+                    });
+
+                    return response.data.access_token;
+                } catch (error) {
+                    console.error('Error obtaining Efí access token:', error);
+                    throw error; // Re-throw the error for further handling
+                }
+            }
+
+
+            async function criarCobrancaPix(token: string, dadosCobranca: any) {
+                try {
+                    const response = await axios.post(
+                        'https://pix.api.efipay.com.br/v2/cob',
+                        dadosCobranca,
+                        {
+                            headers: {
+                                Authorization: `Bearer ${token}`
+                            }
+                        }
+                    );
+
+                    console.log('Cobrança criada com sucesso:', response.data);
+                    return response.data; // Retorna os dados da cobrança criada
+                } catch (error) {
+                    console.error('Erro ao criar cobrança:', error);
+                    throw error; // Lança o erro para ser tratado em outro ponto da aplicação
+                }
+            }
+            
+
+            const efiAccessToken = await getEfíAccessToken(agent, credentials)
+
+            const pixData = await criarCobrancaPix(efiAccessToken, {
+
+                calendario: {
+                    expiracao: 60*3
+                },
+                devedor: {
+                    cpf: "42453937855",
+                    nome: "Fernando"
+                },
+                valor: {
+                    original: "0.11"
+                },
+                chave: "32e9ee7b-f679-40f6-a443-2c38c6f21abe",
+                solicitacaoPagador: "Se deus quiser a gente vai ganhar do fogão amanhã"
+
+            })
+
+            console.log('pixData')
+            console.log(pixData)
+
+
+
+            // await axios.post('https://pix.api.efipay.com.br/v2/cob', {
+
+
+
+            // },).then(function (response) {
+
+            //     console.log('response');
+            //     console.log(response);
+
+            // }).catch(function (error) {
+
+            //     console.log('error');
+            //     console.log(error);
+
+            // });
+
+
+            // {
+            //     pix: [
+            //       {
+            //         endToEndId: 'E60701190202409191639DY5SE87DGP2',
+            //         txid: '3f58d460804d4bbbb89c9e9c06b63c5e',
+            //         chave: '32e9ee7b-f679-40f6-a443-2c38c6f21abe',
+            //         valor: '0.11',
+            //         horario: '2024-09-19T16:39:29.000Z'
+            //       }
+            //     ]
+            //   }
+
+            return {
+                isValid: true,
+                successMessage: 'Post Recebido',
+                statusCode: 202
+            }
+
+
+
+        } catch (error: unknown) {
+            if (error instanceof Prisma.PrismaClientValidationError) {
+
+                const argumentPosition = error.message.search('Argument')
+                const mongoDBError = error.message.slice(argumentPosition)
+                return { isValid: false, errorMessage: 'mongo', statusCode: 403 }
 
             } else {
                 return { isValid: false, errorMessage: String(error), statusCode: 403 }
@@ -577,7 +764,7 @@ class DonationsRepository implements IDonationsRepository {
 
 
                     //tem um erro aqui cancel e start vazios provavlemnte
-                    const totalPaymentsLeft = Math.floor((cancelAtDate - billingDate) / (1000 * 60 * 60 * 24 * 30)) -1;
+                    const totalPaymentsLeft = Math.floor((cancelAtDate - billingDate) / (1000 * 60 * 60 * 24 * 30)) - 1;
                     const totalPaymentsBought = Math.floor(((cancelAtDate - startAtDate) / (1000 * 60 * 60 * 24 * 30))) - 1;
 
                     if (stripeSubscriptionID == 'sub_1OAbVVHkzIzO4aMOEOqp813l') {
@@ -596,7 +783,7 @@ class DonationsRepository implements IDonationsRepository {
                     }
 
                     donation.paymentStatus = stripeSubscription.status
-                    donation.ciclePaid = (totalPaymentsBought - (totalPaymentsLeft) + 1) 
+                    donation.ciclePaid = (totalPaymentsBought - (totalPaymentsLeft) + 1)
                     donation.ciclesBought = (totalPaymentsBought)
                     donation.valueBought = ((totalPaymentsBought) * unit_amount)
                     donation.valuePaid = (totalPaymentsBought - (totalPaymentsLeft) + 1) * unit_amount

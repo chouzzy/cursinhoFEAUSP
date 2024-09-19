@@ -8,7 +8,7 @@ import { ExcelListDonationsController } from "../modules/donations/useCases/exce
 import { RefundDonationController } from "../modules/donations/useCases/refundDonation/RefundDonationController"
 import { ListChargesDonationController } from "../modules/donations/useCases/listChargesDonation/ListChargesDonationController"
 import { SyncDonationsController } from "../modules/donations/useCases/syncDonations/SyncDonationsController"
-import { PixDonationController } from "../modules/donations/useCases/pixDonation/PixDonationController"
+import { CreatePixDonationController } from "../modules/donations/useCases/createPixDonation/CreatePixDonationController"
 
 const donationsRoutes = Router()
 
@@ -22,7 +22,7 @@ const createDonationController = new CreateDonationController()
 donationsRoutes.post('/create', createDonationController.handle)
 
 // PIX
-const pixDonationController = new PixDonationController()
+const pixDonationController = new CreatePixDonationController()
 donationsRoutes.post('/pix', pixDonationController.handle)
 
 const updateDonationController = new UpdateDonationController()

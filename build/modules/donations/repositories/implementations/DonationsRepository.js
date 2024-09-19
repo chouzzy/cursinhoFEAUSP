@@ -19,6 +19,7 @@ const StripeCustomer_1 = require("../../../../hooks/StripeCustomer");
 const StripeFakeFront_1 = require("../../../../hooks/StripeFakeFront");
 const server_1 = require("../../../../server");
 const stripe_1 = __importDefault(require("stripe"));
+const axios_1 = __importDefault(require("axios"));
 class DonationsRepository {
     constructor() {
         this.donations = [];
@@ -264,6 +265,85 @@ class DonationsRepository {
                     const argumentPosition = error.message.search('Argument');
                     const mongoDBError = error.message.slice(argumentPosition);
                     return { isValid: false, errorMessage: mongoDBError, statusCode: 403 };
+                }
+                else {
+                    return { isValid: false, errorMessage: String(error), statusCode: 403 };
+                }
+            }
+        });
+    }
+    createPixDonation(pixDonationData) {
+        var _a, _b, _c, _d;
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const createdDonation = yield prisma_1.prisma.donations.create({
+                    data: {
+                        name: pixDonationData.name,
+                        email: pixDonationData.email,
+                        phoneNumber: pixDonationData.phoneNumber,
+                        isPhoneWhatsapp: pixDonationData.isPhoneWhatsapp,
+                        gender: (_a = pixDonationData.gender) !== null && _a !== void 0 ? _a : 'Não informado',
+                        birth: pixDonationData.birth,
+                        state: pixDonationData.state,
+                        city: pixDonationData.city,
+                        street: pixDonationData.street,
+                        homeNumber: pixDonationData.homeNumber,
+                        complement: (_b = pixDonationData.complement) !== null && _b !== void 0 ? _b : 'Não informado',
+                        district: pixDonationData.district,
+                        zipCode: pixDonationData.zipCode,
+                        cpf: pixDonationData.cpf,
+                        rg: (_c = pixDonationData.rg) !== null && _c !== void 0 ? _c : 'Não informado',
+                        cnpj: (_d = pixDonationData.cnpj) !== null && _d !== void 0 ? _d : 'Não informado',
+                        ufrg: pixDonationData.ufrg,
+                        valuePaid: 0,
+                        paymentDate: new Date(),
+                        paymentMethod: 'Pix',
+                        paymentStatus: 'Sem informação ainda',
+                        stripeCustomerID: 'Pagamento via Efí',
+                        stripeSubscriptionID: 'Pagamento via Efí',
+                        ciclePaid: 1,
+                        ciclesBought: 1,
+                        valueBought: pixDonationData.valuePaid,
+                        donationExpirationDate: null
+                    }
+                });
+                const credentials = Buffer.from(`${process.env.EFI_CLIENT_ID}:${process.env.EFI_CLIENT_SECRET}`).toString('base64');
+                yield (0, axios_1.default)({
+                    method: 'POST',
+                    url: `${process.env.EFI_ENDPOINT}/oauth/token`,
+                    headers: {
+                        Authorization: `Basic ${credentials}`,
+                        'Content-Type': 'application/json'
+                    },
+                    httpsAgent: server_1.agent,
+                    data: {
+                        grant_type: 'client_credentials'
+                    }
+                }).then((response) => {
+                    console.log('Resposta do axios response');
+                    console.log(response);
+                    console.log('response.data');
+                    console.log(response.data);
+                });
+                // await axios.post('https://pix.api.efipay.com.br/v2/cob', {
+                // },).then(function (response) {
+                //     console.log('response');
+                //     console.log(response);
+                // }).catch(function (error) {
+                //     console.log('error');
+                //     console.log(error);
+                // });
+                return {
+                    isValid: true,
+                    successMessage: 'Post Recebido',
+                    statusCode: 202
+                };
+            }
+            catch (error) {
+                if (error instanceof client_1.Prisma.PrismaClientValidationError) {
+                    const argumentPosition = error.message.search('Argument');
+                    const mongoDBError = error.message.slice(argumentPosition);
+                    return { isValid: false, errorMessage: 'mongo', statusCode: 403 };
                 }
                 else {
                     return { isValid: false, errorMessage: String(error), statusCode: 403 };

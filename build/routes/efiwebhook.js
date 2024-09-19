@@ -11,7 +11,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.webhookEfiRoutes = void 0;
 const express_1 = require("express");
-const server_1 = require("../server");
 const webhookEfiRoutes = (0, express_1.Router)();
 exports.webhookEfiRoutes = webhookEfiRoutes;
 webhookEfiRoutes.post('/pix', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -19,15 +18,16 @@ webhookEfiRoutes.post('/pix', (req, res) => __awaiter(void 0, void 0, void 0, fu
     console.log('req');
     console.log(req.body);
     try {
-        // Validação básica (ajuste conforme a documentação da Efi)
-        // Processar os dados da requisição
-        // Salvar as informações do pagamento no banco de dados ou realizar outras ações
-        server_1.io.emit('pagamentoConfirmado', {
-            // Enviar os dados relevantes do pagamento
-            idTransacao: req.body.idTransacao,
-            valor: req.body.valor,
-            // ... outros dados relevantes
-        });
+        // const webhookData: EfiWebhookResponse = req.body;
+        // const firstTransaction = webhookData.pix[0];
+        // const {chave, endToEndId, horario, txid, valor} = firstTransaction
+        // io.emit('pagamentoConfirmado', {
+        //     idTransacao: txid, // Usar endToEndId como identificador principal
+        //     valor,
+        //     chave,
+        //     horario,
+        //     // ... outros dados relevantes
+        // });
         console.log('tudo certo');
         res.sendStatus(200);
     }
