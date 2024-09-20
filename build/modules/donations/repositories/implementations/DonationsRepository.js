@@ -13,13 +13,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DonationsRepository = void 0;
+const stripe_1 = __importDefault(require("stripe"));
 const client_1 = require("@prisma/client");
 const prisma_1 = require("../../../../prisma");
 const StripeCustomer_1 = require("../../../../hooks/StripeCustomer");
 const StripeFakeFront_1 = require("../../../../hooks/StripeFakeFront");
 const server_1 = require("../../../../server");
-const stripe_1 = __importDefault(require("stripe"));
-const axios_1 = __importDefault(require("axios"));
+const ef_Hooks_1 = require("../../../../hooks/ef\u00EDHooks");
 class DonationsRepository {
     constructor() {
         this.donations = [];
@@ -59,6 +59,9 @@ class DonationsRepository {
                         'valueBought',
                         'stripeCustomerID',
                         'donationExpirationDate',
+                        'txid',
+                        'pixCopiaECola',
+                        'pixQrCode',
                         'createdAt',
                     ],
                     where: {
@@ -273,149 +276,96 @@ class DonationsRepository {
         });
     }
     createPixDonation(pixDonationData) {
-        var _a, _b, _c, _d;
         return __awaiter(this, void 0, void 0, function* () {
             try {
+                const { name, email, phoneNumber, isPhoneWhatsapp, gender, birth, state, city, street, homeNumber, complement, district, zipCode, cpf, rg, cnpj, ufrg, valuePaid, } = pixDonationData;
                 const createdDonation = yield prisma_1.prisma.donations.create({
                     data: {
-                        name: pixDonationData.name,
-                        email: pixDonationData.email,
-                        phoneNumber: pixDonationData.phoneNumber,
-                        isPhoneWhatsapp: pixDonationData.isPhoneWhatsapp,
-                        gender: (_a = pixDonationData.gender) !== null && _a !== void 0 ? _a : 'Não informado',
-                        birth: pixDonationData.birth,
-                        state: pixDonationData.state,
-                        city: pixDonationData.city,
-                        street: pixDonationData.street,
-                        homeNumber: pixDonationData.homeNumber,
-                        complement: (_b = pixDonationData.complement) !== null && _b !== void 0 ? _b : 'Não informado',
-                        district: pixDonationData.district,
-                        zipCode: pixDonationData.zipCode,
-                        cpf: pixDonationData.cpf,
-                        rg: (_c = pixDonationData.rg) !== null && _c !== void 0 ? _c : 'Não informado',
-                        cnpj: (_d = pixDonationData.cnpj) !== null && _d !== void 0 ? _d : 'Não informado',
-                        ufrg: pixDonationData.ufrg,
+                        name: name,
+                        email: email,
+                        phoneNumber: phoneNumber,
+                        isPhoneWhatsapp: isPhoneWhatsapp,
+                        gender: gender !== null && gender !== void 0 ? gender : 'Não informado',
+                        birth: birth,
+                        state: state,
+                        city: city,
+                        street: street,
+                        homeNumber: homeNumber,
+                        complement: complement !== null && complement !== void 0 ? complement : 'Não informado',
+                        district: district,
+                        zipCode: zipCode,
+                        cpf: cpf,
+                        rg: rg !== null && rg !== void 0 ? rg : 'Não informado',
+                        cnpj: cnpj !== null && cnpj !== void 0 ? cnpj : 'Não informado',
+                        ufrg: ufrg,
                         valuePaid: 0,
-                        paymentDate: new Date(),
                         paymentMethod: 'Pix',
                         paymentStatus: 'Sem informação ainda',
-                        stripeCustomerID: 'Pagamento via Efí',
+                        paymentDate: new Date(),
+                        stripeCustomerID: 'Sem informação ainda',
                         stripeSubscriptionID: 'Pagamento via Efí',
                         ciclePaid: 1,
                         ciclesBought: 1,
                         valueBought: pixDonationData.valuePaid,
+                        txid: null,
+                        pixCopiaECola: null,
+                        pixQrCode: null,
+                        pixStatus: null,
+                        pixValor: null,
+                        pixDate: null,
+                        pixExpiracaoEmSegundos: null,
                         donationExpirationDate: null
                     }
                 });
-                // await axios({
-                //     method: 'POST',
-                //     url: `${process.env.EFI_ENDPOINT}/oauth/token`,
-                //     headers: {
-                //         Authorization: `Basic ${credentials}`,
-                //         'Content-Type': 'application/json'
-                //     },
-                //     httpsAgent: agent,
-                //     data: {
-                //         grant_type: 'client_credentials'
-                //     }
-                // }).then((response) => {
-                //     console.log('response.data')
-                //     console.log(response.data)
-                //     efiAccessToken = response.data.access_token
-                // });
                 const credentials = Buffer.from(`${process.env.EFI_CLIENT_ID}:${process.env.EFI_CLIENT_SECRET}`).toString('base64');
-                function getEfíAccessToken(agent, credentials) {
-                    return __awaiter(this, void 0, void 0, function* () {
-                        try {
-                            const response = yield (0, axios_1.default)({
-                                method: 'POST',
-                                url: `${process.env.EFI_ENDPOINT}/oauth/token`,
-                                headers: {
-                                    Authorization: `Basic ${credentials}`,
-                                    'Content-Type': 'application/json'
-                                },
-                                httpsAgent: agent,
-                                data: {
-                                    grant_type: 'client_credentials'
-                                }
-                            });
-                            return response.data.access_token;
-                        }
-                        catch (error) {
-                            console.error('Error obtaining Efí access token:', error);
-                            throw error; // Re-throw the error for further handling
-                        }
-                    });
-                }
-                function criarCobrancaPix(token, dadosCobranca) {
-                    return __awaiter(this, void 0, void 0, function* () {
-                        try {
-                            const response = yield (0, axios_1.default)({
-                                method: 'POST',
-                                url: `${process.env.EFI_ENDPOINT}/v2/cob`,
-                                headers: {
-                                    Authorization: `Bearer ${token}`,
-                                    'Content-Type': 'application/json'
-                                },
-                                httpsAgent: server_1.agent,
-                                data: dadosCobranca
-                            });
-                            console.log('Cobrança criada com sucesso:', response.data);
-                            return response.data; // Retorna os dados da cobrança criada
-                        }
-                        catch (error) {
-                            console.error('Erro ao criar cobrança:', error);
-                            throw error; // Lança o erro para ser tratado em outro ponto da aplicação
-                        }
-                    });
-                }
-                const efiAccessToken = yield getEfíAccessToken(server_1.agent, credentials);
-                const pixData = yield criarCobrancaPix(efiAccessToken, JSON.stringify({
+                const efiAccessToken = yield (0, ef_Hooks_1.getEfíAccessToken)(server_1.agent, credentials);
+                const pixData = yield (0, ef_Hooks_1.criarCobrancaPix)(server_1.agent, efiAccessToken, JSON.stringify({
                     calendario: {
                         expiracao: 60 * 3
                     },
                     devedor: {
-                        cpf: "42453937855",
-                        nome: "Fernando"
+                        cpf: `${cpf}`,
+                        nome: `${name}`
                     },
                     valor: {
-                        original: "0.11"
+                        original: `0.03`
                     },
-                    chave: "32e9ee7b-f679-40f6-a443-2c38c6f21abe",
-                    solicitacaoPagador: "Se deus quiser a gente vai ganhar do fogão amanhã"
+                    chave: `${process.env.EFI_CHAVE_PIX}`,
+                    solicitacaoPagador: `Muito obrigado pela sua contribuição, ${name}! :)`
                 }));
-                console.log('pixData');
-                console.log(pixData);
-                // await axios.post('https://pix.api.efipay.com.br/v2/cob', {
-                // },).then(function (response) {
-                //     console.log('response');
-                //     console.log(response);
-                // }).catch(function (error) {
-                //     console.log('error');
-                //     console.log(error);
-                // });
-                // {
-                //     pix: [
-                //       {
-                //         endToEndId: 'E60701190202409191639DY5SE87DGP2',
-                //         txid: '3f58d460804d4bbbb89c9e9c06b63c5e',
-                //         chave: '32e9ee7b-f679-40f6-a443-2c38c6f21abe',
-                //         valor: '0.11',
-                //         horario: '2024-09-19T16:39:29.000Z'
-                //       }
-                //     ]
-                //   }
+                const { txid, pixCopiaECola, location, status, valor, calendario } = pixData;
+                yield prisma_1.prisma.donations.update({
+                    where: {
+                        id: createdDonation.id
+                    },
+                    data: {
+                        txid: txid,
+                        pixCopiaECola: pixCopiaECola,
+                        pixQrCode: location,
+                        pixStatus: status,
+                        pixValor: valor.original,
+                        pixDate: calendario.criacao,
+                        pixExpiracaoEmSegundos: calendario.expiracao
+                    }
+                });
                 return {
                     isValid: true,
+                    statusCode: 202,
                     successMessage: 'Post Recebido',
-                    statusCode: 202
+                    txid: txid,
+                    pixCopiaECola: pixCopiaECola,
+                    pixQrCode: location,
+                    pixStatus: status,
+                    pixValor: valor,
+                    pixDate: calendario.criacao,
+                    pixExpiracaoEmSegundos: calendario.expiracao
                 };
             }
             catch (error) {
                 if (error instanceof client_1.Prisma.PrismaClientValidationError) {
                     const argumentPosition = error.message.search('Argument');
                     const mongoDBError = error.message.slice(argumentPosition);
-                    return { isValid: false, errorMessage: 'mongo', statusCode: 403 };
+                    return { isValid: false, errorMessage: mongoDBError, statusCode: 403 };
                 }
                 else {
                     return { isValid: false, errorMessage: String(error), statusCode: 403 };
@@ -438,7 +388,15 @@ class DonationsRepository {
                         statusCode: 403
                     };
                 }
-                const subscription = yield server_1.stripe.subscriptions.retrieve(donationExists.stripeSubscriptionID);
+                const { stripeSubscriptionID } = donationExists;
+                if (stripeSubscriptionID == null) {
+                    return {
+                        isValid: false,
+                        statusCode: 403,
+                        errorMessage: "Doação não encontrada no banco de dados."
+                    };
+                }
+                const subscription = yield server_1.stripe.subscriptions.retrieve(stripeSubscriptionID);
                 if (!subscription) {
                     return {
                         isValid: false,
@@ -625,6 +583,9 @@ class DonationsRepository {
                 const syncronizedDonations = donations.map((donation) => __awaiter(this, void 0, void 0, function* () {
                     const { stripeSubscriptionID } = donation;
                     if (stripeSubscriptionID === 'Sem informação ainda') {
+                        return donation;
+                    }
+                    if (stripeSubscriptionID == null) {
                         return donation;
                     }
                     const stripeSubscription = yield server_1.stripe.subscriptions.retrieve(stripeSubscriptionID);

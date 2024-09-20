@@ -51,12 +51,12 @@ model Donations {
   stripeCustomerID String
   createdAt        DateTime @default(now())
 
-  txid String?
-  pixCopiaECola String?
-  pixQrCode String?
-  pixStatus String?
-  pixValor String?
-  pixDate String?
+  txid                   String? @unique
+  pixCopiaECola          String? @unique
+  pixQrCode              String? @unique
+  pixStatus              String?
+  pixValor               String?
+  pixDate                String?
   pixExpiracaoEmSegundos Int?
 
   @@map("Donations")
@@ -133,14 +133,22 @@ model SchoolClass {
 }
 
 type PurchasedSubscriptions {
-  schoolClassID        String
-  stripeSubscriptionID String
-  productID            String
-  productName          String
-  paymentMethod        String
-  paymentStatus        String
-  paymentDate          DateTime?
-  valuePaid            Int
+  schoolClassID          String
+  stripeSubscriptionID   String?
+  productID              String?
+  productName            String?
+  paymentMethod          String
+  paymentStatus          String
+  paymentDate            DateTime
+  valuePaid              Int
+  
+  txid                   String?
+  pixCopiaECola          String?
+  pixQrCode              String?
+  pixStatus              String?
+  pixValor               String?
+  pixDate                String?
+  pixExpiracaoEmSegundos Int?
 }
 
 type DocumentsTypes {

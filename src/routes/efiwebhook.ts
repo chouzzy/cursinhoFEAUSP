@@ -1,4 +1,6 @@
 import { Router } from "express"
+import { prisma } from "../prisma";
+import { pixWebhookResponseProps } from "../types";
 // import { io } from "../server";
 
 interface EfiWebhookResponse {
@@ -20,26 +22,36 @@ webhookEfiRoutes.post('/pix', async (req, res) => {
 
     console.log('Rota webhook pix acionada');
 
-    console.log('req');
-    console.log(req.body);
 
     try {
 
-        // const webhookData: EfiWebhookResponse = req.body;
+      const pixWebhookResponse:pixWebhookResponseProps = req.body
 
-        // const firstTransaction = webhookData.pix[0];
+      console.log(pixWebhookResponse)
 
-        // const {chave, endToEndId, horario, txid, valor} = firstTransaction
+      const pixRecebido :pixWebhookResponseProps["pix"][0] = pixWebhookResponse.pix[0]
 
-        // io.emit('pagamentoConfirmado', {
-        //     idTransacao: txid, // Usar endToEndId como identificador principal
-        //     valor,
-        //     chave,
-        //     horario,
-        //     // ... outros dados relevantes
-        // });
+      const donation = await prisma.donations.update({
+        where: {
+          txid: pixRecebido.txid
+        },
+        data: {
+          pixStatus: 'CONCLUIDA'
+        }
+      }) 
 
-        console.log('tudo certo')
+      // const students = await prisma.students.findFirst({
+      //   where: {
+      //     txid: req.body
+      //   }
+      // }) 
+
+      if (!donation) {
+        console.log(` Pix ${pixRecebido.txid} falhou devido a ausência de donation no banco de dados.`)
+        return res.sendStatus(202)
+      }
+
+        console.log(` Pix ${pixRecebido.txid} recebido com sucesso.`)
         res.sendStatus(200);
     } catch (error) {
         console.error('Erro ao processar o webhook:', error);
@@ -47,49 +59,6 @@ webhookEfiRoutes.post('/pix', async (req, res) => {
     }
 })
 
-// webhookEfiRoutes.post('/', async (req, res) => {
-
-//     console.log('Rota webhook acionada');
-
-//     try {
-//         // Validação básica (ajuste conforme a documentação da Efi)
-//         if (!req.body.transactionId) {
-//             return res.status(400).json({ error: 'Transaction ID is missing' });
-//         }
-
-//         // Processar os dados da requisição
-//         console.log(req.body);
-
-//         // Salvar as informações do pagamento no banco de dados ou realizar outras ações
-
-//         res.sendStatus(200);
-//     } catch (error) {
-//         console.error('Erro ao processar o webhook:', error);
-//         res.status(500).json({ error: 'Internal server error' });
-//     }
-// })
-
-// webhookEfiRoutes.post('(/pix)?', async (req, res) => {
-
-//     console.log('Rota webhook pix?? acionada');
-
-//     try {
-//         // Validação básica (ajuste conforme a documentação da Efi)
-//         if (!req.body.transactionId) {
-//             return res.status(400).json({ error: 'Transaction ID is missing' });
-//         }
-
-//         // Processar os dados da requisição
-//         console.log(req.body);
-
-//         // Salvar as informações do pagamento no banco de dados ou realizar outras ações
-
-//         res.sendStatus(200);
-//     } catch (error) {
-//         console.error('Erro ao processar o webhook:', error);
-//         res.status(500).json({ error: 'Internal server error' });
-//     }
-// })
 
 
 

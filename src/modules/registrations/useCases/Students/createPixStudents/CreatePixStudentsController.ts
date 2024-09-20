@@ -1,11 +1,9 @@
 import { Request, Response } from "express"
 import { Students, purcharsedSubscriptions } from "../../../entities/Students"
-import { checkBody, ErrorValidation } from "./CreateStudentCheck"
-import { CreateStudentUseCase } from "./CreateStudentUseCase"
+import { CreateStudentUseCase } from "./CreatePixStudentUseCase"
 import { StudentsRepository } from "../../../repositories/implementations/StudentsRepository"
-import crypto from "crypto-js";
 
-interface CreateStudentRequestProps {
+interface CreatePixStudentRequestProps {
 
     name: Students["name"],
     email: Students["email"],
@@ -34,46 +32,32 @@ interface CreateStudentRequestProps {
     exStudent: Students["exStudent"],
     purcharsedSubscriptions: {
         schoolClassID: purcharsedSubscriptions["schoolClassID"]
-        stripeSubscriptionID: purcharsedSubscriptions["stripeSubscriptionID"]
-        productID: purcharsedSubscriptions["productID"]
-        productName: purcharsedSubscriptions["productName"]
         paymentMethod: purcharsedSubscriptions["paymentMethod"]
-        paymentStatus: purcharsedSubscriptions["paymentStatus"]
-        paymentDate: purcharsedSubscriptions["paymentDate"]
         valuePaid: purcharsedSubscriptions["valuePaid"]
-    }[],
-    token: string
-    paymentMethodID: string
-    productSelectedID: string
+    },
 
 }
 
-class CreateStudentController {
+class CreatePixStudentController {
     async handle(req: Request, res: Response): Promise<Response> {
 
-        const studentData: CreateStudentRequestProps = req.body
-
-        const { token } = studentData
-
         try {
-            const decryptedPaymentMethodString = crypto.AES.decrypt(token, process.env.PCRYPTO_PKEY ?? 'vasco').toString(crypto.enc.Utf8);
-
-            const paymentMethodID = decryptedPaymentMethodString
+        
+            const studentData: CreatePixStudentRequestProps = req.body
 
             /// instanciação da classe do caso de uso
             const studentsRepository = new StudentsRepository()
             const createStudentUseCase = new CreateStudentUseCase(studentsRepository)
 
-            studentData.paymentMethodID = paymentMethodID
             // studentData.paymentMethodID = 'pm_1OmLGuHkzIzO4aMOoxSTDivn'
             const response = await createStudentUseCase.execute(studentData)
 
             return res.status(response.statusCode).json({ response })
         } catch (error) {
-            return res.status(403).json({ error:error })
+            return res.status(403).json({ error })
         }
 
     }
 }
 
-export { CreateStudentController, CreateStudentRequestProps }
+export { CreatePixStudentController, CreatePixStudentRequestProps }

@@ -24,8 +24,9 @@ interface validationResponse {
   schoolClassList?: SchoolClass[]
   schoolClassDocs?: SchoolClass["documents"]
   schoolClassStages?: SchoolClass["selectiveStages"]
-  students?: Students
-  studentsList?: Students[]
+  // resolver any
+  students?: any 
+  studentsList?: any[]
   admins?: {
     id: Admins["id"]
     name: Admins["name"]
@@ -275,6 +276,21 @@ interface pixCobDataProps {
   pixCopiaECola: string;
 }
 
+interface pixWebhookResponseProps {
+
+  
+  pix: [
+    {
+      endToEndId: string,
+      txid: string,
+      chave: string,
+      valor: string,
+      horario: string,
+    }
+  ]
+}
+
+
 export {
   validationResponse,
   StripeCheckoutCustomerPropsDetails,
@@ -286,5 +302,6 @@ export {
   StripeDeactivatedProduct,
   StripeCustomerData,
   InvoiceRetrieveProps,
-  pixCobDataProps
+  pixCobDataProps,
+  pixWebhookResponseProps
 }

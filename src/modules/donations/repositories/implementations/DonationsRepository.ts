@@ -1,3 +1,4 @@
+import Stripe from "stripe";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../../../prisma";
 import { pixCobDataProps, validationResponse } from "../../../../types";
@@ -6,13 +7,9 @@ import { CreateDonationProps } from "../../useCases/createDonation/CreateDonatio
 import { IDonationsRepository } from "../IDonationsRepository";
 import { StripeCustomer } from "../../../../hooks/StripeCustomer";
 import { StripeFakeFront } from "../../../../hooks/StripeFakeFront";
-import { DeleteDonationProps } from "../../useCases/deleteDonation/DeleteDonationController";
 import { ListDonationsQuery } from "../../useCases/listDonations/ListDonationsController";
 import { agent, stripe } from "../../../../server";
-import Stripe from "stripe";
 import { CreatePixDonationProps } from "../../useCases/createPixDonation/CreatePixDonationController";
-import axios from "axios";
-import { response } from "express";
 import { criarCobrancaPix, getEfíAccessToken } from "../../../../hooks/efíHooks";
 
 
@@ -75,6 +72,10 @@ class DonationsRepository implements IDonationsRepository {
 
                     'stripeCustomerID',
                     'donationExpirationDate',
+                    
+                    'txid',
+                    'pixCopiaECola',
+                    'pixQrCode',
 
                     'createdAt',
                 ],
@@ -370,7 +371,7 @@ class DonationsRepository implements IDonationsRepository {
                     paymentMethod: 'Pix',
                     paymentStatus: 'Sem informação ainda',
                     paymentDate: new Date(),
-                    stripeCustomerID:'Sem informação ainda',
+                    stripeCustomerID: 'Sem informação ainda',
                     stripeSubscriptionID: 'Pagamento via Efí',
                     ciclePaid: 1,
                     ciclesBought: 1,
@@ -393,8 +394,6 @@ class DonationsRepository implements IDonationsRepository {
                 `${process.env.EFI_CLIENT_ID}:${process.env.EFI_CLIENT_SECRET}`
             ).toString('base64');
 
-         
-
 
             const efiAccessToken = await getEfíAccessToken(agent, credentials)
 
@@ -408,7 +407,7 @@ class DonationsRepository implements IDonationsRepository {
                     nome: `${name}`
                 },
                 valor: {
-                    original: `${valuePaid}`
+                    original: `0.03`
                 },
                 chave: `${process.env.EFI_CHAVE_PIX}`,
                 solicitacaoPagador: `Muito obrigado pela sua contribuição, ${name}! :)`
@@ -453,7 +452,7 @@ class DonationsRepository implements IDonationsRepository {
 
                 const argumentPosition = error.message.search('Argument')
                 const mongoDBError = error.message.slice(argumentPosition)
-                return { isValid: false, errorMessage: 'mongo', statusCode: 403 }
+                return { isValid: false, errorMessage: mongoDBError, statusCode: 403 }
 
             } else {
                 return { isValid: false, errorMessage: String(error), statusCode: 403 }
