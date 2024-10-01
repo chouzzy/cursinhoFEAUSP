@@ -1,4 +1,5 @@
-import { Router } from "express"
+import express, { Router } from "express"
+
 import { AuthenticateAdminsController } from "../modules/registrations/useCases/Admins/authenticateAdmin/AuthenticateAdminController"
 import { CreateAdminsController } from "../modules/registrations/useCases/Admins/createAdmins/CreateAdminController"
 import { DeleteAdminController } from "../modules/registrations/useCases/Admins/deleteAdmins/DeleteAdminController"
@@ -10,22 +11,22 @@ import { ensureAuthenticated } from "../modules/registrations/middleware/ensureA
 const adminsRoutes = Router()
 
 const listAdminsController = new ListAdminsController()
-adminsRoutes.get('/', ensureAuthenticated, listAdminsController.handle)
+adminsRoutes.get('/', express.json(), ensureAuthenticated, listAdminsController.handle)
 
 const createAdminsController = new CreateAdminsController()
-adminsRoutes.post('/create', ensureAuthenticated, createAdminsController.handle)
+adminsRoutes.post('/create', express.json(), ensureAuthenticated, createAdminsController.handle)
 
 const updateAdminsController = new UpdateAdminsController()
-adminsRoutes.put('/:adminID/update', ensureAuthenticated, updateAdminsController.handle)
+adminsRoutes.put('/:adminID/update', express.json(), ensureAuthenticated, updateAdminsController.handle)
 
 const updateAdminsPasswordController = new UpdateAdminsPasswordController()
-adminsRoutes.put('/:adminID/updatePassword', ensureAuthenticated, updateAdminsPasswordController.handle)
+adminsRoutes.put('/:adminID/updatePassword', express.json(), ensureAuthenticated, updateAdminsPasswordController.handle)
 
 const deleteAdminsController = new DeleteAdminController()
-adminsRoutes.delete('/:adminID/delete', ensureAuthenticated, deleteAdminsController.handle)
+adminsRoutes.delete('/:adminID/delete', express.json(), ensureAuthenticated, deleteAdminsController.handle)
 
 const authenticateAdminsController = new AuthenticateAdminsController()
-adminsRoutes.post('/login', authenticateAdminsController.handle)
+adminsRoutes.post('/login', express.json(), authenticateAdminsController.handle)
 
 
 export {adminsRoutes}

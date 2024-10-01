@@ -34,17 +34,10 @@ interface CreateStudentRequestProps {
     exStudent: Students["exStudent"],
     purcharsedSubscriptions: {
         schoolClassID: purcharsedSubscriptions["schoolClassID"]
-        stripeSubscriptionID: purcharsedSubscriptions["stripeSubscriptionID"]
-        productID: purcharsedSubscriptions["productID"]
-        productName: purcharsedSubscriptions["productName"]
-        paymentMethod: purcharsedSubscriptions["paymentMethod"]
-        paymentStatus: purcharsedSubscriptions["paymentStatus"]
-        paymentDate: purcharsedSubscriptions["paymentDate"]
-        valuePaid: purcharsedSubscriptions["valuePaid"]
-    }[],
-    token: string
-    paymentMethodID: string
-    productSelectedID: string
+        paymentMethod: string,
+        currency: string
+    },
+    // token: string
 
 }
 
@@ -53,18 +46,18 @@ class CreateStudentController {
 
         const studentData: CreateStudentRequestProps = req.body
 
-        const { token } = studentData
+        // const { token } = studentData
 
         try {
-            const decryptedPaymentMethodString = crypto.AES.decrypt(token, process.env.PCRYPTO_PKEY ?? 'vasco').toString(crypto.enc.Utf8);
+            // const decryptedPaymentMethodString = crypto.AES.decrypt(token, process.env.PCRYPTO_PKEY ?? 'vasco').toString(crypto.enc.Utf8);
 
-            const paymentMethodID = decryptedPaymentMethodString
+            // const paymentMethodID = decryptedPaymentMethodString
 
             /// instanciação da classe do caso de uso
             const studentsRepository = new StudentsRepository()
             const createStudentUseCase = new CreateStudentUseCase(studentsRepository)
 
-            studentData.paymentMethodID = paymentMethodID
+            // studentData.paymentMethodID = paymentMethodID
             // studentData.paymentMethodID = 'pm_1OmLGuHkzIzO4aMOoxSTDivn'
             const response = await createStudentUseCase.execute(studentData)
 

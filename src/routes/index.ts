@@ -1,4 +1,4 @@
-import { Router } from "express"
+import express, { Router } from "express"
 import { ensureAuthenticated } from "../modules/registrations/middleware/ensureAuthenticate"
 import { adminsRoutes } from "./admins.routes"
 import { donationsRoutes } from "./donations.routes"
@@ -24,12 +24,14 @@ router.use('/students', studentsRoutes)
 router.use('/admins', adminsRoutes)
 router.use('/refresh-token', refreshTokenRoutes)
 
-router.get('/logintest', ensureAuthenticated, (req,res) => {
+router.get('/logintest', express.json(), ensureAuthenticated, (req,res) => {
     return res.json({success: true})
 })
 
 router.use('/schoolClass', schoolClassRoutes)
+
 router.use('/webhooks', webhooksRoutes)
+
 router.use('/webhook-efi', webhookEfiRoutes)
 
 

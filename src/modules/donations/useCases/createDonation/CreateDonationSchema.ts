@@ -16,21 +16,13 @@ const donationSchema = object({
   district: string().required("O bairro é obrigatório"),
   zipCode: string().required("O CEP é obrigatório").min(9, "O CEP deve conter 8 algarismos e um hífen. Ex: 08230-030"),
 
-  cpf: string().test('cpf-validation', 'O CPF deve conter 11 caracteres ou "Não informado"', (value) => {
-    // Check if the value is either "Não informado" or a string with length 11
-    return value === "Não informado" || (typeof value === "string" && value.length === 11);
-  }),
+  cpf: string().length(11,'O CPF deve conter 11 caracteres'),
   
-  rg: string().test('cpf-validation', 'O RG deve conter 9 caracteres ou "Não informado"', (value) => {
-    // Check if the value is either "Não informado" or a string with length 11
-    return value === "Não informado" || (typeof value === "string" && value.length >= 9);
-  }),
+  rg: string().length(9, 'O RG deve conter 9 caracteres'),
 
-  cnpj: string().test('cpf-validation', 'O CNPJ deve conter 14 caracteres ou "Não informado"', (value) => {
-    // Check if the value is either "Não informado" or a string with length 11
-    return value === "Não informado" || (typeof value === "string" && value.length === 14);
-  }),
-  ufrg: string().required("O estado de emissão do RG é obrigatório.").oneOf([
+  cnpj: string().length(14, 'O CNPJ deve conter 14 caracteres'),
+
+  ufrg: string().oneOf([
     'AC',
     'AL',
     'AP',
@@ -58,11 +50,7 @@ const donationSchema = object({
     'SP',
     'SE',
     'TO',
-    'Não informado'
   ]),
-
-
-
 
   valuePaid: number().required(),
   paymentMethodID: string().required("O método de pagamento é necessário"),

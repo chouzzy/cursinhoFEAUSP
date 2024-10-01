@@ -14,7 +14,7 @@ interface IStudentsRepository {
         pageRange: number
     ): Promise<validationResponse>
 
-    createStudent(studentData: CreateStudentRequestProps): Promise<validationResponse>
+    createStudentPaymentIntent(studentData: CreateStudentRequestProps): Promise<validationResponse>
 
     createPixStudent(studentData: CreatePixStudentRequestProps): Promise<validationResponse>
 

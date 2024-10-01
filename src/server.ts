@@ -10,9 +10,6 @@ import path from 'path';
 import https from 'https';
 
 
-
-
-
 const stripe: Stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 
 const cert = fs.readFileSync(
@@ -34,9 +31,9 @@ app.use(cors({
     methods: ['GET', 'PUT', 'POST', 'DELETE', 'PATCH'],
 }));
 
-app.use(express.json())
+// app.use(express.json())
 
-app.use(bodyParser.json({ type: 'application/json' }))
+// app.use(bodyParser.json({ type: 'application/json' }))
 
 app.use(router)
 
@@ -57,7 +54,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     })
 })
 
-app.listen(3000, () => console.log('Sir, we are back online! 🦥'))
+app.listen(8081, () => console.log('Sir, we are back online! 🦥'))
 
 
 

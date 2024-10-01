@@ -11,6 +11,7 @@ const ExcelListStudentsController_1 = require("../modules/registrations/useCases
 const ListChargesStudentsController_1 = require("../modules/registrations/useCases/Students/listChargesStudents/ListChargesStudentsController");
 const RefundStudentController_1 = require("../modules/registrations/useCases/Students/refundStudent/RefundStudentController");
 const SyncStudentsController_1 = require("../modules/registrations/useCases/Students/syncStudents/SyncStudentsController");
+const CreatePixStudentsController_1 = require("../modules/registrations/useCases/Students/createPixStudents/CreatePixStudentsController");
 const studentsRoutes = (0, express_1.Router)();
 exports.studentsRoutes = studentsRoutes;
 const listStudentsController = new ListStudentsController_1.ListStudentsController();
@@ -19,6 +20,9 @@ const excellistStudentsController = new ExcelListStudentsController_1.ExcelListS
 studentsRoutes.get('/excel', ensureAuthenticate_1.ensureAuthenticated, excellistStudentsController.handle);
 const createStudentController = new CreateStudentsController_1.CreateStudentController();
 studentsRoutes.post('/create', createStudentController.handle);
+// PIX
+const pixStudentController = new CreatePixStudentsController_1.CreatePixStudentController();
+studentsRoutes.post('/pix', pixStudentController.handle);
 const updateStudentController = new UpdateStudentController_1.UpdateStudentController();
 studentsRoutes.put('/:studentID/update', ensureAuthenticate_1.ensureAuthenticated, updateStudentController.handle);
 const cancelSubscriptionController = new CancelSubscriptionController_1.CancelSubscriptionController();

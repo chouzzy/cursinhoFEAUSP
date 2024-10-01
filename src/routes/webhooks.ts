@@ -1,20 +1,21 @@
-import { Router } from "express"
+import express, { Request, Response, NextFunction, Router, raw } from 'express';
 import { stripe } from "../server"
-import { StripeCheckoutCustomerPropsDetails, StripeCheckoutCustomerProps, ChargeRefundedProps, InvoiceRetrieveProps } from "../types";
-import { StripeCustomer } from "../hooks/StripeCustomer";
 import { DiscriminatedEvent } from "../types/stripeEventTypes"
 import { prisma } from "../prisma";
 // import  from "stripeTypes";
 // import * as stripeTypes from "stripe-event-types"
 ///////
 
+interface RawRequestBody extends Buffer { }
 
 
 const webhooksRoutes = Router()
 
-webhooksRoutes.post('/', async (req, res) => {
+webhooksRoutes.use(raw({ type: 'application/json' }));
+webhooksRoutes.post('/', raw({ type: 'application/json' }), async (req, res) => {
 
     let event = req.body;
+    const rawBody = req.body;
     // Only verify the event if you have an endpoint secret defined.
     // Otherwise use the basic event deserialized with JSON.parse
     const endpointSecret = process.env.STRIPE_SIGNIN_SECRET_KEY
@@ -28,7 +29,7 @@ webhooksRoutes.post('/', async (req, res) => {
             if (signature) {
 
                 const stripeEvent = stripe.webhooks.constructEvent(
-                    req.body,
+                    rawBody,
                     signature,
                     endpointSecret
                 ) as DiscriminatedEvent;
@@ -100,8 +101,158 @@ webhooksRoutes.post('/', async (req, res) => {
                     return res.sendStatus(200)
                 }
 
-                return res.sendStatus(202)
+                if (stripeEvent.type === "payment_intent.processing") {
+                    console.log('payment_intent.processing')
+                    console.log(stripeEvent.data.object)
+                }
+                if (stripeEvent.type === "payment_intent.created") {
+                    console.log('payment_intent.created')
+                    
+                }
+                if (stripeEvent.type === "payment_intent.succeeded") {
+                    console.log('payment_intent.succeeded')
+
+
+                    const { customer, metadata, amount } = stripeEvent.data.object
+
+                    if (customer && metadata) {
+
+
+                        const foundStudent = await prisma.students.findFirst({
+                            where: {
+                                AND:[
+                                    {stripeCustomerID: String(customer)},
+                                    {cpf: metadata.cpf}
+                                ]
+                            }
+                        })
+
+                        if (!foundStudent) {
+                            return res.sendStatus(404).json({message: "Estudante não encontrado pelo cpf"})
+                        }
+
+                        const studentUpdated = await prisma.students.update({
+                            where: {
+                                id: foundStudent.id
+                            },
+                            data: {
+                                purcharsedSubscriptions: {
+                                    updateMany: {
+                                        where: {
+                                            schoolClassID: metadata.schoolClassID
+                                        },
+                                        data: {
+                                            paymentStatus: 'CONCLUIDA',
+                                            valuePaid: amount
+                                        }
+                                    }
+                                }
+                            }
+                        })
+
+
+                        console.log(`student updated: ${studentUpdated.id}`)
+                    }
+                }
+                if (stripeEvent.type === "payment_intent.succeeded") {
+                    console.log('payment_intent.succeeded')
+
+
+                    const { customer, metadata } = stripeEvent.data.object
+
+                    if (customer && metadata) {
+
+
+                        const foundStudent = await prisma.students.findFirst({
+                            where: {
+                                AND:[
+                                    {stripeCustomerID: String(customer)},
+                                    {cpf: metadata.cpf}
+                                ]
+                            }
+                        })
+
+                        if (!foundStudent) {
+                            return res.sendStatus(404).json({message: "Estudante não encontrado pelo cpf"})
+                        }
+
+                        const studentUpdated = await prisma.students.update({
+                            where: {
+                                id: foundStudent.id
+                            },
+                            data: {
+                                purcharsedSubscriptions: {
+                                    updateMany: {
+                                        where: {
+                                            schoolClassID: metadata.schoolClassID
+                                        },
+                                        data: {
+                                            paymentStatus: 'CONCLUIDA',
+                                        }
+                                    }
+                                }
+                            }
+                        })
+
+
+                        console.log(`student updated: ${studentUpdated.id}`)
+                    }
+                }
+
                 
+                if (stripeEvent.type === "payment_intent.payment_failed") {
+                    console.log('payment_intent.payment_failed')
+
+
+                    const { customer, metadata } = stripeEvent.data.object
+
+                    if (customer && metadata) {
+
+
+                        const foundStudent = await prisma.students.findFirst({
+                            where: {
+                                AND:[
+                                    {stripeCustomerID: String(customer)},
+                                    {cpf: metadata.cpf}
+                                ]
+                            }
+                        })
+
+                        if (!foundStudent) {
+                            return res.sendStatus(404).json({message: "Estudante não encontrado pelo cpf"})
+                        }
+
+                        const studentUpdated = await prisma.students.update({
+                            where: {
+                                id: foundStudent.id
+                            },
+                            data: {
+                                purcharsedSubscriptions: {
+                                    updateMany: {
+                                        where: {
+                                            schoolClassID: metadata.schoolClassID
+                                        },
+                                        data: {
+                                            paymentStatus: 'FALHOU',
+                                        }
+                                    }
+                                }
+                            }
+                        })
+
+
+                        console.log(`student updated: ${studentUpdated.id}`)
+                    }
+                }
+                if (stripeEvent.type === "payment_intent.requires_action") {
+                    console.log('payment_intent.requires_action')
+                    console.log(stripeEvent.data.object)
+
+                    
+                }
+
+                return res.sendStatus(200)
+
             } else {
                 console.log(('signature not found'))
                 return res.sendStatus(200)
@@ -119,7 +270,6 @@ webhooksRoutes.post('/', async (req, res) => {
 })
 
 export { webhooksRoutes }
-
 
 // if (event.type == 'charge.succeeded') {
 

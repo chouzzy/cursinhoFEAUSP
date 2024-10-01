@@ -20,12 +20,53 @@ webhookEfiRoutes.post('/pix', (req, res) => __awaiter(void 0, void 0, void 0, fu
         const pixWebhookResponse = req.body;
         console.log(pixWebhookResponse);
         const pixRecebido = pixWebhookResponse.pix[0];
-        const donation = yield prisma_1.prisma.donations.update({
+        const donation = yield prisma_1.prisma.donations.findFirst({
+            where: {
+                txid: pixWebhookResponse.pix[0].txid
+            }
+        });
+        if (!donation) {
+            const student = yield prisma_1.prisma.students.findFirst({
+                where: {
+                    purcharsedSubscriptions: {
+                        some: {
+                            AND: [
+                                { txid: pixWebhookResponse.pix[0].txid }
+                            ]
+                        }
+                    }
+                }
+            });
+            if (!student) {
+                return res.sendStatus(202).json({ response: "Nem a donation e nem o estudante foram encontrados" });
+            }
+            console.log(`Estudante ${student.name} encontrado `);
+            const updatedStudent = yield prisma_1.prisma.students.update({
+                where: {
+                    id: student.id,
+                },
+                data: {
+                    purcharsedSubscriptions: {
+                        updateMany: {
+                            where: { txid: pixWebhookResponse.pix[0].txid },
+                            data: {
+                                paymentStatus: "CONCLUIDA",
+                                pixStatus: "CONCLUIDA",
+                            }
+                        }
+                    }
+                }
+            });
+            console.log(`Estudante ${updatedStudent.name} atualizado `);
+            return res.sendStatus(202);
+        }
+        const donationUpdated = yield prisma_1.prisma.donations.update({
             where: {
                 txid: pixRecebido.txid
             },
             data: {
-                pixStatus: 'CONCLUIDA'
+                pixStatus: 'CONCLUIDA',
+                paymentStatus: 'CONCLUIDA'
             }
         });
         // const students = await prisma.students.findFirst({
@@ -33,10 +74,6 @@ webhookEfiRoutes.post('/pix', (req, res) => __awaiter(void 0, void 0, void 0, fu
         //     txid: req.body
         //   }
         // }) 
-        if (!donation) {
-            console.log(` Pix ${pixRecebido.txid} falhou devido a ausência de donation no banco de dados.`);
-            return res.sendStatus(202);
-        }
         console.log(` Pix ${pixRecebido.txid} recebido com sucesso.`);
         res.sendStatus(200);
     }

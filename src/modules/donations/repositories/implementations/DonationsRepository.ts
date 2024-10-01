@@ -11,6 +11,7 @@ import { ListDonationsQuery } from "../../useCases/listDonations/ListDonationsCo
 import { agent, stripe } from "../../../../server";
 import { CreatePixDonationProps } from "../../useCases/createPixDonation/CreatePixDonationController";
 import { criarCobrancaPix, getEfíAccessToken } from "../../../../hooks/efíHooks";
+import { createDonationPix, updateDonationPix } from "../../../../utils/donationValidations";
 
 
 class DonationsRepository implements IDonationsRepository {
@@ -72,7 +73,7 @@ class DonationsRepository implements IDonationsRepository {
 
                     'stripeCustomerID',
                     'donationExpirationDate',
-                    
+
                     'txid',
                     'pixCopiaECola',
                     'pixQrCode',
@@ -211,9 +212,9 @@ class DonationsRepository implements IDonationsRepository {
                 }
 
 
-                const { current_period_end, status, start_date, id, billing_cycle_anchor } = stripeResponse.stripeSubscription
+                const { current_period_end, status, start_date, id } = stripeResponse.stripeSubscription
                 let { cancel_at } = stripeResponse.stripeSubscription
-                const { unit_amount, recurring } = stripeResponse.stripeSubscription.items.data[0].price
+                const { unit_amount } = stripeResponse.stripeSubscription.items.data[0].price
 
                 if (!cancel_at) {
                     cancel_at = current_period_end
@@ -284,7 +285,7 @@ class DonationsRepository implements IDonationsRepository {
 
             let { cancel_at } = stripeResponse.stripeSubscription
             const { current_period_end, status, start_date, id, } = stripeResponse.stripeSubscription
-            const { unit_amount, recurring } = stripeResponse.stripeSubscription.items.data[0].price
+            const { unit_amount } = stripeResponse.stripeSubscription.items.data[0].price
 
             if (!cancel_at) {
                 cancel_at = current_period_end
@@ -338,98 +339,24 @@ class DonationsRepository implements IDonationsRepository {
 
         try {
 
-            const {
-                name, email, phoneNumber, isPhoneWhatsapp, gender,
-                birth, state, city, street, homeNumber, complement,
-                district, zipCode, cpf, rg, cnpj, ufrg, valuePaid,
-            } = pixDonationData
+            const { name, cpf, valuePaid } = pixDonationData
 
-            const createdDonation = await prisma.donations.create({
-                data: {
-                    name: name,
-                    email: email,
-
-                    phoneNumber: phoneNumber,
-                    isPhoneWhatsapp: isPhoneWhatsapp,
-                    gender: gender ?? 'Não informado',
-
-                    birth: birth,
-                    state: state,
-                    city: city,
-                    street: street,
-                    homeNumber: homeNumber,
-                    complement: complement ?? 'Não informado',
-                    district: district,
-                    zipCode: zipCode,
-
-                    cpf: cpf,
-                    rg: rg ?? 'Não informado',
-                    cnpj: cnpj ?? 'Não informado',
-                    ufrg: ufrg,
-
-                    valuePaid: 0,
-                    paymentMethod: 'Pix',
-                    paymentStatus: 'Sem informação ainda',
-                    paymentDate: new Date(),
-                    stripeCustomerID: 'Sem informação ainda',
-                    stripeSubscriptionID: 'Pagamento via Efí',
-                    ciclePaid: 1,
-                    ciclesBought: 1,
-                    valueBought: pixDonationData.valuePaid,
-
-                    txid: null,
-                    pixCopiaECola: null,
-                    pixQrCode: null,
-                    pixStatus: null,
-                    pixValor: null,
-                    pixDate: null,
-                    pixExpiracaoEmSegundos: null,
-
-                    donationExpirationDate: null
-                }
-            })
+            const createdDonation = await createDonationPix(pixDonationData)
 
 
-            const credentials = Buffer.from(
-                `${process.env.EFI_CLIENT_ID}:${process.env.EFI_CLIENT_SECRET}`
-            ).toString('base64');
-
-
-            const efiAccessToken = await getEfíAccessToken(agent, credentials)
-
-            const pixData: pixCobDataProps = await criarCobrancaPix(agent, efiAccessToken, JSON.stringify({
-
-                calendario: {
-                    expiracao: 60 * 3
-                },
-                devedor: {
-                    cpf: `${cpf}`,
-                    nome: `${name}`
-                },
-                valor: {
-                    original: `0.03`
-                },
-                chave: `${process.env.EFI_CHAVE_PIX}`,
-                solicitacaoPagador: `Muito obrigado pela sua contribuição, ${name}! :)`
-
-            }))
+            const pixData: pixCobDataProps = await criarCobrancaPix({cpf, name, valuePaid})
 
             const { txid, pixCopiaECola, location, status, valor, calendario } = pixData
+            const updatedDonation = await updateDonationPix(pixData, createdDonation)
 
-            await prisma.donations.update({
-                where: {
-                    id: createdDonation.id
-                },
-                data: {
-                    txid: txid,
-                    pixCopiaECola: pixCopiaECola,
-                    pixQrCode: location,
-                    pixStatus: status,
-                    pixValor: valor.original,
-                    pixDate: calendario.criacao,
-                    pixExpiracaoEmSegundos: calendario.expiracao
+            if (!updatedDonation) {
+
+                return {
+                    isValid: false,
+                    errorMessage: 'Donation não encontrada, erro no banco de dados',
+                    statusCode: 404
                 }
-            })
+            }
 
             return {
                 isValid: true,
@@ -544,9 +471,6 @@ class DonationsRepository implements IDonationsRepository {
 
         try {
             // Cria um reembolso para a cobrança no Stripe.
-            const refund = await stripe.refunds.create({
-                charge: chargeID,
-            });
 
             const charge = await stripe.charges.retrieve(chargeID)
             const { customer } = charge

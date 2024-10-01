@@ -25,7 +25,7 @@ interface validationResponse {
   schoolClassDocs?: SchoolClass["documents"]
   schoolClassStages?: SchoolClass["selectiveStages"]
   // resolver any
-  students?: any 
+  students?: any
   studentsList?: any[]
   admins?: {
     id: Admins["id"]
@@ -50,7 +50,15 @@ interface validationResponse {
   totalDocuments?: number
   subscriptionsDuplicated?: purcharsedSubscriptions["schoolClassID"][]
   stripeSubscription?: Stripe.Response<Stripe.Subscription>
+
+  paymentIntent?: Stripe.Response<Stripe.PaymentIntent>
+  paymentIntentID?: string | null
+  clientSecret?: string | null
+  nextAction?: Stripe.PaymentIntent.NextAction | null
+
+
   charges?: Stripe.Response<Stripe.ApiSearchResult<Stripe.Charge>>
+
   txid?: pixCobDataProps["txid"]
   pixCopiaECola?: pixCobDataProps["pixCopiaECola"]
   pixQrCode?: pixCobDataProps["location"]
@@ -249,6 +257,12 @@ interface StripeCustomerData {
   ufrg: string
 }
 
+interface createPixProps {
+  cpf: Donations["cpf"] | Students["cpf"]
+  name: Donations["name"] | Students["name"]
+  valuePaid: Donations["valuePaid"] | Students["purcharsedSubscriptions"][0]["valuePaid"]
+}
+
 interface pixCobDataProps {
   calendario: {
     criacao: string;
@@ -277,8 +291,6 @@ interface pixCobDataProps {
 }
 
 interface pixWebhookResponseProps {
-
-  
   pix: [
     {
       endToEndId: string,
@@ -303,5 +315,6 @@ export {
   StripeCustomerData,
   InvoiceRetrieveProps,
   pixCobDataProps,
-  pixWebhookResponseProps
+  pixWebhookResponseProps,
+  createPixProps
 }

@@ -33,7 +33,7 @@ model Donations {
   cnpj String?
   ufrg String
 
-  valuePaid     Float
+  valuePaid     Int
   paymentMethod String
   paymentStatus String
   paymentDate   DateTime?
@@ -42,7 +42,7 @@ model Donations {
 
   ciclesBought Int
   ciclePaid    Int
-  valueBought  Float
+  valueBought  Int
 
   stripeSubscriptionID String?
 
@@ -51,12 +51,12 @@ model Donations {
   stripeCustomerID String
   createdAt        DateTime @default(now())
 
-  txid                   String? @unique
-  pixCopiaECola          String? @unique
-  pixQrCode              String? @unique
-  pixStatus              String?
-  pixValor               String?
-  pixDate                String?
+  txid String? @unique
+  pixCopiaECola String? @unique
+  pixQrCode String? @unique
+  pixStatus String?
+  pixValor String?
+  pixDate String?
   pixExpiracaoEmSegundos Int?
 
   @@map("Donations")
@@ -133,22 +133,14 @@ model SchoolClass {
 }
 
 type PurchasedSubscriptions {
-  schoolClassID          String
-  stripeSubscriptionID   String?
-  productID              String?
-  productName            String?
-  paymentMethod          String
-  paymentStatus          String
-  paymentDate            DateTime
-  valuePaid              Float
-  
-  txid                   String?
-  pixCopiaECola          String?
-  pixQrCode              String?
-  pixStatus              String?
-  pixValor               String?
-  pixDate                String?
-  pixExpiracaoEmSegundos Int?
+  schoolClassID        String
+  stripeSubscriptionID String
+  productID            String
+  productName          String
+  paymentMethod        String
+  paymentStatus        String
+  paymentDate          DateTime?
+  valuePaid            Int
 }
 
 type DocumentsTypes {

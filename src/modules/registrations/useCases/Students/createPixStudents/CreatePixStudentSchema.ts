@@ -60,10 +60,10 @@ const studentPixSchema = object({
     metUsMethod: string(),
     exStudent: string().required(),
 
-    purcharsedSubscriptions: array().of(object({
+    purcharsedSubscriptions: object({
         schoolClassID: string().required("O ID da turma deve ser informado").min(36, "O ID deve possuir 36 caracteres no formato UUID"),
         paymentMethod: string().required("Informe a forma de pagamento").oneOf(['PIX'], 'A única forma de pagamento válida é PIX')
-    })).required('É necessário comprar ao menos uma inscrição para prosseguir')
+    }).required('É necessário comprar ao menos uma inscrição para prosseguir')
 })
 
 export { studentPixSchema }

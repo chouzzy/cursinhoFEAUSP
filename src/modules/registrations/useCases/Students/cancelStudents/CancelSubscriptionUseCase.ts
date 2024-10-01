@@ -7,7 +7,7 @@ class CancelSubscriptionUseCase {
     constructor(
         private studentsRepository: IStudentsRepository) {}
 
-    async execute(studentID:Students["id"], stripeSubscriptionID:Students["purcharsedSubscriptions"][0]["stripeSubscriptionID"]): Promise<validationResponse> {
+    async execute(studentID:Students["id"], stripeSubscriptionID:string): Promise<validationResponse> {
         
 
         const bodyValidation = await checkParams(studentID, stripeSubscriptionID)

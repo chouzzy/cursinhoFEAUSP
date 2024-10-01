@@ -10,6 +10,10 @@ class CancelSubscriptionController {
         const studentID:Students["id"] = req.params.studentID
         const stripeSubscriptionID:Students["purcharsedSubscriptions"][0]["stripeSubscriptionID"] = req.params.stripeSubscriptionID
 
+        if (!stripeSubscriptionID) {
+            return res.status(404).json({error: 'stripeSubscriptionID necessário.'})
+        }
+
         const studentsRepository = new StudentsRepository()
         const deleteStudentUseCase = new CancelSubscriptionUseCase(studentsRepository)
         const response = await deleteStudentUseCase.execute(studentID, stripeSubscriptionID)

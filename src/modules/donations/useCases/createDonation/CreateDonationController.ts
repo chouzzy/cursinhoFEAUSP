@@ -18,10 +18,10 @@ interface CreateDonationProps {
     complement?:Donations["complement"]
     district:Donations["district"]
     zipCode:Donations["zipCode"]
-    cpf: Donations["cpf"]
-    rg: Donations["rg"]
-    cnpj: Donations["cnpj"]
-    ufrg: Donations["ufrg"]
+    cpf?: Donations["cpf"]
+    rg?: Donations["rg"]
+    cnpj?: Donations["cnpj"]
+    ufrg?: Donations["ufrg"]
     valuePaid: Donations["valuePaid"]
     token: string
     paymentMethodID: string

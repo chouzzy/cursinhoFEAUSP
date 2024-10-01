@@ -1,4 +1,4 @@
-import { Router } from "express"
+import express, { Router } from "express"
 import { CreateDonationController } from "../modules/donations/useCases/createDonation/CreateDonationController"
 import { DeleteDonationController } from "../modules/donations/useCases/deleteDonation/DeleteDonationController"
 import { ListDonationsController } from "../modules/donations/useCases/listDonations/ListDonationsController"
@@ -13,32 +13,32 @@ import { CreatePixDonationController } from "../modules/donations/useCases/creat
 const donationsRoutes = Router()
 
 const listDonationsController = new ListDonationsController()
-donationsRoutes.get('/', ensureAuthenticated, listDonationsController.handle)
+donationsRoutes.get('/', express.json(),  ensureAuthenticated, listDonationsController.handle)
 
 const excellistDonationsController = new ExcelListDonationsController()
-donationsRoutes.get('/excel', ensureAuthenticated, excellistDonationsController.handle)
+donationsRoutes.get('/excel', express.json(),  ensureAuthenticated, excellistDonationsController.handle)
 
 const createDonationController = new CreateDonationController()
-donationsRoutes.post('/create', createDonationController.handle)
+donationsRoutes.post('/create', express.json(),  createDonationController.handle)
 
 // PIX
 const pixDonationController = new CreatePixDonationController()
-donationsRoutes.post('/pix', pixDonationController.handle)
+donationsRoutes.post('/pix', express.json(),  pixDonationController.handle)
 
 const updateDonationController = new UpdateDonationController()
-donationsRoutes.put('/:donationID/update', ensureAuthenticated, updateDonationController.handle)
+donationsRoutes.put('/:donationID/update', express.json(),  ensureAuthenticated, updateDonationController.handle)
 
 const deleteDonationController = new DeleteDonationController()
-donationsRoutes.put('/:donationID/cancel', ensureAuthenticated, deleteDonationController.handle)
+donationsRoutes.put('/:donationID/cancel', express.json(),  ensureAuthenticated, deleteDonationController.handle)
 
 const refundDonationController = new RefundDonationController()
-donationsRoutes.post('/:donationID/:chargeID/refund', ensureAuthenticated, refundDonationController.handle)
+donationsRoutes.post('/:donationID/:chargeID/refund', express.json(),  ensureAuthenticated, refundDonationController.handle)
 
 const listChargesDonationController = new ListChargesDonationController()
-donationsRoutes.get('/:donationID/list', ensureAuthenticated, listChargesDonationController.handle)
+donationsRoutes.get('/:donationID/list', express.json(),  ensureAuthenticated, listChargesDonationController.handle)
 
 const syncDonationController = new SyncDonationsController()
-donationsRoutes.post('/sync', ensureAuthenticated, syncDonationController.handle)
+donationsRoutes.post('/sync', express.json(),  ensureAuthenticated, syncDonationController.handle)
 
 
 export {donationsRoutes}

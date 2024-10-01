@@ -30,7 +30,7 @@ const createPixDonationSchema = (0, yup_1.object)({
     }),
     ufrg: (0, yup_1.string)().required("O estado de emissão do RG é obrigatório.").oneOf(['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO', 'Não informado'
     ]),
-    valuePaid: (0, yup_1.number)().required(),
+    valuePaid: (0, yup_1.number)().required("É necessário indicar o valor da doação"),
     productSelectedID: (0, yup_1.string)().required("O produto é obrigatório")
 });
 exports.createPixDonationSchema = createPixDonationSchema;

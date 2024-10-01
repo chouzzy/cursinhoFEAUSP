@@ -14,6 +14,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getEfíAccessToken = exports.criarCobrancaPix = void 0;
 const axios_1 = __importDefault(require("axios"));
+const studentValidations_1 = require("./studentValidations");
+const server_1 = require("../server");
 function getEfíAccessToken(agent, credentials) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -29,6 +31,8 @@ function getEfíAccessToken(agent, credentials) {
                     grant_type: 'client_credentials'
                 }
             });
+            console.log('response.data.access_token');
+            console.log(response.data.access_token);
             return response.data.access_token;
         }
         catch (error) {
@@ -38,9 +42,25 @@ function getEfíAccessToken(agent, credentials) {
     });
 }
 exports.getEfíAccessToken = getEfíAccessToken;
-function criarCobrancaPix(agent, token, dadosCobranca) {
+function criarCobrancaPix({ cpf, name, valuePaid }) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            const dadosCobranca = {
+                calendario: {
+                    expiracao: 180
+                },
+                devedor: {
+                    cpf: `${cpf}`,
+                    nome: `${name}`
+                },
+                valor: {
+                    original: valuePaid.toFixed(2)
+                },
+                chave: `${process.env.EFI_CHAVE_PIX}`,
+                solicitacaoPagador: `Muito obrigado pela sua contribuição, ${name}! :)`
+            };
+            const credentials = yield (0, studentValidations_1.getEfiCredentials)();
+            const token = yield getEfíAccessToken(server_1.agent, credentials);
             const response = yield (0, axios_1.default)({
                 method: 'POST',
                 url: `${process.env.EFI_ENDPOINT}/v2/cob`,
@@ -48,14 +68,13 @@ function criarCobrancaPix(agent, token, dadosCobranca) {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                httpsAgent: agent,
-                data: dadosCobranca
+                httpsAgent: server_1.agent,
+                data: JSON.stringify(dadosCobranca)
             });
             console.log('Cobrança criada com sucesso:', response.data);
             return response.data; // Retorna os dados da cobrança criada
         }
         catch (error) {
-            console.error('Erro ao criar cobrança:', error);
             throw error; // Lança o erro para ser tratado em outro ponto da aplicação
         }
     });

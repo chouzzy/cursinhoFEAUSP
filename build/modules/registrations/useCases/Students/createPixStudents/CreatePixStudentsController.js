@@ -8,35 +8,26 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CreateStudentController = void 0;
-const CreateStudentUseCase_1 = require("./CreateStudentUseCase");
+exports.CreatePixStudentController = void 0;
+const CreatePixStudentUseCase_1 = require("./CreatePixStudentUseCase");
 const StudentsRepository_1 = require("../../../repositories/implementations/StudentsRepository");
-const crypto_js_1 = __importDefault(require("crypto-js"));
-class CreateStudentController {
+class CreatePixStudentController {
     handle(req, res) {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            const studentData = req.body;
-            const { token } = studentData;
             try {
-                const decryptedPaymentMethodString = crypto_js_1.default.AES.decrypt(token, (_a = process.env.PCRYPTO_PKEY) !== null && _a !== void 0 ? _a : 'vasco').toString(crypto_js_1.default.enc.Utf8);
-                const paymentMethodID = decryptedPaymentMethodString;
+                const studentData = req.body;
                 /// instanciação da classe do caso de uso
                 const studentsRepository = new StudentsRepository_1.StudentsRepository();
-                const createStudentUseCase = new CreateStudentUseCase_1.CreateStudentUseCase(studentsRepository);
-                studentData.paymentMethodID = paymentMethodID;
+                const createStudentUseCase = new CreatePixStudentUseCase_1.CreateStudentUseCase(studentsRepository);
                 // studentData.paymentMethodID = 'pm_1OmLGuHkzIzO4aMOoxSTDivn'
                 const response = yield createStudentUseCase.execute(studentData);
                 return res.status(response.statusCode).json({ response });
             }
             catch (error) {
-                return res.status(403).json({ error: error });
+                return res.status(403).json({ error });
             }
         });
     }
 }
-exports.CreateStudentController = CreateStudentController;
+exports.CreatePixStudentController = CreatePixStudentController;
