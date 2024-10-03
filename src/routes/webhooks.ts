@@ -2,265 +2,72 @@ import express, { Request, Response, NextFunction, Router, raw } from 'express';
 import { stripe } from "../server"
 import { DiscriminatedEvent } from "../types/stripeEventTypes"
 import { prisma } from "../prisma";
+import { handleCustomerSubscriptionUpdated, handleInvoicePaymentFailed, handlePaymentIntentCanceled, handlePaymentIntentFailed, handlePaymentIntentSucceeded } from '../utils/stripeWebhooksUtils';
 // import  from "stripeTypes";
 // import * as stripeTypes from "stripe-event-types"
 ///////
 
-interface RawRequestBody extends Buffer { }
-
-
 const webhooksRoutes = Router()
 
-webhooksRoutes.use(raw({ type: 'application/json' }));
-webhooksRoutes.post('/', raw({ type: 'application/json' }), async (req, res) => {
+webhooksRoutes.post('/', express.raw({ type: 'application/json' }), async (req: Request, res: Response) => {
 
-    let event = req.body;
-    const rawBody = req.body;
     // Only verify the event if you have an endpoint secret defined.
     // Otherwise use the basic event deserialized with JSON.parse
     const endpointSecret = process.env.STRIPE_SIGNIN_SECRET_KEY
+
     if (endpointSecret) {
         // Get the signature sent by Stripe
         try {
 
-
             const signature = req.headers['stripe-signature'];
-
-            if (signature) {
-
-                const stripeEvent = stripe.webhooks.constructEvent(
-                    rawBody,
-                    signature,
-                    endpointSecret
-                ) as DiscriminatedEvent;
-
-                if (stripeEvent.type === 'invoice.payment_failed') {
-
-                    const { id } = stripeEvent.data.object
-                    const invoice = await stripe.invoices.retrieve(id)
-
-                    const { subscription } = invoice
-                    if (!subscription || typeof (subscription) != 'string') {
-                        return res.sendStatus(200)
-                    }
-                    const donation = await prisma.donations.findFirst({
-                        where: { stripeSubscriptionID: subscription },
-                    })
-
-                    //Proibe qualquer tipo de erro com student aqui. Se não for donation ou ela não for encontrada, é 200.
-                    if (!donation) {
-                        return res.sendStatus(200)
-                    }
-
-                    await stripe.subscriptions.cancel(subscription)
-                    await prisma.donations.update({
-                        where: { id: donation.id },
-                        data: {
-                            paymentStatus: 'canceled'
-                        }
-                    })
-
-                    return res.sendStatus(200)
-                }
-
-                if (stripeEvent.type === "customer.subscription.updated") {
-
-                    // O evento é do tipo "invoice.payment_succeeded"
-
-                    // Obtém o ID da fatura
-                    const subscription = stripeEvent.data.object;
-                    const { id, items, status } = subscription
-
-                    // Obtém a doação associada à assinatura
-                    const donation = await prisma.donations.findFirst({
-                        where: { stripeSubscriptionID: id },
-                    });
-
-                    console.log('donation --------------------- retrieved')
-                    console.log(donation?.id)
-
-                    if (!donation) {
-                        console.log('donation not found')
-                        return res.sendStatus(200)
-                    }
-
-                    // Atualiza o status da doação para "paid"
-                    console.log('Donation found')
-
-                    await prisma.donations.update({
-                        where: { id: donation.id },
-                        data: {
-                            paymentStatus: status,
-                            ciclePaid: { increment: 1 },
-                            valuePaid: { increment: items.data[0].plan.amount ?? 0 }
-                        }
-                    })
-
-                    console.log('donation incremented')
-
-                    return res.sendStatus(200)
-                }
-
-                if (stripeEvent.type === "payment_intent.processing") {
-                    console.log('payment_intent.processing')
-                    console.log(stripeEvent.data.object)
-                }
-                if (stripeEvent.type === "payment_intent.created") {
-                    console.log('payment_intent.created')
-                    
-                }
-                if (stripeEvent.type === "payment_intent.succeeded") {
-                    console.log('payment_intent.succeeded')
-
-
-                    const { customer, metadata, amount } = stripeEvent.data.object
-
-                    if (customer && metadata) {
-
-
-                        const foundStudent = await prisma.students.findFirst({
-                            where: {
-                                AND:[
-                                    {stripeCustomerID: String(customer)},
-                                    {cpf: metadata.cpf}
-                                ]
-                            }
-                        })
-
-                        if (!foundStudent) {
-                            return res.sendStatus(404).json({message: "Estudante não encontrado pelo cpf"})
-                        }
-
-                        const studentUpdated = await prisma.students.update({
-                            where: {
-                                id: foundStudent.id
-                            },
-                            data: {
-                                purcharsedSubscriptions: {
-                                    updateMany: {
-                                        where: {
-                                            schoolClassID: metadata.schoolClassID
-                                        },
-                                        data: {
-                                            paymentStatus: 'CONCLUIDA',
-                                            valuePaid: amount
-                                        }
-                                    }
-                                }
-                            }
-                        })
-
-
-                        console.log(`student updated: ${studentUpdated.id}`)
-                    }
-                }
-                if (stripeEvent.type === "payment_intent.succeeded") {
-                    console.log('payment_intent.succeeded')
-
-
-                    const { customer, metadata } = stripeEvent.data.object
-
-                    if (customer && metadata) {
-
-
-                        const foundStudent = await prisma.students.findFirst({
-                            where: {
-                                AND:[
-                                    {stripeCustomerID: String(customer)},
-                                    {cpf: metadata.cpf}
-                                ]
-                            }
-                        })
-
-                        if (!foundStudent) {
-                            return res.sendStatus(404).json({message: "Estudante não encontrado pelo cpf"})
-                        }
-
-                        const studentUpdated = await prisma.students.update({
-                            where: {
-                                id: foundStudent.id
-                            },
-                            data: {
-                                purcharsedSubscriptions: {
-                                    updateMany: {
-                                        where: {
-                                            schoolClassID: metadata.schoolClassID
-                                        },
-                                        data: {
-                                            paymentStatus: 'CONCLUIDA',
-                                        }
-                                    }
-                                }
-                            }
-                        })
-
-
-                        console.log(`student updated: ${studentUpdated.id}`)
-                    }
-                }
-
-                
-                if (stripeEvent.type === "payment_intent.payment_failed") {
-                    console.log('payment_intent.payment_failed')
-
-
-                    const { customer, metadata } = stripeEvent.data.object
-
-                    if (customer && metadata) {
-
-
-                        const foundStudent = await prisma.students.findFirst({
-                            where: {
-                                AND:[
-                                    {stripeCustomerID: String(customer)},
-                                    {cpf: metadata.cpf}
-                                ]
-                            }
-                        })
-
-                        if (!foundStudent) {
-                            return res.sendStatus(404).json({message: "Estudante não encontrado pelo cpf"})
-                        }
-
-                        const studentUpdated = await prisma.students.update({
-                            where: {
-                                id: foundStudent.id
-                            },
-                            data: {
-                                purcharsedSubscriptions: {
-                                    updateMany: {
-                                        where: {
-                                            schoolClassID: metadata.schoolClassID
-                                        },
-                                        data: {
-                                            paymentStatus: 'FALHOU',
-                                        }
-                                    }
-                                }
-                            }
-                        })
-
-
-                        console.log(`student updated: ${studentUpdated.id}`)
-                    }
-                }
-                if (stripeEvent.type === "payment_intent.requires_action") {
-                    console.log('payment_intent.requires_action')
-                    console.log(stripeEvent.data.object)
-
-                    
-                }
-
-                return res.sendStatus(200)
-
-            } else {
-                console.log(('signature not found'))
-                return res.sendStatus(200)
+            if (!signature) {
+                console.error('stripe-signature não encontrada.');
+                return res.status(400).send('Webhook Error: stripe-signature header missing.');
             }
-        } catch (error) {
-            console.log(('signature error'))
-            console.log((error))
+
+            const stripeEvent = stripe.webhooks.constructEvent(
+                req.body,
+                signature,
+                endpointSecret,
+            ) as DiscriminatedEvent;
+
+            switch (stripeEvent.type) {
+                case 'invoice.payment_failed':
+                    await handleInvoicePaymentFailed(stripeEvent);
+                    break;
+
+                case 'customer.subscription.updated':
+                    await handleCustomerSubscriptionUpdated(stripeEvent);
+                    break;
+
+                case 'payment_intent.succeeded':
+                    await handlePaymentIntentSucceeded(stripeEvent);
+                    break;
+                case 'payment_intent.payment_failed':
+                    await handlePaymentIntentFailed(stripeEvent);
+                    break;
+                case 'payment_intent.canceled':
+                    await handlePaymentIntentCanceled(stripeEvent);
+                    break;
+                case 'payment_intent.processing':
+                    console.log('payment_intent.processing')
+                    break;
+
+                case "payment_intent.created":
+                    console.log('payment_intent.created')
+                    break
+                case "payment_intent.requires_action":
+                    console.log('payment_intent.requires_action')
+                    await handlePaymentIntentCanceled(stripeEvent)
+                    break
+
+            }
             return res.sendStatus(200)
+
+
+        } catch (error: any) {
+            console.error('Erro ao processar webhook:', error);
+            return res.status(400).send(`Webhook Error: ${error.message}`);
         }
 
 

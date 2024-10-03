@@ -1,43 +1,87 @@
+import { Donations as DonationsPrisma } from "@prisma/client"
+
 class Donations {
 
-    id!: string
-    name!: string
-    email!: string
-    phoneNumber!: string
-    isPhoneWhatsapp!: boolean
-    gender?: string
-    birth!: string
-    state!: string
-    city!: string
-    street!: string
-    homeNumber!: string
-    complement!: string | null
-    district!: string
-    zipCode!: string
+    id!: DonationsPrisma["id"]
+    name!: DonationsPrisma["name"]
+    email!: DonationsPrisma["email"]
+    phoneNumber!: DonationsPrisma["phoneNumber"]
+    isPhoneWhatsapp!: DonationsPrisma["isPhoneWhatsapp"]
+    gender?: DonationsPrisma["gender"]
+    birth!: DonationsPrisma["birth"]
+    state!: DonationsPrisma["state"]
+    city!: DonationsPrisma["city"]
+    street!: DonationsPrisma["street"]
+    homeNumber!: DonationsPrisma["homeNumber"]
+    complement!: DonationsPrisma["complement"]
+    district!: DonationsPrisma["district"]
+    zipCode!: DonationsPrisma["zipCode"]
 
-    cpf!: string
-    rg!: string | null
-    cnpj!: string | null
-    ufrg!: string
+    cpf!: DonationsPrisma["cpf"]
+    rg!: DonationsPrisma["rg"]
+    cnpj!: DonationsPrisma["cnpj"]
+    ufrg!: DonationsPrisma["ufrg"]
 
-    valuePaid!: number
-    paymentMethod!: string
-    paymentStatus!: string
-    paymentDate!: Date | null
+    valuePaid!: DonationsPrisma["valuePaid"]
+    paymentMethod!: DonationsPrisma["paymentMethod"]
+    paymentStatus!: DonationsPrisma["paymentStatus"]
+    paymentDate!: DonationsPrisma["paymentDate"]
 
-    stripeCustomerID?: string
-    stripeSubscriptionID?: string
-    donationExpirationDate!: Date | null
+    stripeCustomerID?: DonationsPrisma["stripeCustomerID"]
+    stripeSubscriptionID!: DonationsPrisma["stripeSubscriptionID"]
+    donationExpirationDate!: DonationsPrisma["donationExpirationDate"]
 
-    txid?: string | null
-    pixCopiaECola?: string | null
-    pixQrCode?: string | null
-    pixStatus?: string | null
-    pixValor?: string | null
-    pixDate?: string | null
-    pixExpiracaoEmSegundos?: number | null
+    txid?: DonationsPrisma["txid"]
+    pixCopiaECola?: DonationsPrisma["pixCopiaECola"]
+    pixQrCode?: DonationsPrisma["pixQrCode"]
+    pixStatus?: DonationsPrisma["pixStatus"]
+    pixValor?: DonationsPrisma["pixValor"]
+    pixDate?: DonationsPrisma["pixDate"]
+    pixExpiracaoEmSegundos?: DonationsPrisma["pixExpiracaoEmSegundos"]
 
-    createdAt!: Date
+    createdAt!: DonationsPrisma["createdAt"]
+
 }
 
 export { Donations }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// cpf!: string
+// rg!: string | null
+// cnpj!: string | null
+// ufrg!: string
+
+// valuePaid!: number
+// paymentMethod!: string
+// paymentStatus!: string
+// paymentDate!: Date | null
+
+// stripeCustomerID?: string
+// stripeSubscriptionID!: string | null
+// donationExpirationDate!: Date | null
+
+// txid?: string | null
+// pixCopiaECola?: string | null
+// pixQrCode?: string | null
+// pixStatus?: string | null
+// pixValor?: string | null
+// pixDate?: string | null
+// pixExpiracaoEmSegundos?: number | null
+
+// createdAt!: Date

@@ -17,13 +17,6 @@ class CreateDonationUseCase {
     }
     execute(donationData) {
         return __awaiter(this, void 0, void 0, function* () {
-            //é responsabilidade do controller validar os dados recebidos na requisição
-            if (!donationData.cpf && donationData.cnpj) {
-                donationData.cpf = "Não informado";
-            }
-            if (donationData.rg === "Não informado") {
-                donationData.ufrg = "Não informado";
-            }
             if (!donationData.cpf && !donationData.cnpj) {
                 return ({
                     isValid: false,

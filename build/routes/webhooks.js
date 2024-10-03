@@ -1,4 +1,27 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -10,17 +33,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.webhooksRoutes = void 0;
-const express_1 = require("express");
+const express_1 = __importStar(require("express"));
 const server_1 = require("../server");
-const prisma_1 = require("../prisma");
+const stripeWebhooksUtils_1 = require("../utils/stripeWebhooksUtils");
 // import  from "stripeTypes";
 // import * as stripeTypes from "stripe-event-types"
 ///////
 const webhooksRoutes = (0, express_1.Router)();
 exports.webhooksRoutes = webhooksRoutes;
-webhooksRoutes.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
-    let event = req.body;
+webhooksRoutes.post('/', express_1.default.raw({ type: 'application/json' }), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     // Only verify the event if you have an endpoint secret defined.
     // Otherwise use the basic event deserialized with JSON.parse
     const endpointSecret = process.env.STRIPE_SIGNIN_SECRET_KEY;
@@ -28,70 +49,43 @@ webhooksRoutes.post('/', (req, res) => __awaiter(void 0, void 0, void 0, functio
         // Get the signature sent by Stripe
         try {
             const signature = req.headers['stripe-signature'];
-            if (signature) {
-                const stripeEvent = server_1.stripe.webhooks.constructEvent(req.body, signature, endpointSecret);
-                if (stripeEvent.type === 'invoice.payment_failed') {
-                    const { id } = stripeEvent.data.object;
-                    const invoice = yield server_1.stripe.invoices.retrieve(id);
-                    const { subscription } = invoice;
-                    if (!subscription || typeof (subscription) != 'string') {
-                        return res.sendStatus(200);
-                    }
-                    const donation = yield prisma_1.prisma.donations.findFirst({
-                        where: { stripeSubscriptionID: subscription },
-                    });
-                    //Proibe qualquer tipo de erro com student aqui. Se não for donation ou ela não for encontrada, é 200.
-                    if (!donation) {
-                        return res.sendStatus(200);
-                    }
-                    yield server_1.stripe.subscriptions.cancel(subscription);
-                    yield prisma_1.prisma.donations.update({
-                        where: { id: donation.id },
-                        data: {
-                            paymentStatus: 'canceled'
-                        }
-                    });
-                    return res.sendStatus(200);
-                }
-                if (stripeEvent.type === "customer.subscription.updated") {
-                    // O evento é do tipo "invoice.payment_succeeded"
-                    // Obtém o ID da fatura
-                    const subscription = stripeEvent.data.object;
-                    const { id, items, status } = subscription;
-                    // Obtém a doação associada à assinatura
-                    const donation = yield prisma_1.prisma.donations.findFirst({
-                        where: { stripeSubscriptionID: id },
-                    });
-                    console.log('donation --------------------- retrieved');
-                    console.log(donation === null || donation === void 0 ? void 0 : donation.id);
-                    if (!donation) {
-                        console.log('donation not found');
-                        return res.sendStatus(200);
-                    }
-                    // Atualiza o status da doação para "paid"
-                    console.log('Donation found');
-                    yield prisma_1.prisma.donations.update({
-                        where: { id: donation.id },
-                        data: {
-                            paymentStatus: status,
-                            ciclePaid: { increment: 1 },
-                            valuePaid: { increment: (_a = items.data[0].plan.amount) !== null && _a !== void 0 ? _a : 0 }
-                        }
-                    });
-                    console.log('donation incremented');
-                    return res.sendStatus(200);
-                }
-                return res.sendStatus(202);
+            if (!signature) {
+                console.error('stripe-signature não encontrada.');
+                return res.status(400).send('Webhook Error: stripe-signature header missing.');
             }
-            else {
-                console.log(('signature not found'));
-                return res.sendStatus(200);
+            const stripeEvent = server_1.stripe.webhooks.constructEvent(req.body, signature, endpointSecret);
+            switch (stripeEvent.type) {
+                case 'invoice.payment_failed':
+                    yield (0, stripeWebhooksUtils_1.handleInvoicePaymentFailed)(stripeEvent);
+                    break;
+                case 'customer.subscription.updated':
+                    yield (0, stripeWebhooksUtils_1.handleCustomerSubscriptionUpdated)(stripeEvent);
+                    break;
+                case 'payment_intent.succeeded':
+                    yield (0, stripeWebhooksUtils_1.handlePaymentIntentSucceeded)(stripeEvent);
+                    break;
+                case 'payment_intent.payment_failed':
+                    yield (0, stripeWebhooksUtils_1.handlePaymentIntentFailed)(stripeEvent);
+                    break;
+                case 'payment_intent.canceled':
+                    yield (0, stripeWebhooksUtils_1.handlePaymentIntentCanceled)(stripeEvent);
+                    break;
+                case 'payment_intent.processing':
+                    console.log('payment_intent.processing');
+                    break;
+                case "payment_intent.created":
+                    console.log('payment_intent.created');
+                    break;
+                case "payment_intent.requires_action":
+                    console.log('payment_intent.requires_action');
+                    yield (0, stripeWebhooksUtils_1.handlePaymentIntentCanceled)(stripeEvent);
+                    break;
             }
+            return res.sendStatus(200);
         }
         catch (error) {
-            console.log(('signature error'));
-            console.log((error));
-            return res.sendStatus(200);
+            console.error('Erro ao processar webhook:', error);
+            return res.status(400).send(`Webhook Error: ${error.message}`);
         }
     }
     res.sendStatus(200);

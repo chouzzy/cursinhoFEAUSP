@@ -23,18 +23,15 @@ const agent = new https.Agent({
 
 const app = express()
 
-
-
-
 app.use(cors({
     origin: "*",
     methods: ['GET', 'PUT', 'POST', 'DELETE', 'PATCH'],
 }));
 
-// app.use(express.json())
-
 // app.use(bodyParser.json({ type: 'application/json' }))
 
+// app.use('/webhooks', express.raw({ type: "*/*" }));
+// app.use(express.json({type:"application/json"}))
 app.use(router)
 
 // Tratamento de erro
@@ -54,10 +51,6 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     })
 })
 
-app.listen(8081, () => console.log('Sir, we are back online! 🦥'))
-
-
-
-
+app.listen(3000, () => console.log('Sir, we are back online! 🦥'))
 
 export { stripe, cert, agent }

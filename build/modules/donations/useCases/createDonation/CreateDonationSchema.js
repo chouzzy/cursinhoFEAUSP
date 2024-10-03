@@ -16,19 +16,10 @@ const donationSchema = (0, yup_1.object)({
     complement: (0, yup_1.string)(),
     district: (0, yup_1.string)().required("O bairro é obrigatório"),
     zipCode: (0, yup_1.string)().required("O CEP é obrigatório").min(9, "O CEP deve conter 8 algarismos e um hífen. Ex: 08230-030"),
-    cpf: (0, yup_1.string)().test('cpf-validation', 'O CPF deve conter 11 caracteres ou "Não informado"', (value) => {
-        // Check if the value is either "Não informado" or a string with length 11
-        return value === "Não informado" || (typeof value === "string" && value.length === 11);
-    }),
-    rg: (0, yup_1.string)().test('cpf-validation', 'O RG deve conter 9 caracteres ou "Não informado"', (value) => {
-        // Check if the value is either "Não informado" or a string with length 11
-        return value === "Não informado" || (typeof value === "string" && value.length >= 9);
-    }),
-    cnpj: (0, yup_1.string)().test('cpf-validation', 'O CNPJ deve conter 14 caracteres ou "Não informado"', (value) => {
-        // Check if the value is either "Não informado" or a string with length 11
-        return value === "Não informado" || (typeof value === "string" && value.length === 14);
-    }),
-    ufrg: (0, yup_1.string)().required("O estado de emissão do RG é obrigatório.").oneOf([
+    cpf: (0, yup_1.string)().length(11, 'O CPF deve conter 11 caracteres'),
+    rg: (0, yup_1.string)().length(9, 'O RG deve conter 9 caracteres'),
+    cnpj: (0, yup_1.string)().length(14, 'O CNPJ deve conter 14 caracteres'),
+    ufrg: (0, yup_1.string)().oneOf([
         'AC',
         'AL',
         'AP',
@@ -56,9 +47,7 @@ const donationSchema = (0, yup_1.object)({
         'SP',
         'SE',
         'TO',
-        'Não informado'
     ]),
-    valuePaid: (0, yup_1.number)().required(),
     paymentMethodID: (0, yup_1.string)().required("O método de pagamento é necessário"),
     productSelectedID: (0, yup_1.string)().required("O produto é obrigatório"),
     cycles: (0, yup_1.number)().required("A quantidade de ciclos é necessária")

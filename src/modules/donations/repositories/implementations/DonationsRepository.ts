@@ -11,7 +11,9 @@ import { ListDonationsQuery } from "../../useCases/listDonations/ListDonationsCo
 import { agent, stripe } from "../../../../server";
 import { CreatePixDonationProps } from "../../useCases/createPixDonation/CreatePixDonationController";
 import { criarCobrancaPix, getEfíAccessToken } from "../../../../hooks/efíHooks";
-import { createDonationPix, updateDonationPix } from "../../../../utils/donationValidations";
+import { createDonationPix, createPrismaDonation, getStripeProduct, updateDonationBought, updateDonationPix } from "../../../../utils/donationHelpers";
+import { getStripeDonationCustomerID } from "../../../../utils/studentHelpers";
+import { StripeSubscriptionsManager } from "../../../../hooks/StripeSubscriptionsManager";
 
 
 class DonationsRepository implements IDonationsRepository {
@@ -42,44 +44,7 @@ class DonationsRepository implements IDonationsRepository {
                 page = 1
             }
 
-            const filteredDonations = await prisma.donations.groupBy({
-                by: [
-                    'id',
-                    'name',
-                    'email',
-                    'phoneNumber',
-                    'isPhoneWhatsapp',
-                    'gender',
-                    'birth',
-                    'state',
-                    'city',
-                    'homeNumber',
-                    'complement',
-                    'district',
-                    'zipCode',
-                    'street',
-                    'cpf',
-                    'rg',
-                    'cnpj',
-                    'ufrg',
-
-                    'valuePaid',
-                    'paymentMethod',
-                    'paymentStatus',
-                    'paymentDate',
-                    'ciclesBought',
-                    'ciclePaid',
-                    'valueBought',
-
-                    'stripeCustomerID',
-                    'donationExpirationDate',
-
-                    'txid',
-                    'pixCopiaECola',
-                    'pixQrCode',
-
-                    'createdAt',
-                ],
+            const filteredDonations = await prisma.donations.findMany({
                 where: {
                     AND: [
                         { name: { contains: name } },
@@ -87,9 +52,7 @@ class DonationsRepository implements IDonationsRepository {
                         { cpf: cpf },
                         { cnpj: cnpj },
                         { paymentStatus: paymentStatus }
-                    ]
-                },
-                having: {
+                    ],
                     valuePaid: {
                         gte: initValue,
                         lte: endValue
@@ -103,8 +66,7 @@ class DonationsRepository implements IDonationsRepository {
                     name: 'asc'
                 },
                 skip: (page - 1) * pageRange,
-                take: pageRange
-
+                take: pageRange,
             })
 
             return {
@@ -130,195 +92,38 @@ class DonationsRepository implements IDonationsRepository {
     async createDonation(donationData: CreateDonationProps): Promise<validationResponse> {
 
         try {
+            const { product, price, unit_amount } = await getStripeProduct(donationData.productSelectedID)
 
-            //Criando a donation no banco de dados
-            const createdDonation = await prisma.donations.create({
-                data: {
-                    name: donationData.name,
-                    email: donationData.email,
-                    phoneNumber: donationData.phoneNumber,
-                    isPhoneWhatsapp: donationData.isPhoneWhatsapp,
-                    gender: donationData.gender ?? 'Não informado',
-                    birth: donationData.birth,
-                    state: donationData.state,
-                    city: donationData.city,
-                    street: donationData.street,
-
-                    homeNumber: donationData.homeNumber,
-                    complement: donationData.complement ?? 'Não informado',
-                    district: donationData.district,
-                    zipCode: donationData.zipCode,
-                    cpf: donationData.cpf,
-                    rg: donationData.rg ?? 'Não informado',
-                    cnpj: donationData.cnpj ?? 'Não informado',
-                    ufrg: donationData.ufrg,
-                    valuePaid: 0,
-                    paymentDate: new Date(),
-                    paymentMethod: 'Sem informação ainda',
-                    paymentStatus: 'Sem informação ainda',
-                    stripeCustomerID: 'Sem informação ainda',
-                    stripeSubscriptionID: 'Sem informação ainda',
-                    ciclePaid: 0,
-                    ciclesBought: 0,
-                    valueBought: donationData.valuePaid,
-
-                    donationExpirationDate: null
-                }
-            })
-
-
-            // Buscando o RG e CPF do customer no Stripe
-            const stripeCustomer = new StripeCustomer()
+            const createdDonation = await createPrismaDonation(donationData, unit_amount)
             const { cpf, rg, cnpj } = createdDonation
 
-            //Pesquisa o customer no stripe, priorizando CNPJ. O Front-end deveá enviar apenas CPF ou CNPJ, nunca os dois. Caso envie, o CNPJ será priorizado na busca.
-            const stripeCustomerID = await stripeCustomer.searchCustomer(cpf, cnpj)
+            // Buscando o RG e CPF do customer no Stripe
+            const stripeCustomerID = await getStripeDonationCustomerID(donationData)
 
 
             // Validando existencia do customer, se ele não existir, a gente cria
-            if (!stripeCustomerID) {
-
-                // Não existe nenhum customer com esse RG e CPF no stripe, por isso vamos criar
-                const stripeCustomerCreatedID = await stripeCustomer.createCustomer(donationData)
-
-                ////TESTE SUBSCRIPTION
-                const stripeFrontEnd = new StripeFakeFront()
-
-                const stripeResponse = await stripeFrontEnd.createSubscription({
-                    donationID: createdDonation.id,
-                    stripeCustomerID: stripeCustomerCreatedID,
-                    cpf,
-                    cnpj,
-                    rg,
-                    paymentMethodID: donationData.paymentMethodID,
-                    productSelectedID: donationData.productSelectedID,
-                    cycles: donationData.cycles
-                })
-
-
-                if (!stripeResponse.stripeSubscription) {
-
-                    // Atribuindo o stripeCustomerID a donation recém criada e atualizando os status de pagamento
-                    await prisma.donations.update({
-                        where: { id: createdDonation.id },
-                        data: {
-                            stripeCustomerID: stripeCustomerCreatedID,
-                            paymentStatus: 'declined'
-
-                        }
-                    })
-
-                    return stripeResponse
-                }
-
-
-                const { current_period_end, status, start_date, id } = stripeResponse.stripeSubscription
-                let { cancel_at } = stripeResponse.stripeSubscription
-                const { unit_amount } = stripeResponse.stripeSubscription.items.data[0].price
-
-                if (!cancel_at) {
-                    cancel_at = current_period_end
-                }
-
-                // // Atribuindo o stripeCustomerID a donation recém criada e atualizando os status de pagamento
-
-                const cancelAtDate = new Date(cancel_at * 1000).getTime()
-                const startAtDate = new Date(start_date * 1000).getTime()
-                const totalPaymentsBought = Math.floor(((cancelAtDate - startAtDate) / (1000 * 60 * 60 * 24 * 30))) - 1;
-
-
-
-                await prisma.donations.update({
-                    where: { id: createdDonation.id },
-                    data: {
-                        stripeCustomerID: stripeCustomerCreatedID,
-                        stripeSubscriptionID: id,
-                        paymentMethod: 'creditcard',
-                        paymentStatus: status,
-                        paymentDate: new Date(start_date * 1000),
-                        donationExpirationDate: cancel_at ? new Date(cancel_at * 1000) : '',
-                        ciclePaid: 1,
-                        ciclesBought: (totalPaymentsBought),
-                        valueBought: (unit_amount ?? 0) * (totalPaymentsBought),
-                        valuePaid: unit_amount ?? 0
-
-                    }
-                })
-
-                const { isValid, successMessage, statusCode } = stripeResponse
-                return {
-                    isValid,
-                    successMessage,
-                    statusCode
-                }
-
-            }
-
-            // Caso o cliente já tenha feito uma doação anteriormente
-            const stripeFrontEnd = new StripeFakeFront()
-
-            const stripeResponse = await stripeFrontEnd.createSubscription({
+            const stripeSubscriptionsManager = new StripeSubscriptionsManager()
+            const stripeSubscription = await stripeSubscriptionsManager.createDonationSubscription({
                 donationID: createdDonation.id,
-                stripeCustomerID: stripeCustomerID,
+                stripeCustomerID,
                 cpf,
                 cnpj,
                 rg,
-                paymentMethodID: donationData.paymentMethodID,
-                productSelectedID: donationData.productSelectedID,
+                paymentMethod: donationData.paymentMethodID,
+                product,
+                unit_amount,
                 cycles: donationData.cycles
             })
 
-            if (!stripeResponse.stripeSubscription) {
+            console.log('stripeResponse')
+            console.log(stripeSubscription)
 
-                // Atribuindo o stripeCustomerID a donation recém criada e atualizando os status de pagamento
-                await prisma.donations.update({
-                    where: { id: createdDonation.id },
-                    data: {
-                        stripeCustomerID: stripeCustomerID,
-                        paymentStatus: 'declined'
-                    }
-                })
-
-                return stripeResponse
-            }
-
-
-            let { cancel_at } = stripeResponse.stripeSubscription
-            const { current_period_end, status, start_date, id, } = stripeResponse.stripeSubscription
-            const { unit_amount } = stripeResponse.stripeSubscription.items.data[0].price
-
-            if (!cancel_at) {
-                cancel_at = current_period_end
-            }
-            const cancelAtDate = new Date(cancel_at * 1000).getTime()
-            const startAtDate = new Date(start_date * 1000).getTime()
-            const totalPaymentsBought = Math.floor((cancelAtDate - startAtDate) / (1000 * 60 * 60 * 24 * 30)) - 1;
-
-
-            // // Atribuindo o stripeCustomerID a donation recém criada e atualizando os status de pagamento
-            await prisma.donations.update({
-                where: { id: createdDonation.id },
-                data: {
-                    stripeCustomerID: stripeCustomerID,
-                    stripeSubscriptionID: id,
-                    paymentMethod: 'creditcard',
-                    paymentStatus: status,
-                    paymentDate: new Date(start_date * 1000),
-                    donationExpirationDate: cancel_at ? new Date(cancel_at * 1000) : null,
-                    ciclePaid: 1,
-                    ciclesBought: totalPaymentsBought,
-                    valueBought: (unit_amount ?? 0) * totalPaymentsBought,
-                    valuePaid: unit_amount ?? 0
-
-                }
-            })
-
-            const { isValid, successMessage, statusCode } = stripeResponse
+            const donationUpdated = await updateDonationBought(createdDonation, stripeSubscription, stripeCustomerID, unit_amount)
 
             return {
-                isValid,
-                successMessage,
-                statusCode
+                isValid: true,
+                statusCode: 202,
+                successMessage: "Doação criada com sucesso!",
             }
         }
         catch (error: unknown) {
@@ -344,7 +149,7 @@ class DonationsRepository implements IDonationsRepository {
             const createdDonation = await createDonationPix(pixDonationData)
 
 
-            const pixData: pixCobDataProps = await criarCobrancaPix({cpf, name, valuePaid})
+            const pixData: pixCobDataProps = await criarCobrancaPix({ cpf, name, valuePaid })
 
             const { txid, pixCopiaECola, location, status, valor, calendario } = pixData
             const updatedDonation = await updateDonationPix(pixData, createdDonation)

@@ -13,7 +13,7 @@ import Stripe from "stripe";
 import { checkDuplicateSchoolClassIDs } from "../../../../utils/checkDuplicatedSchoolClassID";
 import { CreatePixStudentRequestProps } from "../../useCases/Students/createPixStudents/CreatePixStudentsController";
 import { criarCobrancaPix, getEfíAccessToken } from "../../../../hooks/efíHooks";
-import { checkIfPixAlreadyConcluded, checkIfPixIsExpired, checkSchoolClassExists, createStudent, createStudentPix, getEfiCredentials, getSchoolClassPrice, getStripeCustomerID, getStudent, getStudentAlreadyActive, getStudentByCPForRG, updateStudentPaymentInProgress, updateStudentPix } from "../../../../utils/studentHelpers";
+import { checkIfPixAlreadyConcluded, checkIfPixIsExpired, checkSchoolClassExists, createStudent, createStudentPix, getEfiCredentials, getSchoolClassPrice, getStripeStudentCustomerID, getStudent, getStudentAlreadyActive, getStudentByCPForRG, updateStudentPaymentInProgress, updateStudentPix } from "../../../../utils/studentHelpers";
 import { StripeSubscriptionsManager } from "../../../../hooks/StripeSubscriptionsManager";
 
 
@@ -176,9 +176,6 @@ class StudentsRepository implements IStudentsRepository {
             // CHECA SE A TURMA EXISTE
             const studentDataSchoolClassID = studentData.purcharsedSubscriptions.schoolClassID
 
-            console.log('studentDataSchoolClassID')
-            console.log(studentDataSchoolClassID)
-
             const schoolClassFound = await getSchoolClassPrice(studentDataSchoolClassID)
 
             if (!schoolClassFound || schoolClassFound === 'NOT FOUND') {
@@ -313,7 +310,7 @@ class StudentsRepository implements IStudentsRepository {
 
 
             // CHECA SE CLIENTE JÁ EXISTE NO STRIPE E CRIA
-            const stripeCustomerID = await getStripeCustomerID(studentData)
+            const stripeCustomerID = await getStripeStudentCustomerID(studentData)
 
             // CHECA SE INSCRIÇÃO EXISTE NO BANCO DE DADOS
             const searchedStudent = await getStudent(cpf, rg)

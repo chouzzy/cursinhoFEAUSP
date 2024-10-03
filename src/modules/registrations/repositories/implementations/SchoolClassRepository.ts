@@ -9,8 +9,8 @@ import { StripeProducts } from "../../../../hooks/StripeProducts";
 import { CreateSchoolClassDocsRequestProps } from "../../useCases/SchoolClass/createSchoolClassDocs/CreateSchoolClassDocsController";
 import { Students } from "../../entities/Students";
 import { CreateSchoolClassStagesRequestProps } from "../../useCases/SchoolClass/createSchoolClassStages/CreateSchoolClassStagesController";
-import { v4 as uuidV4, v4 } from "uuid";
-import { stripe } from "../../../../server";
+import { v4 as uuidV4 } from "uuid";
+import { getPrismaSchoolClass, updatePrismaSchoolClass } from "../../../../utils/schoolClassHelpers";
 
 
 class SchoolClassRepository implements ISchoolClassRepository {
@@ -159,146 +159,51 @@ class SchoolClassRepository implements ISchoolClassRepository {
 
     async updateSchoolClass(
         schoolClassData: UpdateSchoolClassRequestProps,
-        schoolClassID: SchoolClass["id"],
-        stripeProductID?: SchoolClass["stripeProductID"] //enviado apenas na criação de um schoolClass, nunca num update
+        schoolClassID: SchoolClass["id"]
     ): Promise<validationResponse> {
 
-        // console.log('dentro do update schoolClass')
-        // console.log('schoolClassData')
-        // console.log(schoolClassData)
-        // console.log('schoolClassID')
-        // console.log(schoolClassID)
-        // console.log('stripeProductID')
-        // console.log(stripeProductID)
+
 
         try {
-            const schoolClass = await prisma.schoolClass.findUnique({
-                where: {
-                    id: schoolClassID
-                }
-            })
 
-            if (!schoolClass) {
-                return { isValid: false, errorMessage: 'Turma não encontrada.', statusCode: 403 }
-            }
-
+            const schoolClass = await getPrismaSchoolClass(schoolClassID)
+            
+            const { stripeProductID } = schoolClass
+            
             //Se tiver o product ID, iremos atualizá-lo, pois se trata de um update do webhook
-
-            if (stripeProductID) {
-
-                const newDefaultPrice = schoolClass.subscriptions.price
-
-                if (!newDefaultPrice) {
-
-                    const updatedSchoolClass = await prisma.schoolClass.update({
-                        where: {
-                            id: schoolClassID
-                        },
-                        data: {
-                            stripeProductID: stripeProductID ?? schoolClass.stripeProductID
-                        }
-                    })
-
-                    return {
-                        isValid: true,
-                        statusCode: 202,
-                        successMessage: 'Turma criada no servidor Stripe e atualizada com sucesso no banco de dados.',
-                        schoolClass: updatedSchoolClass
-                    }
-                }
-
-                const stripeProduct = await stripe.products.retrieve(stripeProductID)
-
-                // console.log('stripeProduct')
-                // console.log(stripeProduct)
-
-                const { default_price } = stripeProduct
-
-                if (!default_price || typeof (default_price) != 'string') {
-                    return {
-                        isValid: false,
-                        errorMessage: 'Não foi possível encontrar o preço antigo do produto',
-                        statusCode: 403
-                    }
-                }
-
-                const price = await stripe.prices.create({
-                    unit_amount: newDefaultPrice,
-                    currency: 'brl',
-                    recurring: { interval: 'month' },
-                    product: stripeProduct.id,
-                });
-
-                // console.log('price')
-                // console.log(price)
-
-                //
-                await stripe.products.update(
-                    stripeProductID,
-                    {
-                        default_price: price.id,
-                        name: schoolClassData.title ?? stripeProduct.name,
-                        description: schoolClassData.informations.description ?? stripeProduct.description
-                    }
-                )
-
-                const updatedSchoolClass = await prisma.schoolClass.update({
-                    where: {
-                        id: schoolClassID
-                    },
-                    data: {
-                        title: schoolClassData.title ?? schoolClassData.title,
-                        informations: schoolClassData.informations ?? schoolClassData.informations,
-                        subscriptions: schoolClassData.subscriptions ?? schoolClassData.subscriptions,
-                        selectiveStages: schoolClassData.selectiveStages ?? schoolClassData.selectiveStages,
-                        status: schoolClassData.status ?? schoolClassData.status,
-                        stripeProductID: stripeProduct.id ?? stripeProduct.id,
-                        documents: schoolClassData.documents ?? schoolClassData.documents,
-                        registrations: schoolClassData.registrations ?? schoolClassData.registrations
-                    }
-                })
-
-                // console.log('updatedSchoolClass')
-                // console.log(updatedSchoolClass)
-
-                return {
-                    isValid: true,
-                    statusCode: 202,
-                    successMessage: 'Turma criada no servidor Stripe e atualizada com sucesso no banco de dados.',
-                    schoolClass: updatedSchoolClass
-                }
+            
+            if (!stripeProductID) {
+                throw Error("A turma não está cadastrada no Stripe, por favor exclua e crie uma nova.")
             }
+            const updatedSchoolClass = await updatePrismaSchoolClass(schoolClassData, schoolClass, schoolClassID)
+            
+            // ATUALIZAR NO STRIPE!!!!!!!!!
+            
+            const stripeProducts = new StripeProducts()
+            
+            const { status, informations, title } = schoolClassData
+            
+            const product = await stripeProducts.getProduct(stripeProductID)
 
+            await stripeProducts.updateProduct(
+                stripeProductID,
+                title,
+                status == 'active' ? true : false,
+                informations?.description?? null,
+                product
+            )
 
-            // Não há atualização de documents e nem de stripe ID, apenas um simples update de outros dados
-            const updatedSchoolClass = await prisma.schoolClass.update({
-                where: {
-                    id: schoolClassID
-                },
-                data: {
-                    title: schoolClassData.title ?? schoolClass.title,
-                    status: schoolClassData.status ?? schoolClass.status,
-                    documents: schoolClassData.documents ?? schoolClass.documents,
-                    informations: schoolClassData.informations ?? schoolClass.informations,
-                    registrations: schoolClassData.registrations ?? schoolClass.registrations,
-                    selectiveStages: schoolClassData.selectiveStages ?? schoolClass.selectiveStages,
-                    stripeProductID: schoolClassData.stripeProductID ?? schoolClass.stripeProductID,
-                    subscriptions: schoolClassData.subscriptions ?? schoolClass.subscriptions,
-                }
-            })
 
 
             return {
                 isValid: true,
                 statusCode: 202,
-                successMessage: "Turma atualizada com sucesso",
+                successMessage: 'Turma criada no servidor Stripe e atualizada com sucesso no banco de dados.',
                 schoolClass: updatedSchoolClass
             }
 
         } catch (error: unknown) {
 
-            // console.log('error')
-            // console.log(error)
 
             if (error instanceof Prisma.PrismaClientValidationError) {
                 const argumentPosition = error.message.search('Argument')

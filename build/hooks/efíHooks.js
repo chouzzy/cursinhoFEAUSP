@@ -14,7 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getEfíAccessToken = exports.criarCobrancaPix = void 0;
 const axios_1 = __importDefault(require("axios"));
-const studentValidations_1 = require("./studentValidations");
+const studentHelpers_1 = require("../utils/studentHelpers");
 const server_1 = require("../server");
 function getEfíAccessToken(agent, credentials) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -59,7 +59,7 @@ function criarCobrancaPix({ cpf, name, valuePaid }) {
                 chave: `${process.env.EFI_CHAVE_PIX}`,
                 solicitacaoPagador: `Muito obrigado pela sua contribuição, ${name}! :)`
             };
-            const credentials = yield (0, studentValidations_1.getEfiCredentials)();
+            const credentials = yield (0, studentHelpers_1.getEfiCredentials)();
             const token = yield getEfíAccessToken(server_1.agent, credentials);
             const response = yield (0, axios_1.default)({
                 method: 'POST',

@@ -5,7 +5,7 @@ import { RefreshTokenController } from "../modules/registrations/useCases/refres
 const refreshTokenRoutes = Router()
 
 const refreshTokenController = new RefreshTokenController()
-refreshTokenRoutes.post('/', express.json(), refreshTokenController.handle)
+refreshTokenRoutes.post('/', refreshTokenController.handle)
 
 
 export {refreshTokenRoutes}

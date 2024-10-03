@@ -16,11 +16,11 @@ exports.DonationsRepository = void 0;
 const stripe_1 = __importDefault(require("stripe"));
 const client_1 = require("@prisma/client");
 const prisma_1 = require("../../../../prisma");
-const StripeCustomer_1 = require("../../../../hooks/StripeCustomer");
-const StripeFakeFront_1 = require("../../../../hooks/StripeFakeFront");
 const server_1 = require("../../../../server");
 const ef_Hooks_1 = require("../../../../hooks/ef\u00EDHooks");
-const donationValidations_1 = require("../../../../hooks/donationValidations");
+const donationHelpers_1 = require("../../../../utils/donationHelpers");
+const studentHelpers_1 = require("../../../../utils/studentHelpers");
+const StripeSubscriptionsManager_1 = require("../../../../hooks/StripeSubscriptionsManager");
 class DonationsRepository {
     constructor() {
         this.donations = [];
@@ -110,158 +110,33 @@ class DonationsRepository {
         });
     }
     createDonation(donationData) {
-        var _a, _b, _c, _d;
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                //Criando a donation no banco de dados
-                const createdDonation = yield prisma_1.prisma.donations.create({
-                    data: {
-                        name: donationData.name,
-                        email: donationData.email,
-                        phoneNumber: donationData.phoneNumber,
-                        isPhoneWhatsapp: donationData.isPhoneWhatsapp,
-                        gender: (_a = donationData.gender) !== null && _a !== void 0 ? _a : 'Não informado',
-                        birth: donationData.birth,
-                        state: donationData.state,
-                        city: donationData.city,
-                        street: donationData.street,
-                        homeNumber: donationData.homeNumber,
-                        complement: (_b = donationData.complement) !== null && _b !== void 0 ? _b : 'Não informado',
-                        district: donationData.district,
-                        zipCode: donationData.zipCode,
-                        cpf: donationData.cpf,
-                        rg: (_c = donationData.rg) !== null && _c !== void 0 ? _c : 'Não informado',
-                        cnpj: (_d = donationData.cnpj) !== null && _d !== void 0 ? _d : 'Não informado',
-                        ufrg: donationData.ufrg,
-                        valuePaid: 0,
-                        paymentDate: new Date(),
-                        paymentMethod: 'Sem informação ainda',
-                        paymentStatus: 'Sem informação ainda',
-                        stripeCustomerID: 'Sem informação ainda',
-                        stripeSubscriptionID: 'Sem informação ainda',
-                        ciclePaid: 0,
-                        ciclesBought: 0,
-                        valueBought: donationData.valuePaid,
-                        donationExpirationDate: null
-                    }
-                });
-                // Buscando o RG e CPF do customer no Stripe
-                const stripeCustomer = new StripeCustomer_1.StripeCustomer();
+                const { product, price, unit_amount } = yield (0, donationHelpers_1.getStripeProduct)(donationData.productSelectedID);
+                const createdDonation = yield (0, donationHelpers_1.createPrismaDonation)(donationData, unit_amount);
                 const { cpf, rg, cnpj } = createdDonation;
-                //Pesquisa o customer no stripe, priorizando CNPJ. O Front-end deveá enviar apenas CPF ou CNPJ, nunca os dois. Caso envie, o CNPJ será priorizado na busca.
-                const stripeCustomerID = yield stripeCustomer.searchCustomer(cpf, cnpj);
+                // Buscando o RG e CPF do customer no Stripe
+                const stripeCustomerID = yield (0, studentHelpers_1.getStripeDonationCustomerID)(donationData);
                 // Validando existencia do customer, se ele não existir, a gente cria
-                if (!stripeCustomerID) {
-                    // Não existe nenhum customer com esse RG e CPF no stripe, por isso vamos criar
-                    const stripeCustomerCreatedID = yield stripeCustomer.createCustomer(donationData);
-                    ////TESTE SUBSCRIPTION
-                    const stripeFrontEnd = new StripeFakeFront_1.StripeFakeFront();
-                    const stripeResponse = yield stripeFrontEnd.createSubscription({
-                        donationID: createdDonation.id,
-                        stripeCustomerID: stripeCustomerCreatedID,
-                        cpf,
-                        cnpj,
-                        rg,
-                        paymentMethodID: donationData.paymentMethodID,
-                        productSelectedID: donationData.productSelectedID,
-                        cycles: donationData.cycles
-                    });
-                    if (!stripeResponse.stripeSubscription) {
-                        // Atribuindo o stripeCustomerID a donation recém criada e atualizando os status de pagamento
-                        yield prisma_1.prisma.donations.update({
-                            where: { id: createdDonation.id },
-                            data: {
-                                stripeCustomerID: stripeCustomerCreatedID,
-                                paymentStatus: 'declined'
-                            }
-                        });
-                        return stripeResponse;
-                    }
-                    const { current_period_end, status, start_date, id } = stripeResponse.stripeSubscription;
-                    let { cancel_at } = stripeResponse.stripeSubscription;
-                    const { unit_amount } = stripeResponse.stripeSubscription.items.data[0].price;
-                    if (!cancel_at) {
-                        cancel_at = current_period_end;
-                    }
-                    // // Atribuindo o stripeCustomerID a donation recém criada e atualizando os status de pagamento
-                    const cancelAtDate = new Date(cancel_at * 1000).getTime();
-                    const startAtDate = new Date(start_date * 1000).getTime();
-                    const totalPaymentsBought = Math.floor(((cancelAtDate - startAtDate) / (1000 * 60 * 60 * 24 * 30))) - 1;
-                    yield prisma_1.prisma.donations.update({
-                        where: { id: createdDonation.id },
-                        data: {
-                            stripeCustomerID: stripeCustomerCreatedID,
-                            stripeSubscriptionID: id,
-                            paymentMethod: 'creditcard',
-                            paymentStatus: status,
-                            paymentDate: new Date(start_date * 1000),
-                            donationExpirationDate: cancel_at ? new Date(cancel_at * 1000) : '',
-                            ciclePaid: 1,
-                            ciclesBought: (totalPaymentsBought),
-                            valueBought: (unit_amount !== null && unit_amount !== void 0 ? unit_amount : 0) * (totalPaymentsBought),
-                            valuePaid: unit_amount !== null && unit_amount !== void 0 ? unit_amount : 0
-                        }
-                    });
-                    const { isValid, successMessage, statusCode } = stripeResponse;
-                    return {
-                        isValid,
-                        successMessage,
-                        statusCode
-                    };
-                }
-                // Caso o cliente já tenha feito uma doação anteriormente
-                const stripeFrontEnd = new StripeFakeFront_1.StripeFakeFront();
-                const stripeResponse = yield stripeFrontEnd.createSubscription({
+                const stripeSubscriptionsManager = new StripeSubscriptionsManager_1.StripeSubscriptionsManager();
+                const stripeSubscription = yield stripeSubscriptionsManager.createDonationSubscription({
                     donationID: createdDonation.id,
-                    stripeCustomerID: stripeCustomerID,
+                    stripeCustomerID,
                     cpf,
                     cnpj,
                     rg,
-                    paymentMethodID: donationData.paymentMethodID,
-                    productSelectedID: donationData.productSelectedID,
+                    paymentMethod: donationData.paymentMethodID,
+                    product,
+                    unit_amount,
                     cycles: donationData.cycles
                 });
-                if (!stripeResponse.stripeSubscription) {
-                    // Atribuindo o stripeCustomerID a donation recém criada e atualizando os status de pagamento
-                    yield prisma_1.prisma.donations.update({
-                        where: { id: createdDonation.id },
-                        data: {
-                            stripeCustomerID: stripeCustomerID,
-                            paymentStatus: 'declined'
-                        }
-                    });
-                    return stripeResponse;
-                }
-                let { cancel_at } = stripeResponse.stripeSubscription;
-                const { current_period_end, status, start_date, id, } = stripeResponse.stripeSubscription;
-                const { unit_amount } = stripeResponse.stripeSubscription.items.data[0].price;
-                if (!cancel_at) {
-                    cancel_at = current_period_end;
-                }
-                const cancelAtDate = new Date(cancel_at * 1000).getTime();
-                const startAtDate = new Date(start_date * 1000).getTime();
-                const totalPaymentsBought = Math.floor((cancelAtDate - startAtDate) / (1000 * 60 * 60 * 24 * 30)) - 1;
-                // // Atribuindo o stripeCustomerID a donation recém criada e atualizando os status de pagamento
-                yield prisma_1.prisma.donations.update({
-                    where: { id: createdDonation.id },
-                    data: {
-                        stripeCustomerID: stripeCustomerID,
-                        stripeSubscriptionID: id,
-                        paymentMethod: 'creditcard',
-                        paymentStatus: status,
-                        paymentDate: new Date(start_date * 1000),
-                        donationExpirationDate: cancel_at ? new Date(cancel_at * 1000) : null,
-                        ciclePaid: 1,
-                        ciclesBought: totalPaymentsBought,
-                        valueBought: (unit_amount !== null && unit_amount !== void 0 ? unit_amount : 0) * totalPaymentsBought,
-                        valuePaid: unit_amount !== null && unit_amount !== void 0 ? unit_amount : 0
-                    }
-                });
-                const { isValid, successMessage, statusCode } = stripeResponse;
+                console.log('stripeResponse');
+                console.log(stripeSubscription);
+                const donationUpdated = yield (0, donationHelpers_1.updateDonationBought)(createdDonation, stripeSubscription, stripeCustomerID, unit_amount);
                 return {
-                    isValid,
-                    successMessage,
-                    statusCode
+                    isValid: true,
+                    statusCode: 202,
+                    successMessage: "Doação criada com sucesso!",
                 };
             }
             catch (error) {
@@ -280,10 +155,10 @@ class DonationsRepository {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const { name, cpf, valuePaid } = pixDonationData;
-                const createdDonation = yield (0, donationValidations_1.createDonationPix)(pixDonationData);
+                const createdDonation = yield (0, donationHelpers_1.createDonationPix)(pixDonationData);
                 const pixData = yield (0, ef_Hooks_1.criarCobrancaPix)({ cpf, name, valuePaid });
                 const { txid, pixCopiaECola, location, status, valor, calendario } = pixData;
-                const updatedDonation = yield (0, donationValidations_1.updateDonationPix)(pixData, createdDonation);
+                const updatedDonation = yield (0, donationHelpers_1.updateDonationPix)(pixData, createdDonation);
                 if (!updatedDonation) {
                     return {
                         isValid: false,

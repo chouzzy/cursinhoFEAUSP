@@ -18,7 +18,8 @@ const prisma_1 = require("../../../../prisma");
 const server_1 = require("../../../../server");
 const stripe_1 = __importDefault(require("stripe"));
 const ef_Hooks_1 = require("../../../../hooks/ef\u00EDHooks");
-const studentValidations_1 = require("../../../../hooks/studentValidations");
+const studentHelpers_1 = require("../../../../utils/studentHelpers");
+const StripeSubscriptionsManager_1 = require("../../../../hooks/StripeSubscriptionsManager");
 class StudentsRepository {
     constructor() {
         this.students = [];
@@ -139,7 +140,7 @@ class StudentsRepository {
                 const studentDataSchoolClassID = studentData.purcharsedSubscriptions.schoolClassID;
                 console.log('studentDataSchoolClassID');
                 console.log(studentDataSchoolClassID);
-                const schoolClassFound = yield (0, studentValidations_1.getSchoolClassPrice)(studentDataSchoolClassID);
+                const schoolClassFound = yield (0, studentHelpers_1.getSchoolClassPrice)(studentDataSchoolClassID);
                 if (!schoolClassFound || schoolClassFound === 'NOT FOUND') {
                     return {
                         isValid: false,
@@ -164,11 +165,11 @@ class StudentsRepository {
                 // CHECA SE O ESTUDANTE EXISTE NO BANCO DE DADOS
                 const { name, cpf, rg, purcharsedSubscriptions } = studentData;
                 const { valuePaid } = purcharsedSubscriptions;
-                const searchedStudent = yield (0, studentValidations_1.getStudentByCPForRG)(cpf, rg);
+                const searchedStudent = yield (0, studentHelpers_1.getStudentByCPForRG)(cpf, rg);
                 // CHECA SE JA EXISTE O ESTUDANTE NO BANCO - ATUALIZA
                 if (searchedStudent) {
                     // RETORNA CASO A INSCRIÇÃO JÁ TENHA SIDO COMPRADA E O PAGAMENTO CONCLUIDO
-                    const studentAlreadySubscribed = yield (0, studentValidations_1.checkIfPixAlreadyConcluded)(searchedStudent, studentData);
+                    const studentAlreadySubscribed = yield (0, studentHelpers_1.checkIfPixAlreadyConcluded)(searchedStudent, studentData);
                     if (studentAlreadySubscribed) {
                         return {
                             isValid: false,
@@ -177,7 +178,7 @@ class StudentsRepository {
                         };
                     }
                     // RETORNA CASO A INSCRIÇÃO JÁ TENHA SIDO COMPRADA E O PIX AINDA NÃO EXPIROU
-                    const isPixExpired = yield (0, studentValidations_1.checkIfPixIsExpired)(searchedStudent, studentData);
+                    const isPixExpired = yield (0, studentHelpers_1.checkIfPixIsExpired)(searchedStudent, studentData);
                     if (!isPixExpired) {
                         return {
                             isValid: false,
@@ -188,7 +189,7 @@ class StudentsRepository {
                     // AQUI OU O PIX EXPIROU OU NUNCA FOI COMPRADO!!!
                     // PIX COB
                     const pixData = yield (0, ef_Hooks_1.criarCobrancaPix)({ cpf, name, valuePaid });
-                    const updatedStudent = yield (0, studentValidations_1.updateStudentPix)(pixData, searchedStudent, studentData);
+                    const updatedStudent = yield (0, studentHelpers_1.updateStudentPix)(pixData, searchedStudent, studentData);
                     return {
                         isValid: true,
                         errorMessage: `Estudante atualizado com sucesso!`,
@@ -198,7 +199,7 @@ class StudentsRepository {
                 }
                 // PIX COB
                 const pixData = yield (0, ef_Hooks_1.criarCobrancaPix)({ cpf, name, valuePaid });
-                const createdStudent = yield (0, studentValidations_1.createStudentPix)(studentData, pixData);
+                const createdStudent = yield (0, studentHelpers_1.createStudentPix)(studentData, pixData);
                 return {
                     isValid: true,
                     successMessage: 'Estudante criado no banco de dados',
@@ -224,320 +225,69 @@ class StudentsRepository {
             }
         });
     }
-    createStudent(studentData) {
+    createStudentPaymentIntent(studentData) {
+        var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            // MUDAR PAYMENT STATUS PARA CONCLUIDA
-            // try {
-            //     // CHECA SE A SCHOOLCLASS JÁ FOI COMPRADA
-            //     function checkDuplicateSchoolClassIDs(purcharsedSubscriptions: Students["purcharsedSubscriptions"]) {
-            //         const uniqueIDs = new Set();
-            //         for (const subscription of purcharsedSubscriptions) {
-            //             if (uniqueIDs.has(subscription.schoolClassID)) {
-            //                 return true; // Duplicate found
-            //             }
-            //             uniqueIDs.add(subscription.schoolClassID);
-            //         }
-            //         return false; // No duplicates found
-            //     }
-            //     const { purcharsedSubscriptions } = studentData
-            //     const hasDuplicateSchoolClassIDs = checkDuplicateSchoolClassIDs(purcharsedSubscriptions);
-            //     if (hasDuplicateSchoolClassIDs) {
-            //         return {
-            //             isValid: false,
-            //             errorMessage: `A inscrição já foi comprada anteriormente.`,
-            //             statusCode: 403
-            //         }
-            //     }
-            //     // CHECA SE A TURMA EXISTE
-            //     const studentDataSchoolClassID = studentData.purcharsedSubscriptions[0].schoolClassID
-            //     const searchedSchoolClass = await prisma.schoolClass.findFirst({
-            //         where: { id: studentDataSchoolClassID }
-            //     })
-            //     if (!searchedSchoolClass) {
-            //         return {
-            //             isValid: false,
-            //             errorMessage: `Turma não encontrada.`,
-            //             statusCode: 403
-            //         }
-            //     }
-            //     // CHECA SE O ESTUDANTE JÁ TEM ALGUMA INSCRIÇÃO ANTERIOR
-            //     const searchedStudent = await prisma.students.findFirst({
-            //         where: {
-            //             OR: [
-            //                 { cpf: studentData.cpf },
-            //                 { rg: studentData.rg }
-            //             ]
-            //         }
-            //     })
-            //     const stripeCustomer = new StripeCustomer()
-            //     const { cpf, rg } = studentData
-            //     const stripeSearchedCustomerID = await stripeCustomer.searchCustomer(cpf, null)
-            //     // CHECA SE JA EXISTE O ESTUDANTE NO STRIPE E NO BANCO
-            //     if (searchedStudent && stripeSearchedCustomerID) {
-            //         //CHECA SE A INSCRIÇÃO JÁ FOI COMPRADA ANTERIORMENTE  E O PAGAMENTO ESTÁ ACTIVE
-            //         let subscriptionsDuplicated: Array<purcharsedSubscriptions["schoolClassID"]> = []
-            //         //Filtro para possível cadastro em turma que já foi paga.
-            //         studentData.purcharsedSubscriptions.map((subscription) => {
-            //             searchedStudent.purcharsedSubscriptions.map(
-            //                 (subscriptionAlreadyRegistered) => {
-            //                     if (subscriptionAlreadyRegistered.schoolClassID == subscription.schoolClassID
-            //                         &&
-            //                         subscriptionAlreadyRegistered.paymentStatus == "active"
-            //                     ) {
-            //                         subscriptionsDuplicated.push(subscription.schoolClassID)
-            //                     }
-            //                 })
-            //         })
-            //         // RETORNA CASO A INSCRIÇÃO JÁ TENHA SIDO COMPRADA, caso contrario, continua
-            //         if (subscriptionsDuplicated.length > 0) {
-            //             return {
-            //                 isValid: false,
-            //                 errorMessage: `Uma ou mais inscrições já foram compradas pelo estudante.`,
-            //                 subscriptionsDuplicated: subscriptionsDuplicated,
-            //                 statusCode: 403
-            //             }
-            //         }
-            //         // CHECA SE A INSCRIÇÃO JÁ FOI COMPRADA ANTERIORMENTE, MAS O PAGAMENTO NÃO FOI APROVADO
-            //         const isDuplicatedInactiveSubscription = checkDuplicateSchoolClassIDs(
-            //             [
-            //                 ...searchedStudent.purcharsedSubscriptions,
-            //                 ...studentData.purcharsedSubscriptions
-            //             ]
-            //         )
-            //         //TENTANDO EFETUAR O PAGAMENTO NOVAMENTE DA INSCRIÇÃO NÃO APROVADA
-            //         if (isDuplicatedInactiveSubscription) {
-            //             const stripeFrontEnd = new StripeFakeFront()
-            //             const stripeResponse = await stripeFrontEnd.createSubscription({
-            //                 stripeCustomerID: stripeSearchedCustomerID,
-            //                 cpf: cpf,
-            //                 rg: rg,
-            //                 schoolClassID: studentDataSchoolClassID,
-            //                 cycles: 1,
-            //                 paymentMethodID: studentData.paymentMethodID,
-            //                 productSelectedID: studentData.productSelectedID
-            //             })
-            //             if (!stripeResponse.stripeSubscription) {
-            //                 return stripeResponse
-            //             }
-            //             const { status, start_date, id } = stripeResponse.stripeSubscription
-            //             const { unit_amount } = stripeResponse.stripeSubscription.items.data[0].price
-            //             const { title, stripeProductID } = searchedSchoolClass
-            //             searchedStudent.purcharsedSubscriptions.map(subscription => {
-            //                 if (subscription.schoolClassID == studentDataSchoolClassID) {
-            //                     subscription.productID = stripeProductID,
-            //                         subscription.stripeSubscriptionID = id,
-            //                         subscription.productName = title,
-            //                         subscription.paymentMethod = 'creditcard',
-            //                         subscription.paymentStatus = status,
-            //                         subscription.paymentDate = new Date(start_date * 1000),
-            //                         subscription.valuePaid = unit_amount ?? studentData.purcharsedSubscriptions[0].valuePaid
-            //                 }
-            //             })
-            //             await prisma.students.update({
-            //                 where: { id: searchedStudent.id },
-            //                 data: {
-            //                     purcharsedSubscriptions: searchedStudent.purcharsedSubscriptions
-            //                 }
-            //             })
-            //             return {
-            //                 isValid: true,
-            //                 errorMessage: `Estudante atualizado com sucesso!`,
-            //                 students: searchedStudent,
-            //                 statusCode: 202
-            //             }
-            //         }
-            //         // Só vai chegar aqui a inscrição
-            //         const stripeFrontEnd2 = new StripeFakeFront()
-            //         const stripeResponse = await stripeFrontEnd2.createSubscription({
-            //             stripeCustomerID: stripeSearchedCustomerID,
-            //             cpf: cpf,
-            //             rg: rg,
-            //             schoolClassID: studentDataSchoolClassID,
-            //             cycles: 1,
-            //             paymentMethodID: studentData.paymentMethodID,
-            //             productSelectedID: studentData.productSelectedID
-            //         })
-            //         if (!stripeResponse.stripeSubscription) {
-            //             return stripeResponse
-            //         }
-            //         const { status, start_date, id } = stripeResponse.stripeSubscription
-            //         const { unit_amount } = stripeResponse.stripeSubscription.items.data[0].price
-            //         const { title, stripeProductID } = searchedSchoolClass
-            //         studentData.purcharsedSubscriptions.map(async subscription => {
-            //             if (subscription.schoolClassID == studentDataSchoolClassID) {
-            //                 subscription.productID = stripeProductID,
-            //                     subscription.stripeSubscriptionID = id,
-            //                     subscription.productName = title,
-            //                     subscription.paymentMethod = 'creditcard',
-            //                     subscription.paymentStatus = status,
-            //                     subscription.paymentDate = new Date(start_date * 1000),
-            //                     subscription.valuePaid = unit_amount ?? studentData.purcharsedSubscriptions[0].valuePaid,
-            //                     subscription.txid = "",
-            //                     subscription.pixCopiaECola = "",
-            //                     subscription.pixQrCode = "",
-            //                     subscription.pixStatus = "",
-            //                     subscription.pixValor = "",
-            //                     subscription.pixDate = "",
-            //                     subscription.pixExpiracaoEmSegundos = "",
-            //             }
-            //         })
-            //         const updatedStudent = await prisma.students.update({
-            //             where: { id: searchedStudent.id },
-            //             data: {
-            //                 purcharsedSubscriptions: searchedStudent.purcharsedSubscriptions.concat(studentData.purcharsedSubscriptions)
-            //             }
-            //         })
-            //         const { statusCode, successMessage, isValid } = stripeResponse
-            //         return {
-            //             isValid,
-            //             successMessage,
-            //             students: updatedStudent,
-            //             statusCode
-            //         }
-            //     }
-            //     // Student não encontrado no banco e no stripe:
-            //     const stripeCustomerCreatedID = await stripeCustomer.createCustomer(studentData)
-            //     const stripeFrontEnd = new StripeFakeFront()
-            //     const stripeResponse = await stripeFrontEnd.createSubscription({
-            //         stripeCustomerID: stripeCustomerCreatedID,
-            //         cpf: cpf,
-            //         rg: rg,
-            //         schoolClassID: studentDataSchoolClassID,
-            //         cycles: 1,
-            //         paymentMethodID: studentData.paymentMethodID,
-            //         productSelectedID: studentData.productSelectedID
-            //     })
-            //     if (!stripeResponse.isValid) {
-            //         return {
-            //             isValid: stripeResponse.isValid,
-            //             errorMessage: stripeResponse.errorMessage,
-            //             statusCode: stripeResponse.statusCode
-            //         }
-            //     }
-            //     if (stripeResponse.stripeSubscription) {
-            //         const { status, start_date, id } = stripeResponse.stripeSubscription
-            //         const { unit_amount } = stripeResponse.stripeSubscription.items.data[0].price
-            //         const { title, stripeProductID } = searchedSchoolClass
-            //         studentData.purcharsedSubscriptions.map(async subscription => {
-            //             if (subscription.schoolClassID == studentDataSchoolClassID) {
-            //                 subscription.paymentDate = new Date(start_date * 1000),
-            //                     subscription.stripeSubscriptionID = id,
-            //                     subscription.paymentMethod = 'creditcard',
-            //                     subscription.paymentStatus = status,
-            //                     subscription.productID = stripeProductID,
-            //                     subscription.productName = title,
-            //                     subscription.valuePaid = unit_amount ?? studentData.purcharsedSubscriptions[0].valuePaid
-            //             }
-            //         })
-            //         const createdStudent = await prisma.students.create({
-            //             data: {
-            //                 name: studentData.name,
-            //                 email: studentData.email,
-            //                 gender: studentData.gender ?? 'Não informado',
-            //                 birth: studentData.birth,
-            //                 phoneNumber: studentData.phoneNumber,
-            //                 isPhoneWhatsapp: studentData.isPhoneWhatsapp,
-            //                 state: studentData.state,
-            //                 city: studentData.city,
-            //                 street: studentData.street,
-            //                 homeNumber: studentData.homeNumber,
-            //                 complement: studentData.complement ?? 'Não informado',
-            //                 district: studentData.district,
-            //                 zipCode: studentData.zipCode,
-            //                 cpf: studentData.cpf,
-            //                 rg: studentData.rg,
-            //                 ufrg: studentData.ufrg,
-            //                 selfDeclaration: studentData.selfDeclaration,
-            //                 oldSchool: studentData.oldSchool,
-            //                 oldSchoolAdress: studentData.oldSchoolAdress,
-            //                 highSchoolGraduationDate: studentData.highSchoolGraduationDate,
-            //                 highSchoolPeriod: studentData.highSchoolPeriod,
-            //                 metUsMethod: studentData.metUsMethod,
-            //                 exStudent: studentData.exStudent,
-            //                 stripeCustomerID: stripeCustomerCreatedID,
-            //                 purcharsedSubscriptions: studentData.purcharsedSubscriptions
-            //             }
-            //         })
-            //         const { statusCode, successMessage, isValid } = stripeResponse
-            //         return {
-            //             isValid,
-            //             successMessage,
-            //             students: createdStudent,
-            //             statusCode
-            //         }
-            //     }
-            //     //STRIPE RESPONSE DEU ERRO
-            //     let studentSchoolClasses: purcharsedSubscriptions[] = []
-            //     studentData.purcharsedSubscriptions.map((subscription) => {
-            //         studentSchoolClasses.push({
-            //             schoolClassID: subscription.schoolClassID,
-            //             stripeSubscriptionID: subscription.stripeSubscriptionID,
-            //             paymentDate: subscription.paymentDate ?? null,
-            //             paymentMethod: subscription.paymentMethod ?? 'Pagamento não confirmado',
-            //             paymentStatus: subscription.paymentStatus ?? 'Pagamento não confirmado',
-            //             productID: subscription.productID ?? 'Pagamento não confirmado',
-            //             productName: subscription.productName ?? 'Pagamento não confirmado',
-            //             valuePaid: subscription.valuePaid ?? 0
-            //         })
-            //     })
-            //     const createdStudent = await prisma.students.create({
-            //         data: {
-            //             name: studentData.name,
-            //             email: studentData.email,
-            //             gender: studentData.gender ?? 'Não informado',
-            //             birth: studentData.birth,
-            //             phoneNumber: studentData.phoneNumber,
-            //             isPhoneWhatsapp: studentData.isPhoneWhatsapp,
-            //             state: studentData.state,
-            //             city: studentData.city,
-            //             street: studentData.street,
-            //             homeNumber: studentData.homeNumber,
-            //             complement: studentData.complement ?? 'Não informado',
-            //             district: studentData.district,
-            //             zipCode: studentData.zipCode,
-            //             cpf: studentData.cpf,
-            //             rg: studentData.rg,
-            //             ufrg: studentData.ufrg,
-            //             selfDeclaration: studentData.selfDeclaration,
-            //             oldSchool: studentData.oldSchool,
-            //             oldSchoolAdress: studentData.oldSchoolAdress,
-            //             highSchoolGraduationDate: studentData.highSchoolGraduationDate,
-            //             highSchoolPeriod: studentData.highSchoolPeriod,
-            //             metUsMethod: studentData.metUsMethod,
-            //             exStudent: studentData.exStudent,
-            //             stripeCustomerID: stripeCustomerCreatedID,
-            //             purcharsedSubscriptions: studentSchoolClasses
-            //         }
-            //     })
-            //     const { statusCode, isValid, errorMessage } = stripeResponse
-            //     return {
-            //         isValid,
-            //         successMessage: 'Estudante criado no banco de dados',
-            //         errorMessage,
-            //         students: createdStudent,
-            //         statusCode
-            //     }
-            // } catch (error: unknown) {
-            //     if (error instanceof Prisma.PrismaClientValidationError) {
-            //         const argumentPosition = error.message.search('Argument')
-            //         const mongoDBError = error.message.slice(argumentPosition)
-            //         return { isValid: false, errorMessage: mongoDBError, statusCode: 403 }
-            //     }
-            //     if (error instanceof Stripe.errors.StripeError) {
-            //         // Retorna uma resposta de erro com o código de status do erro do Stripe.
-            //         return {
-            //             statusCode: error.statusCode ?? 403,
-            //             isValid: false,
-            //             errorMessage: error.message,
-            //         };
-            //     }
-            //     return { isValid: false, errorMessage: String(error), statusCode: 403 }
-            // }
-            return {
-                isValid: true,
-                statusCode: 202,
-                successMessage: 'Rota em manutenção'
-            };
+            try {
+                const { purcharsedSubscriptions, cpf, rg } = studentData;
+                const { schoolClassID, paymentMethod, currency } = purcharsedSubscriptions;
+                // CHECA SE A TURMA EXISTE
+                const searchedSchoolClass = yield (0, studentHelpers_1.checkSchoolClassExists)(schoolClassID);
+                if (!searchedSchoolClass) {
+                    return {
+                        isValid: false,
+                        errorMessage: `Turma não encontrada.`,
+                        statusCode: 403
+                    };
+                }
+                // CHECA SE CLIENTE JÁ EXISTE NO STRIPE E CRIA
+                const stripeCustomerID = yield (0, studentHelpers_1.getStripeStudentCustomerID)(studentData);
+                // CHECA SE INSCRIÇÃO EXISTE NO BANCO DE DADOS
+                const searchedStudent = yield (0, studentHelpers_1.getStudent)(cpf, rg);
+                const stripeSubscriptions = new StripeSubscriptionsManager_1.StripeSubscriptionsManager();
+                const stripeResponse = yield stripeSubscriptions.createStudentPaymentIntent({
+                    stripeCustomerID,
+                    cpf,
+                    rg,
+                    searchedSchoolClass,
+                    paymentMethod,
+                    currency
+                });
+                if (searchedStudent) {
+                    // FILTRA POSSÍVEL INSCRIÇÃO JÁ PAGA
+                    const studentAlreadyActive = yield (0, studentHelpers_1.getStudentAlreadyActive)(searchedStudent.id, schoolClassID);
+                    if (studentAlreadyActive) {
+                        return {
+                            isValid: false,
+                            errorMessage: `A inscrição já foi comprada e está ativa!.`,
+                            students: studentAlreadyActive,
+                            statusCode: 403
+                        };
+                    }
+                    const updatedStudent = yield (0, studentHelpers_1.updateStudentPaymentInProgress)(searchedStudent, schoolClassID);
+                    if (updatedStudent) {
+                        return Object.assign(Object.assign({}, stripeResponse), { successMessage: 'Estudante atualizado e payment intent criado com sucesso!', students: updatedStudent });
+                    }
+                }
+                const createdStudent = yield (0, studentHelpers_1.createStudent)(studentData, stripeCustomerID, schoolClassID);
+                return Object.assign(Object.assign({}, stripeResponse), { successMessage: 'Estudante e payment intents criados com sucesso!', students: createdStudent });
+            }
+            catch (error) {
+                if (error instanceof client_1.Prisma.PrismaClientValidationError) {
+                    const argumentPosition = error.message.search('Argument');
+                    const mongoDBError = error.message.slice(argumentPosition);
+                    return { isValid: false, errorMessage: mongoDBError, statusCode: 403 };
+                }
+                if (error instanceof stripe_1.default.errors.StripeError) {
+                    // Retorna uma resposta de erro com o código de status do erro do Stripe.
+                    return {
+                        statusCode: (_a = error.statusCode) !== null && _a !== void 0 ? _a : 403,
+                        isValid: false,
+                        errorMessage: error.message,
+                    };
+                }
+                return { isValid: false, errorMessage: String(error), statusCode: 403 };
+            }
         });
     }
     updateStudent(studentData, studentID) {

@@ -12,6 +12,10 @@ import { webhookEfiRoutes } from "./efiwebhook"
 
 const router = Router()
 
+
+router.use('/webhooks', webhooksRoutes)
+router.use(express.json({type:"application/json"}))
+
 //welcome routes
 router.use('/', welcomeRoutes)
 //donations routes
@@ -24,15 +28,14 @@ router.use('/students', studentsRoutes)
 router.use('/admins', adminsRoutes)
 router.use('/refresh-token', refreshTokenRoutes)
 
-router.get('/logintest', express.json(), ensureAuthenticated, (req,res) => {
-    return res.json({success: true})
+router.get('/logintest', ensureAuthenticated, (req, res) => {
+    return res.json({ success: true })
 })
 
 router.use('/schoolClass', schoolClassRoutes)
 
-router.use('/webhooks', webhooksRoutes)
 
 router.use('/webhook-efi', webhookEfiRoutes)
 
 
-export {router}
+export { router }

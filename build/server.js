@@ -8,7 +8,6 @@ require("reflect-metadata");
 const express_1 = __importDefault(require("express"));
 const AppError_1 = require("./errors/AppError");
 const routes_1 = require("./routes");
-const body_parser_1 = __importDefault(require("body-parser"));
 const cors_1 = __importDefault(require("cors"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
@@ -27,8 +26,9 @@ app.use((0, cors_1.default)({
     origin: "*",
     methods: ['GET', 'PUT', 'POST', 'DELETE', 'PATCH'],
 }));
-app.use(express_1.default.json());
-app.use(body_parser_1.default.json({ type: 'application/json' }));
+// app.use(bodyParser.json({ type: 'application/json' }))
+// app.use('/webhooks', express.raw({ type: "*/*" }));
+// app.use(express.json({type:"application/json"}))
 app.use(routes_1.router);
 // Tratamento de erro
 app.use((err, req, res, next) => {

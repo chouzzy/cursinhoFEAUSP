@@ -1,4 +1,5 @@
 import { StripeCustomer } from "../hooks/StripeCustomer"
+import { CreateDonationProps } from "../modules/donations/useCases/createDonation/CreateDonationController"
 import { SchoolClass } from "../modules/registrations/entities/SchoolClass"
 import { Students } from "../modules/registrations/entities/Students"
 import { CreatePixStudentRequestProps } from "../modules/registrations/useCases/Students/createPixStudents/CreatePixStudentsController"
@@ -332,7 +333,7 @@ async function getStudentAlreadyActive(studentID: Students["id"], schoolClassID:
     }
 }
 
-async function getStripeCustomerID(studentData: CreateStudentRequestProps) {
+async function getStripeStudentCustomerID(studentData: CreateStudentRequestProps) {
 
     try {
         const stripeCustomer = new StripeCustomer()
@@ -342,6 +343,35 @@ async function getStripeCustomerID(studentData: CreateStudentRequestProps) {
         if (!stripeSearchedCustomerID) {
 
             let stripeCreatedCustomerID = await stripeCustomer.createCustomerStudent(studentData)
+            stripeSearchedCustomerID = stripeCreatedCustomerID
+        }
+
+        return stripeSearchedCustomerID
+
+    } catch (error) {
+        throw error
+    }
+}
+async function getStripeDonationCustomerID(donationData: CreateDonationProps) {
+
+    try {
+        const stripeCustomer = new StripeCustomer()
+
+        const {cpf, cnpj} = donationData
+
+        let stripeSearchedCustomerID
+
+        if (cpf) {
+            stripeSearchedCustomerID = await stripeCustomer.searchCustomer(cpf, null)
+        }
+        if (cnpj) {
+            stripeSearchedCustomerID = await stripeCustomer.searchCustomer("NDA", cnpj)
+        }
+
+        //  CRIA CLIENTE NO STRIPE CASO NÃO EXISTA
+        if (!stripeSearchedCustomerID) {
+
+            let stripeCreatedCustomerID = await stripeCustomer.createCustomerDonations(donationData)
             stripeSearchedCustomerID = stripeCreatedCustomerID
         }
 
@@ -400,9 +430,9 @@ async function updateStudentPaymentInProgress(searchedStudent: any, schoolClassI
                         push: {
                             schoolClassID,
                             paymentDate: new Date(),
-                            paymentMethod:'card',
-                            paymentStatus:'Em andamento',
-                            valuePaid:0
+                            paymentMethod: 'card',
+                            paymentStatus: 'Em andamento',
+                            valuePaid: 0
                         }
                     }
                 }
@@ -478,7 +508,8 @@ export {
     checkSchoolClassExists,
     getStudent,
     getStudentAlreadyActive,
-    getStripeCustomerID,
+    getStripeStudentCustomerID,
+    getStripeDonationCustomerID,
     updateStudentPaymentInProgress,
     createStudent
 }

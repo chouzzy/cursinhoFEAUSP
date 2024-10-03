@@ -188,7 +188,6 @@ class StripeCustomer {
                 phone: donationData.phoneNumber,
                 metadata: {
                     customerType: 'Donation',
-                    donationValue: donationData.valuePaid,
                     cpf: donationData.cpf ?? "NDA",
                     cnpj: donationData.cnpj ?? "NDA"
                 }
