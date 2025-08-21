@@ -138,8 +138,6 @@ class StudentsRepository {
             try {
                 // CHECA SE A TURMA EXISTE
                 const studentDataSchoolClassID = studentData.purcharsedSubscriptions.schoolClassID;
-                console.log('studentDataSchoolClassID');
-                console.log(studentDataSchoolClassID);
                 const schoolClassFound = yield (0, studentHelpers_1.getSchoolClassPrice)(studentDataSchoolClassID);
                 if (!schoolClassFound || schoolClassFound === 'NOT FOUND') {
                     return {

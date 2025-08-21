@@ -22,7 +22,7 @@ class StripeProducts {
 
     async createProduct(
         product: StripeCreateProductProps
-    ): Promise<validationResponse> {
+    ) {
 
         try {
 
@@ -36,11 +36,7 @@ class StripeProducts {
             })
 
             if (!schoolClassFound) {
-                return {
-                    isValid: false,
-                    errorMessage: " Erro de Hook: Os dados do produto não correspondem a nenhum produto ",
-                    statusCode: 403
-                }
+                throw Error("Turma não encontrada pelo título.")
             }
 
             const stripeCreatedProduct = await stripe.products.create({
@@ -62,13 +58,12 @@ class StripeProducts {
                 }
             })
 
-
-            return {
-                isValid: true,
-                statusCode: 202,
-                stripeCreatedProductID: stripeCreatedProduct.id,
-                successMessage: "Cliente criado no servidor Stripe"
+            if (!stripeCreatedProduct) {
+                throw Error("Ocorreu um erro ao criar o produto no stripe")
             }
+
+
+            return stripeCreatedProduct
 
         } catch (error: unknown) {
             throw error

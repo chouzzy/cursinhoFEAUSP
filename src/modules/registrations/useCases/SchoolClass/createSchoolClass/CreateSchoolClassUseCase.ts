@@ -27,50 +27,8 @@ class CreateSchoolClassUseCase {
         }
 
         const createSchoolClassResponse = await this.schoolClassRepository.createSchoolClass(schoolClassData)
-
-
-        if (!createSchoolClassResponse.schoolClass) {
-            return createSchoolClassResponse
-        }
-
         
-        const stripeProducts = new StripeProducts()
-
-        const { schoolClass } = createSchoolClassResponse
-
-
-        const product: StripeCreateProductProps = {
-            name: schoolClass.title,
-            default_price_data: schoolClass.subscriptions.price,
-            description: schoolClass.informations.description,
-            metadata: {
-                schoolClassID: schoolClass.id,
-                productType: 'studentSubscription',
-                title: schoolClass.title,
-                semester: schoolClass.informations.dateSchedule,
-                year: schoolClass.informations.dateSchedule,
-            }
-        }
-
-
-        const stripeProductCreated = await stripeProducts.createProduct(product)
-
-
-        if (!stripeProductCreated.stripeCreatedProductID) {
-            return stripeProductCreated
-        }
-
-
-        const { stripeCreatedProductID } = stripeProductCreated
-
-
-        const updatedSchoolClassResponse = await this.schoolClassRepository.updateSchoolClass(
-            schoolClass,
-            schoolClass.id,
-            stripeCreatedProductID
-        )
-
-        return updatedSchoolClassResponse
+        return createSchoolClassResponse
     }
 
 }

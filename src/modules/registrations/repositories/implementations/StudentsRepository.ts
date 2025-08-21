@@ -35,7 +35,6 @@ class StudentsRepository implements IStudentsRepository {
                 page = 1
             }
 
-
             let filteredStudents = await prisma.students.findMany({
                 where: {
                     AND: [

@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../../../prisma";
-import { validationResponse } from "../../../../types";
+import { StripeCreateProductProps, validationResponse } from "../../../../types";
 import { DocumentsTypes, SchoolClass, SchoolClassSelectiveStages } from "../../entities/SchoolClass";
 import { CreateSchoolClassRequestProps } from "../../useCases/SchoolClass/createSchoolClass/CreateSchoolClassController";
 import { UpdateSchoolClassRequestProps } from "../../useCases/SchoolClass/updateSchoolClass/UpdateSchoolClassController";
@@ -11,6 +11,7 @@ import { Students } from "../../entities/Students";
 import { CreateSchoolClassStagesRequestProps } from "../../useCases/SchoolClass/createSchoolClassStages/CreateSchoolClassStagesController";
 import { v4 as uuidV4 } from "uuid";
 import { getPrismaSchoolClass, updatePrismaSchoolClass } from "../../../../utils/schoolClassHelpers";
+import { stripe } from "../../../../server";
 
 
 class SchoolClassRepository implements ISchoolClassRepository {
@@ -27,7 +28,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
         try {
 
             //busca usuario no banco pra ve se existe
-            const schoolClassFound = await prisma.schoolClass.findFirst({
+            const schoolClass = await prisma.schoolClass.findFirst({
                 where: {
                     OR: [
                         { title: schoolClassData.title },
@@ -36,8 +37,8 @@ class SchoolClassRepository implements ISchoolClassRepository {
             })
 
 
-            if (schoolClassFound) {
-                return { isValid: false, errorMessage: `Título de turma já existente`, statusCode: 403 }
+            if (schoolClass) {
+                return { isValid: false, errorMessage: `Título já existente`, statusCode: 403 }
             }
 
 
@@ -49,13 +50,47 @@ class SchoolClassRepository implements ISchoolClassRepository {
                 stage.stagesID = uuidV4()
             })
 
-
             const createdSchoolClass = await prisma.schoolClass.create({
                 data: schoolClassData
             })
 
+            const stripeProduct = new StripeProducts()
 
-            return { isValid: true, statusCode: 202, schoolClass: createdSchoolClass }
+            const { id, title, subscriptions, informations } = createdSchoolClass
+
+            const { price } = subscriptions
+
+            const { description, dateSchedule } = informations
+
+            const product: StripeCreateProductProps = {
+                name: title,
+                default_price_data: price,
+                description: description,
+                metadata: {
+                    schoolClassID: id,
+                    productType: 'SchoolClass',
+                    title: title,
+                    semester: dateSchedule,
+                    year: dateSchedule,
+                }
+            }
+
+            const stripeCreatedProduct = await stripeProduct.createProduct(product)
+
+            const updatedSchoolClassProduct = await prisma.schoolClass.update({
+                where:{ id },
+                data: {
+                    stripeProductID: stripeCreatedProduct.id,
+                    status: stripeCreatedProduct.active? 'active' : 'inactive'
+                }
+            })
+
+            return {
+                isValid: true,
+                statusCode: 202,
+                schoolClass: createdSchoolClass,
+                successMessage: "Produto criado com sucesso!"
+            }
 
 
         } catch (error: unknown) {
@@ -167,29 +202,29 @@ class SchoolClassRepository implements ISchoolClassRepository {
         try {
 
             const schoolClass = await getPrismaSchoolClass(schoolClassID)
-            
+
             const { stripeProductID } = schoolClass
-            
+
             //Se tiver o product ID, iremos atualizá-lo, pois se trata de um update do webhook
-            
+
             if (!stripeProductID) {
                 throw Error("A turma não está cadastrada no Stripe, por favor exclua e crie uma nova.")
             }
             const updatedSchoolClass = await updatePrismaSchoolClass(schoolClassData, schoolClass, schoolClassID)
-            
+
             // ATUALIZAR NO STRIPE!!!!!!!!!
-            
+
             const stripeProducts = new StripeProducts()
-            
+
             const { status, informations, title } = schoolClassData
-            
+
             const product = await stripeProducts.getProduct(stripeProductID)
 
             await stripeProducts.updateProduct(
                 stripeProductID,
                 title,
                 status == 'active' ? true : false,
-                informations?.description?? null,
+                informations?.description ?? null,
                 product
             )
 

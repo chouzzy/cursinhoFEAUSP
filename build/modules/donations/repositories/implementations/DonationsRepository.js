@@ -31,40 +31,7 @@ class DonationsRepository {
                 if (page == 0) {
                     page = 1;
                 }
-                const filteredDonations = yield prisma_1.prisma.donations.groupBy({
-                    by: [
-                        'id',
-                        'name',
-                        'email',
-                        'phoneNumber',
-                        'isPhoneWhatsapp',
-                        'gender',
-                        'birth',
-                        'state',
-                        'city',
-                        'homeNumber',
-                        'complement',
-                        'district',
-                        'zipCode',
-                        'street',
-                        'cpf',
-                        'rg',
-                        'cnpj',
-                        'ufrg',
-                        'valuePaid',
-                        'paymentMethod',
-                        'paymentStatus',
-                        'paymentDate',
-                        'ciclesBought',
-                        'ciclePaid',
-                        'valueBought',
-                        'stripeCustomerID',
-                        'donationExpirationDate',
-                        'txid',
-                        'pixCopiaECola',
-                        'pixQrCode',
-                        'createdAt',
-                    ],
+                const filteredDonations = yield prisma_1.prisma.donations.findMany({
                     where: {
                         AND: [
                             { name: { contains: name } },
@@ -72,9 +39,7 @@ class DonationsRepository {
                             { cpf: cpf },
                             { cnpj: cnpj },
                             { paymentStatus: paymentStatus }
-                        ]
-                    },
-                    having: {
+                        ],
                         valuePaid: {
                             gte: initValue,
                             lte: endValue
@@ -88,7 +53,7 @@ class DonationsRepository {
                         name: 'asc'
                     },
                     skip: (page - 1) * pageRange,
-                    take: pageRange
+                    take: pageRange,
                 });
                 return {
                     isValid: true,
