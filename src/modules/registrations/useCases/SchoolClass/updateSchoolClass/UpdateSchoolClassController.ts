@@ -1,7 +1,7 @@
 import { Request, Response } from "express"
 import { checkBody, ErrorValidation } from "./UpdateSchoolClassCheck"
 import { SchoolClassRepository } from "../../../repositories/implementations/SchoolClassRepository"
-import { SchoolClass } from "../../../entities/SchoolClass"
+import { DocumentsTypes, SchoolClass, SchoolClassSelectiveStages } from "../../../entities/SchoolClass"
 import { UpdateSchoolClassUseCase } from "./UpdateSchoolClassUseCase"
 
 interface UpdateSchoolClassRequestProps {
@@ -9,10 +9,10 @@ interface UpdateSchoolClassRequestProps {
     title: SchoolClass["title"]
     informations: SchoolClass["informations"]
     subscriptions: SchoolClass["subscriptions"]
-    selectiveStages: SchoolClass["selectiveStages"]
+    selectiveStages?: SchoolClassSelectiveStages
     status: SchoolClass["status"]
     stripeProductID: SchoolClass["stripeProductID"]
-    documents?: SchoolClass["documents"]
+    documents?: DocumentsTypes
     registrations?: SchoolClass["registrations"]
 }
 

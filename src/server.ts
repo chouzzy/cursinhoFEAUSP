@@ -5,20 +5,33 @@ import { router } from './routes'
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import Stripe from 'stripe';
+import fs from 'fs';
+import path from 'path';
+import https from 'https';
 
-const stripe:Stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
+
+const stripe: Stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
+
+const cert = fs.readFileSync(
+    path.resolve(__dirname, `../certs/${process.env.EFI_CERT}`)
+);
+
+const agent = new https.Agent({
+    pfx: cert,
+    passphrase: ''
+});
 
 const app = express()
 
 app.use(cors({
-    origin:"*",
+    origin: "*",
     methods: ['GET', 'PUT', 'POST', 'DELETE', 'PATCH'],
 }));
 
-app.use(express.json())
+// app.use(bodyParser.json({ type: 'application/json' }))
 
-app.use(bodyParser.json({ type: 'application/json' }))
-
+// app.use('/webhooks', express.raw({ type: "*/*" }));
+// app.use(express.json({type:"application/json"}))
 app.use(router)
 
 // Tratamento de erro
@@ -38,6 +51,6 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     })
 })
 
-app.listen(3000, () => console.log('Sir, we are back online! 🦥'))
+app.listen(3001, () => console.log('Sir, we are back online! 🦥'))
 
-export { stripe }
+export { stripe, cert, agent }

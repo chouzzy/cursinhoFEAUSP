@@ -5,6 +5,7 @@ import { prisma } from "../prisma";
 import { Prisma } from "@prisma/client";
 import { CreateDonationProps } from "../modules/donations/useCases/createDonation/CreateDonationController";
 import { Donations } from "../modules/donations/entities/Donations";
+import { CreateStudentRequestProps } from "../modules/registrations/useCases/Students/createStudents/CreateStudentsController";
 
 class StripeCustomer {
 
@@ -187,9 +188,8 @@ class StripeCustomer {
                 phone: donationData.phoneNumber,
                 metadata: {
                     customerType: 'Donation',
-                    donationValue: donationData.valuePaid,
-                    cpf: donationData.cpf,
-                    cnpj: donationData.cnpj
+                    cpf: donationData.cpf ?? "NDA",
+                    cnpj: donationData.cnpj ?? "NDA"
                 }
             })
 
@@ -226,19 +226,14 @@ class StripeCustomer {
         try {
             const stripeProductCreatedID = subscriptionCreated.items.data[0].price.product
 
-        
-        
+
+
 
             const isTheProductASchoolClass = await prisma.schoolClass.findFirst({
                 where: {
                     stripeProductID: stripeProductCreatedID
                 }
             })
-
-            
-
-        
-        
 
             //Verifica se é Donation ou SchoolClass
             if (isTheProductASchoolClass) {
@@ -258,21 +253,12 @@ class StripeCustomer {
                     }
                 )
 
-            
-            
-
-
-
-
-
                 const student = await prisma.students.findFirst({
                     where: {
                         cpf: customer.metadata.cpf
                     }
                 })
 
-            
-            
 
 
 
@@ -290,9 +276,6 @@ class StripeCustomer {
                         stripeProductID: stripeProductCreatedID
                     }
                 })
-
-            
-            
 
 
                 if (!schoolClassBought) {
@@ -321,9 +304,6 @@ class StripeCustomer {
 
                     }
                 })
-
-
-
 
 
                 await prisma.students.update({
@@ -426,49 +406,72 @@ class StripeCustomer {
 
     }
 
-    async searchCustomer(cpf: string, cnpj: string|null): Promise<string | undefined> {
+    async searchCustomer(cpf: string, cnpj: string | null): Promise<string | undefined> {
 
+        try {
 
-        
-        if (cnpj && cnpj != "Não informado"){
+            if (cnpj && cnpj != "NDA") {
 
-            const customer = await stripe.customers.search({
-                query: `metadata[\'cnpj\']:\'${cnpj}\'`,
-            });
+                const customer = await stripe.customers.search({
+                    query: `metadata[\'cnpj\']:\'${cnpj}\'`,
+                });
 
-            if (customer.data.length == 0 || customer == null) {
-                return undefined
+                if (customer.data.length == 0 || customer == null) {
+                    return undefined
+                }
+                return customer.data[0].id
             }
-            return customer.data[0].id
-        }
-        
-        if (cpf && cpf != "Não informado") {
-            const customer = await stripe.customers.search({
-                query: `metadata[\'cpf\']:\'${cpf}\'`,
-            });
 
-            if (!customer.data || customer.data.length === 0) {
-                return undefined
+            if (cpf && cpf != "NDA") {
+                const customer = await stripe.customers.search({
+                    query: `metadata[\'cpf\']:\'${cpf}\'`,
+                });
+
+                if (!customer.data || customer.data.length === 0) {
+                    return undefined
+                }
+
+                return customer.data[0].id
             }
-            
-            return customer.data[0].id
+        } catch (error) {
+            throw error
         }
-
 
     }
 
-    async createCustomer(customerData: StripeCustomerData): Promise<string> {
+    async createCustomerStudent(customerData: CreateStudentRequestProps): Promise<string> {
 
-        let {cpf, rg, cnpj} = customerData
+        try {
 
+            let { cpf, rg } = customerData
 
-        if (cpf === "Não informado") {
-            cpf = null
+            const customer = await stripe.customers.create({
+                description: `Customer criado por awer na data: ${(new Date()).toLocaleDateString('pt-BR')}`,
+                address: {
+                    city: customerData.city,
+                    line1: customerData.street,
+                    state: customerData.state
+                },
+                email: customerData.email,
+                name: customerData.name,
+                phone: customerData.phoneNumber,
+                metadata: {
+                    cpf: cpf,
+                    rg: rg ?? 'NDA',
+                    cnpj: 'NDA'
+                }
+            });
+
+            return customer.id
+
+        } catch (error) {
+            throw error
         }
+    }
 
-        if (cnpj === "Não informado") {
-            cnpj = null
-        }
+    async createCustomerDonations(customerData: CreateDonationProps): Promise<string> {
+
+        let { cpf, rg, cnpj } = customerData
 
         const customer = await stripe.customers.create({
             description: `Customer criado por awer na data: ${(new Date()).toLocaleDateString('pt-BR')}`,
@@ -481,9 +484,9 @@ class StripeCustomer {
             name: customerData.name,
             phone: customerData.phoneNumber,
             metadata: {
-                cpf: cpf ?? 'Não informado',
-                rg: rg ?? 'Não informado',
-                cnpj: cnpj ?? 'Não informado'
+                cpf: cpf ?? 'NDA',
+                rg: rg ?? 'NDA',
+                cnpj: cnpj ?? 'NDA'
             }
         });
 

@@ -1,4 +1,4 @@
-import { Router } from "express"
+import express, { Router } from "express"
 import { CreateStudentController } from "../modules/registrations/useCases/Students/createStudents/CreateStudentsController"
 import { CancelSubscriptionController } from "../modules/registrations/useCases/Students/cancelStudents/CancelSubscriptionController"
 import { ListStudentsController } from "../modules/registrations/useCases/Students/listStudents/ListStudentsController"
@@ -8,6 +8,8 @@ import { ExcelListStudentsController } from "../modules/registrations/useCases/S
 import { ListChargesStudentsController } from "../modules/registrations/useCases/Students/listChargesStudents/ListChargesStudentsController"
 import { RefundStudentController } from "../modules/registrations/useCases/Students/refundStudent/RefundStudentController"
 import { SyncStudentsController } from "../modules/registrations/useCases/Students/syncStudents/SyncStudentsController"
+import { CreatePixStudentController } from "../modules/registrations/useCases/Students/createPixStudents/CreatePixStudentsController"
+import bodyParser from "body-parser"
 
 const studentsRoutes = Router()
 
@@ -19,6 +21,10 @@ studentsRoutes.get('/excel', ensureAuthenticated, excellistStudentsController.ha
 
 const createStudentController = new CreateStudentController()
 studentsRoutes.post('/create', createStudentController.handle)
+
+// PIX
+const pixStudentController = new CreatePixStudentController()
+studentsRoutes.post('/pix', pixStudentController.handle)
 
 const updateStudentController = new UpdateStudentController()
 studentsRoutes.put('/:studentID/update', ensureAuthenticated, updateStudentController.handle)

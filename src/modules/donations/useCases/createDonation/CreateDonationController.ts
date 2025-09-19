@@ -7,10 +7,10 @@ import crypto from "crypto-js";
 interface CreateDonationProps {
     name: Donations["name"]
     email: Donations["email"]
-    phoneNumber: Donations["phoneNumber"] 
-    isPhoneWhatsapp: Donations["isPhoneWhatsapp"] 
     gender?: Donations["gender"]
     birth: Donations["birth"]
+    phoneNumber: Donations["phoneNumber"] 
+    isPhoneWhatsapp: Donations["isPhoneWhatsapp"] 
     state:Donations["state"]
     city:Donations["city"]
     street:Donations["street"]
@@ -18,12 +18,10 @@ interface CreateDonationProps {
     complement?:Donations["complement"]
     district:Donations["district"]
     zipCode:Donations["zipCode"]
-    cpf: Donations["cpf"]
-    rg: Donations["rg"]
-    cnpj: Donations["cnpj"]
-    ufrg: Donations["ufrg"]
-    valuePaid: Donations["valuePaid"]
-    token: string
+    cpf?: Donations["cpf"]
+    rg?: Donations["rg"]
+    cnpj?: Donations["cnpj"]
+    ufrg?: Donations["ufrg"]
     paymentMethodID: string
     productSelectedID: string
     cycles: number
@@ -35,23 +33,20 @@ class CreateDonationController {
 
         const donationData: CreateDonationProps = req.body
         
-        const {token} = donationData
+        const {paymentMethodID} = donationData
 
-        if (!token) {
+        if (!paymentMethodID) {
             return res.status(403).send({message:'Token inválido'})
         }
 
         try {
 
-            const decryptedPaymentMethodString = crypto.AES.decrypt(token, process.env.CRYPTO_PKEY?? '').toString(crypto.enc.Utf8);
+            // const decryptedPaymentMethodString = crypto.AES.decrypt(paymentMethodID, process.env.CRYPTO_PKEY?? '').toString(crypto.enc.Utf8);
 
-            if (!decryptedPaymentMethodString) {
-                return res.status(403).send({message:'Token inválido'}) 
-            }
-            const paymentMethodID = decryptedPaymentMethodString
-
-        
-            donationData.paymentMethodID = paymentMethodID
+            // if (!decryptedPaymentMethodString) {
+            //     return res.status(403).send({message:'Token inválido'}) 
+            // }
+            // donationData.paymentMethodID =  decryptedPaymentMethodString
 
             const donationsRepository = new DonationsRepository()
             const createDonationUseCase = new CreateDonationUseCase(donationsRepository)

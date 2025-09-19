@@ -19,7 +19,7 @@ class Students {
     cpf!: string
     rg!: string | null
     ufrg!: string
-    
+
     selfDeclaration!: string
     oldSchool!: string
     oldSchoolAdress!: string
@@ -35,13 +35,21 @@ class Students {
 
 interface purcharsedSubscriptions {
     schoolClassID: string
-    stripeSubscriptionID: string
-    productID: string
-    productName: string
+    stripeSubscriptionID?: string
+    productID?: string
+    productName?: string
     paymentMethod: string
     paymentStatus: string
     paymentDate: Date | null
     valuePaid: number
+
+    txid?: string
+    pixCopiaECola?: string
+    pixQrCode?: string
+    pixStatus?: string
+    pixValor?: string
+    pixDate?: string
+    pixExpiracaoEmSegundos?: number
 }
 
 export { Students, purcharsedSubscriptions }

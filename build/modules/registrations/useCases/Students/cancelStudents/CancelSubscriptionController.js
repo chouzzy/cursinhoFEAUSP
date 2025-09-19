@@ -17,6 +17,9 @@ class CancelSubscriptionController {
         return __awaiter(this, void 0, void 0, function* () {
             const studentID = req.params.studentID;
             const stripeSubscriptionID = req.params.stripeSubscriptionID;
+            if (!stripeSubscriptionID) {
+                return res.status(404).json({ error: 'stripeSubscriptionID necessário.' });
+            }
             const studentsRepository = new StudentsRepository_1.StudentsRepository();
             const deleteStudentUseCase = new CancelSubscriptionUseCase_1.CancelSubscriptionUseCase(studentsRepository);
             const response = yield deleteStudentUseCase.execute(studentID, stripeSubscriptionID);

@@ -1,4 +1,4 @@
-import { Router } from "express"
+import express, { Router } from "express"
 import { ListAdminsController } from "../modules/registrations/useCases/Admins/listAdmins/ListAdminsController"
 import { RefreshTokenController } from "../modules/registrations/useCases/refreshToken/RefreshTokenController"
 

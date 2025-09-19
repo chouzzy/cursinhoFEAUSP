@@ -10,7 +10,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreateSchoolClassUseCase = void 0;
-const StripeProducts_1 = require("../../../../../hooks/StripeProducts");
 const CreateSchoolClassCheck_1 = require("./CreateSchoolClassCheck");
 class CreateSchoolClassUseCase {
     constructor(schoolClassRepository) {
@@ -29,30 +28,7 @@ class CreateSchoolClassUseCase {
                 });
             }
             const createSchoolClassResponse = yield this.schoolClassRepository.createSchoolClass(schoolClassData);
-            if (!createSchoolClassResponse.schoolClass) {
-                return createSchoolClassResponse;
-            }
-            const stripeProducts = new StripeProducts_1.StripeProducts();
-            const { schoolClass } = createSchoolClassResponse;
-            const product = {
-                name: schoolClass.title,
-                default_price_data: schoolClass.subscriptions.price,
-                description: schoolClass.informations.description,
-                metadata: {
-                    schoolClassID: schoolClass.id,
-                    productType: 'studentSubscription',
-                    title: schoolClass.title,
-                    semester: schoolClass.informations.dateSchedule,
-                    year: schoolClass.informations.dateSchedule,
-                }
-            };
-            const stripeProductCreated = yield stripeProducts.createProduct(product);
-            if (!stripeProductCreated.stripeCreatedProductID) {
-                return stripeProductCreated;
-            }
-            const { stripeCreatedProductID } = stripeProductCreated;
-            const updatedSchoolClassResponse = yield this.schoolClassRepository.updateSchoolClass(schoolClass, schoolClass.id, stripeCreatedProductID);
-            return updatedSchoolClassResponse;
+            return createSchoolClassResponse;
         });
     }
 }

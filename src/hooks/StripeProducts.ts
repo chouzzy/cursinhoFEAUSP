@@ -1,15 +1,28 @@
-import { ChargeRefundedProps, CustomerSubscriptionCreated, StripeCreateProductProps, StripeDeactivatedProduct, validationResponse } from "../types"
+import { StripeCreateProductProps, validationResponse } from "../types"
 import { stripe } from "../server";
 import { prisma } from "../prisma";
-import { Prisma } from "@prisma/client";
-import { CreateDonationProps } from "../modules/donations/useCases/createDonation/CreateDonationController";
+import Stripe from "stripe";
 
 
 class StripeProducts {
 
+    async getProduct(productID: string) {
+        try {
+            const stripeProduct = await stripe.products.retrieve(productID)
+
+            if (!stripeProduct) {
+                throw Error('Produto não encontrado no stripe')
+            }
+
+            return stripeProduct
+        } catch (error) {
+            throw error
+        }
+    }
+
     async createProduct(
         product: StripeCreateProductProps
-    ): Promise<validationResponse> {
+    ) {
 
         try {
 
@@ -23,11 +36,7 @@ class StripeProducts {
             })
 
             if (!schoolClassFound) {
-                return {
-                    isValid: false,
-                    errorMessage: " Erro de Hook: Os dados do produto não correspondem a nenhum produto ",
-                    statusCode: 403
-                }
+                throw Error("Turma não encontrada pelo título.")
             }
 
             const stripeCreatedProduct = await stripe.products.create({
@@ -49,46 +58,74 @@ class StripeProducts {
                 }
             })
 
-
-            return {
-                isValid: true,
-                statusCode: 202,
-                stripeCreatedProductID: stripeCreatedProduct.id,
-                successMessage: "Cliente criado no servidor Stripe"
+            if (!stripeCreatedProduct) {
+                throw Error("Ocorreu um erro ao criar o produto no stripe")
             }
+
+
+            return stripeCreatedProduct
 
         } catch (error: unknown) {
-
-            if (error instanceof Prisma.PrismaClientValidationError) {
-                const argumentPosition = error.message.search('Argument')
-                const mongoDBError = error.message.slice(argumentPosition)
-                return { isValid: false, errorMessage: mongoDBError, statusCode: 403 }
-            }
-
-            if (error instanceof Prisma.PrismaClientKnownRequestError) {
-                return { isValid: false, errorMessage: error, statusCode: 403 }
-            }
-
-            else {
-                return { isValid: false, errorMessage: String(error), statusCode: 403 }
-            }
+            throw error
         }
-
-
 
     }
 
     async deleteProduct(
         productID: string
     ): Promise<Boolean> {
+        try {
 
-        const productDeactivated = await stripe.products.update(
-            productID,
-            { active: false }
-        );
+            const productDeactivated = await stripe.products.update(
+                productID,
+                { active: false }
+            );
 
-        return productDeactivated.active
+            return productDeactivated.active
+        } catch (error) {
+            throw error
+        }
     }
+
+    async updateProduct(
+        productID: string,
+        name: string,
+        active: boolean,
+        description: string | null,
+        product: Stripe.Response<Stripe.Product>
+    ): Promise<Boolean> {
+        try {
+
+            if (!name) {
+                name = product.name
+            }
+            if (!active) {
+                active = product.active
+            }
+            console.log('description')
+            console.log(description)
+            if (!description || description == null) {
+                console.log('description 2')
+                console.log(description)
+                description = product.description
+            }
+
+            const productDeactivated = await stripe.products.update(
+                productID,
+                {
+                    name,
+                    active,
+                    description,
+
+                }
+            );
+
+            return productDeactivated.active
+        } catch (error) {
+            throw error
+        }
+    }
+
 }
 
 export { StripeProducts }

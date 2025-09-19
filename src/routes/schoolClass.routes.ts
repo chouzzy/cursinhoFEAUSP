@@ -1,4 +1,4 @@
-import { Router } from "express"
+import express, { Router } from "express"
 import { CreateSchoolClassController } from "../modules/registrations/useCases/SchoolClass/createSchoolClass/CreateSchoolClassController"
 import { DeleteSchoolClassController } from "../modules/registrations/useCases/SchoolClass/deleteSchoolClass/DeleteSchoolClassController"
 import { ListSchoolClassController } from "../modules/registrations/useCases/SchoolClass/listSchoolClass/ListSchoolClassController"

@@ -17,8 +17,17 @@ class CreateStudentUseCase {
     }
     execute(studentData) {
         return __awaiter(this, void 0, void 0, function* () {
+            const { cpf, rg } = studentData;
+            // validação que o yup não consegue fazer (um ou outro)
+            if (!cpf && !rg) {
+                return ({
+                    isValid: false,
+                    statusCode: 403,
+                    errorMessage: 'O CPF ou o RG são obrigatórios.',
+                });
+            }
             if (!studentData.rg) {
-                studentData.ufrg = "Não informado";
+                studentData.ufrg = "NDA";
             }
             const bodyValidation = yield (0, CreateStudentCheck_1.checkBody)(studentData);
             if (bodyValidation.isValid === false) {
@@ -28,7 +37,7 @@ class CreateStudentUseCase {
                     errorMessage: bodyValidation.errorMessage,
                 });
             }
-            const createdStudent = yield this.studentsRepository.createStudent(studentData);
+            const createdStudent = yield this.studentsRepository.createStudentPaymentIntent(studentData);
             return createdStudent;
         });
     }

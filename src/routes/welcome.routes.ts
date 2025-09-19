@@ -1,4 +1,4 @@
-import { Router } from "express"
+import express, { Router } from "express"
 const welcomeRoutes = Router()
 
 welcomeRoutes.get('/', async (req, res) => {

@@ -1,4 +1,5 @@
-import { Router } from "express"
+import express, { Router } from "express"
+
 import { AuthenticateAdminsController } from "../modules/registrations/useCases/Admins/authenticateAdmin/AuthenticateAdminController"
 import { CreateAdminsController } from "../modules/registrations/useCases/Admins/createAdmins/CreateAdminController"
 import { DeleteAdminController } from "../modules/registrations/useCases/Admins/deleteAdmins/DeleteAdminController"

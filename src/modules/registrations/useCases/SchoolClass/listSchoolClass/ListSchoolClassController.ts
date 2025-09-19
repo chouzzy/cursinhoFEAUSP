@@ -1,3 +1,4 @@
+// src/modules/registrations/useCases/SchoolClass/listSchoolClass/ListSchoolClassController.ts
 import { Request, Response } from "express";
 import { SchoolClass } from "../../../entities/SchoolClass";
 import { SchoolClassRepository } from "../../../repositories/implementations/SchoolClassRepository";

@@ -22,6 +22,8 @@ class CreateSchoolClassController {
 
         const schoolClassData: CreateSchoolClassRequestProps = req.body
 
+        schoolClassData.status = 'Em processamento'
+
         /// instanciação da classe do caso de uso
         const schoolClassRepository = new SchoolClassRepository()
         const createSchoolClassUseCase = new CreateSchoolClassUseCase(schoolClassRepository)

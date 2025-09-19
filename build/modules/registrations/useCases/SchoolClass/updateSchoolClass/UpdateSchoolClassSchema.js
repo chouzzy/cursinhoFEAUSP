@@ -38,15 +38,14 @@ const updateSchoolClassSchema = yup.object({
         color: yup.string(),
     }),
     subscriptions: yup.object({
-        status: yup.string(),
-        price: yup.number(),
+        status: yup.string().oneOf(['Aberto', 'Fechado'], "O status deve ser um dos seguintes valores: 'active' ou 'inactive' "),
         subscriptionSchedule: yup.string(),
     }),
-    selectiveStages: yup.array().of(yup.object().shape({
+    selectiveStages: yup.object().shape({
         when: yup.string(),
         resultsDate: yup.date().nullable().typeError("resultsDate must be a valid date"),
         description: yup.string(),
-    })),
+    }),
     documents: yup.array().of(yup.object().shape({
         title: yup.string().min(3, 'O título deve conter ao menos 3 caracteres'),
         downloadLink: yup.string().min(3, 'O título deve conter ao menos 3 caracteres')

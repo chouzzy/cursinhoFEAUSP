@@ -20,12 +20,13 @@ interface validationResponse {
   listAllSchoolClassList?: {
     id: SchoolClass['id'],
     title: SchoolClass['title']
-  }[] 
+  }[]
   schoolClassList?: SchoolClass[]
   schoolClassDocs?: SchoolClass["documents"]
   schoolClassStages?: SchoolClass["selectiveStages"]
-  students?: Students
-  studentsList?: Students[]
+  // resolver any
+  students?: any
+  studentsList?: any[]
   admins?: {
     id: Admins["id"]
     name: Admins["name"]
@@ -48,8 +49,23 @@ interface validationResponse {
   fileBuffer?: ArrayBuffer
   totalDocuments?: number
   subscriptionsDuplicated?: purcharsedSubscriptions["schoolClassID"][]
-  stripeSubscription?:Stripe.Response<Stripe.Subscription>
-  charges?:Stripe.Response<Stripe.ApiSearchResult<Stripe.Charge>>
+  stripeSubscription?: Stripe.Response<Stripe.Subscription>
+
+  paymentIntent?: Stripe.Response<Stripe.PaymentIntent>
+  paymentIntentID?: string | null
+  clientSecret?: string | null
+  nextAction?: Stripe.PaymentIntent.NextAction | null
+
+
+  charges?: Stripe.Response<Stripe.ApiSearchResult<Stripe.Charge>>
+
+  txid?: pixCobDataProps["txid"]
+  pixCopiaECola?: pixCobDataProps["pixCopiaECola"]
+  pixQrCode?: pixCobDataProps["location"]
+  pixStatus?: pixCobDataProps["status"]
+  pixValor?: pixCobDataProps["valor"]
+  pixDate?: pixCobDataProps["calendario"]["criacao"],
+  pixExpiracaoEmSegundos?: pixCobDataProps["calendario"]["expiracao"]
 }
 
 interface StripeCheckoutCustomerPropsDetails {
@@ -241,6 +257,52 @@ interface StripeCustomerData {
   ufrg: string
 }
 
+interface createPixProps {
+  cpf: Donations["cpf"] | Students["cpf"]
+  name: Donations["name"] | Students["name"]
+  valuePaid: Donations["valuePaid"] | Students["purcharsedSubscriptions"][0]["valuePaid"]
+}
+
+interface pixCobDataProps {
+  calendario: {
+    criacao: string;
+    expiracao: number;
+  };
+  txid: string;
+  revisao: number;
+  status: 'ATIVA' | 'INATIVA' | 'CONCLUÍDA' // Adicionar outros status possíveis
+  valor: {
+    original: string;
+  };
+  chave: string;
+  devedor: {
+    cpf: string;
+    nome: string;
+  };
+  solicitacaoPagador: string;
+  loc: {
+    id: number;
+    location: string;
+    tipoCob: string;
+    criacao: string;
+  };
+  location: string;
+  pixCopiaECola: string;
+}
+
+interface pixWebhookResponseProps {
+  pix: [
+    {
+      endToEndId: string,
+      txid: string,
+      chave: string,
+      valor: string,
+      horario: string,
+    }
+  ]
+}
+
+
 export {
   validationResponse,
   StripeCheckoutCustomerPropsDetails,
@@ -251,5 +313,8 @@ export {
   StripeCreateProductProps,
   StripeDeactivatedProduct,
   StripeCustomerData,
-  InvoiceRetrieveProps
+  InvoiceRetrieveProps,
+  pixCobDataProps,
+  pixWebhookResponseProps,
+  createPixProps
 }

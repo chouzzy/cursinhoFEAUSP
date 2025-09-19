@@ -1,3 +1,5 @@
+// src/modules/registrations/repositories/ISchoolClassRepository.ts
+
 import { Students } from "@prisma/client"
 import { validationResponse } from "../../../types"
 import { DocumentsTypes, SchoolClass, SchoolClassSelectiveStages } from "../entities/SchoolClass"

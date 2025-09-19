@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../../../prisma";
-import { validationResponse } from "../../../../types";
+import { pixCobDataProps, validationResponse } from "../../../../types";
 import { Students, purcharsedSubscriptions } from "../../entities/Students";
 import { CreateStudentRequestProps } from "../../useCases/Students/createStudents/CreateStudentsController";
 import { UpdateStudentRequestProps } from "../../useCases/Students/updateStudents/UpdateStudentController";
@@ -8,8 +8,13 @@ import { IStudentsRepository } from "../IStudentsRepository";
 import { StripeCustomer } from "../../../../hooks/StripeCustomer";
 import { StripeFakeFront } from "../../../../hooks/StripeFakeFront";
 import { ListStudentsQuery } from "../../useCases/Students/listStudents/ListStudentsController";
-import { stripe } from "../../../../server";
+import { agent, stripe } from "../../../../server";
 import Stripe from "stripe";
+import { checkDuplicateSchoolClassIDs } from "../../../../utils/checkDuplicatedSchoolClassID";
+import { CreatePixStudentRequestProps } from "../../useCases/Students/createPixStudents/CreatePixStudentsController";
+import { criarCobrancaPix, getEfíAccessToken } from "../../../../hooks/efíHooks";
+import { checkIfPixAlreadyConcluded, checkIfPixIsExpired, checkSchoolClassExists, createStudent, createStudentPix, getEfiCredentials, getSchoolClassPrice, getStripeStudentCustomerID, getStudent, getStudentAlreadyActive, getStudentByCPForRG, updateStudentPaymentInProgress, updateStudentPix } from "../../../../utils/studentHelpers";
+import { StripeSubscriptionsManager } from "../../../../hooks/StripeSubscriptionsManager";
 
 
 class StudentsRepository implements IStudentsRepository {
@@ -29,7 +34,6 @@ class StudentsRepository implements IStudentsRepository {
             if (page == 0) {
                 page = 1
             }
-
 
             let filteredStudents = await prisma.students.findMany({
                 where: {
@@ -164,356 +168,103 @@ class StudentsRepository implements IStudentsRepository {
         }
     }
 
-    async createStudent(studentData: CreateStudentRequestProps): Promise<validationResponse> {
+    async createPixStudent(studentData: CreatePixStudentRequestProps): Promise<validationResponse> {
 
         try {
 
-            // CHECA SE A SCHOOLCLASS JÁ FOI COMPRADA
-            function checkDuplicateSchoolClassIDs(purcharsedSubscriptions: Students["purcharsedSubscriptions"]) {
-                const uniqueIDs = new Set();
-
-                for (const subscription of purcharsedSubscriptions) {
-                    if (uniqueIDs.has(subscription.schoolClassID)) {
-                        return true; // Duplicate found
-                    }
-                    uniqueIDs.add(subscription.schoolClassID);
-                }
-
-                return false; // No duplicates found
-            }
-
-            const { purcharsedSubscriptions } = studentData
-
-            const hasDuplicateSchoolClassIDs = checkDuplicateSchoolClassIDs(purcharsedSubscriptions);
-
-            if (hasDuplicateSchoolClassIDs) {
-                return {
-                    isValid: false,
-                    errorMessage: `A inscrição já foi comprada anteriormente.`,
-                    statusCode: 403
-                }
-            }
-
-
             // CHECA SE A TURMA EXISTE
-            const sutdentDataSchoolClassID = studentData.purcharsedSubscriptions[0].schoolClassID
-            const searchedSchoolClass = await prisma.schoolClass.findFirst({
-                where: { id: sutdentDataSchoolClassID }
-            })
+            const studentDataSchoolClassID = studentData.purcharsedSubscriptions.schoolClassID
 
-            if (!searchedSchoolClass) {
+            const schoolClassFound = await getSchoolClassPrice(studentDataSchoolClassID)
+
+            if (!schoolClassFound || schoolClassFound === 'NOT FOUND') {
                 return {
                     isValid: false,
-                    errorMessage: `Turma não encontrada.`,
+                    errorMessage: `Turma não encontrada`,
                     statusCode: 403
                 }
             }
 
-            // CHECA SE O ESTUDANTE JÁ TEM ALGUMA INSCRIÇÃO ANTERIOR
-            const searchedStudent = await prisma.students.findFirst({
-                where: {
-                    OR: [
-                        { cpf: studentData.cpf },
-                        { rg: studentData.rg }
-                    ]
+            if (schoolClassFound === 'INACTIVE') {
+                return {
+                    isValid: false,
+                    errorMessage: `A turma se encontra inativa.`,
+                    statusCode: 403
                 }
-            })
+            }
 
-            const stripeCustomer = new StripeCustomer()
-            const { cpf, rg } = studentData
-            const stripeSearchedCustomerID = await stripeCustomer.searchCustomer(cpf, null)
+            if (schoolClassFound === 'CLOSED') {
+                return {
+                    isValid: false,
+                    errorMessage: `A turma se encontra fechada.`,
+                    statusCode: 403
+                }
+            }
+
+            // CHECA SE O ESTUDANTE EXISTE NO BANCO DE DADOS
+            const { name, cpf, rg, purcharsedSubscriptions } = studentData
+            const { valuePaid } = purcharsedSubscriptions
+
+            const searchedStudent = await getStudentByCPForRG(cpf, rg)
 
 
 
-            // CHECA SE JA EXISTE O ESTUDANTE NO STRIPE E NO BANCO
-            if (searchedStudent && stripeSearchedCustomerID) {
+            // CHECA SE JA EXISTE O ESTUDANTE NO BANCO - ATUALIZA
+            if (searchedStudent) {
 
-                //CHECA SE A INSCRIÇÃO JÁ FOI COMPRADA ANTERIORMENTE  E O PAGAMENTO ESTÁ ACTIVE
-                let subscriptionsDuplicated: Array<purcharsedSubscriptions["schoolClassID"]> = []
 
-                //Filtro para possível cadastro em turma que já foi paga.
-                studentData.purcharsedSubscriptions.map((subscription) => {
+                // RETORNA CASO A INSCRIÇÃO JÁ TENHA SIDO COMPRADA E O PAGAMENTO CONCLUIDO
+                const studentAlreadySubscribed = await checkIfPixAlreadyConcluded(searchedStudent, studentData)
 
-                    searchedStudent.purcharsedSubscriptions.map(
-                        (subscriptionAlreadyRegistered) => {
-
-                            if (subscriptionAlreadyRegistered.schoolClassID == subscription.schoolClassID
-                                &&
-                                subscriptionAlreadyRegistered.paymentStatus == "active"
-                            ) {
-
-                                subscriptionsDuplicated.push(subscription.schoolClassID)
-                            }
-                        })
-                })
-
-                // RETORNA CASO A INSCRIÇÃO JÁ TENHA SIDO COMPRADA, caso contrario, continua
-                if (subscriptionsDuplicated.length > 0) {
+                if (studentAlreadySubscribed) {
 
                     return {
                         isValid: false,
-                        errorMessage: `Uma ou mais inscrições já foram compradas pelo estudante.`,
-                        subscriptionsDuplicated: subscriptionsDuplicated,
+                        errorMessage: `A inscrição já foi comprada anteriormente e está ativa.`,
                         statusCode: 403
                     }
                 }
 
-                // CHECA SE A INSCRIÇÃO JÁ FOI COMPRADA ANTERIORMENTE, MAS O PAGAMENTO NÃO FOI APROVADO
-                const isDuplicatedInactiveSubscription = checkDuplicateSchoolClassIDs(
-                    [
-                        ...searchedStudent.purcharsedSubscriptions,
-                        ...studentData.purcharsedSubscriptions
-                    ]
-                )
+                // RETORNA CASO A INSCRIÇÃO JÁ TENHA SIDO COMPRADA E O PIX AINDA NÃO EXPIROU
+                const isPixExpired = await checkIfPixIsExpired(searchedStudent, studentData)
 
-                //TENTANDO EFETUAR O PAGAMENTO NOVAMENTE DA INSCRIÇÃO NÃO APROVADA
-                if (isDuplicatedInactiveSubscription) {
-
-                    const stripeFrontEnd = new StripeFakeFront()
-                    const stripeResponse = await stripeFrontEnd.createSubscription({
-                        stripeCustomerID: stripeSearchedCustomerID,
-                        cpf: cpf,
-                        rg: rg,
-                        schoolClassID: sutdentDataSchoolClassID,
-                        cycles: 1,
-                        paymentMethodID: studentData.paymentMethodID,
-                        productSelectedID: studentData.productSelectedID
-                    })
-
-                    if (!stripeResponse.stripeSubscription) {
-
-                        return stripeResponse
-                    }
-
-                    const { status, start_date, id } = stripeResponse.stripeSubscription
-                    const { unit_amount } = stripeResponse.stripeSubscription.items.data[0].price
-
-                    const { title, stripeProductID } = searchedSchoolClass
-
-                    searchedStudent.purcharsedSubscriptions.map(subscription => {
-
-                        if (subscription.schoolClassID == sutdentDataSchoolClassID) {
-                            subscription.productID = stripeProductID,
-                                subscription.stripeSubscriptionID = id,
-                                subscription.productName = title,
-                                subscription.paymentMethod = 'creditcard',
-                                subscription.paymentStatus = status,
-                                subscription.paymentDate = new Date(start_date * 1000),
-                                subscription.valuePaid = unit_amount ?? studentData.purcharsedSubscriptions[0].valuePaid
-                        }
-                    })
-
-                    await prisma.students.update({
-                        where: { id: searchedStudent.id },
-                        data: {
-                            purcharsedSubscriptions: searchedStudent.purcharsedSubscriptions
-                        }
-                    })
-
+                if (!isPixExpired) {
                     return {
-                        isValid: true,
-                        errorMessage: `Estudante atualizado com sucesso!`,
-                        students: searchedStudent,
-                        statusCode: 202
+                        isValid: false,
+                        errorMessage: "O Pix gerado para essa inscrição ainda não expirou, e tem duração de 3 minutos.",
+                        statusCode: 402
                     }
-
                 }
 
-                // Só vai chegar aqui a inscrição
-                const stripeFrontEnd2 = new StripeFakeFront()
-                const stripeResponse = await stripeFrontEnd2.createSubscription({
-                    stripeCustomerID: stripeSearchedCustomerID,
-                    cpf: cpf,
-                    rg: rg,
-                    schoolClassID: sutdentDataSchoolClassID,
-                    cycles: 1,
-                    paymentMethodID: studentData.paymentMethodID,
-                    productSelectedID: studentData.productSelectedID
-                })
 
-                if (!stripeResponse.stripeSubscription) {
+                // AQUI OU O PIX EXPIROU OU NUNCA FOI COMPRADO!!!
 
-                    return stripeResponse
-                }
+                // PIX COB
+                const pixData: pixCobDataProps = await criarCobrancaPix({ cpf, name, valuePaid })
 
-                const { status, start_date, id } = stripeResponse.stripeSubscription
-                const { unit_amount } = stripeResponse.stripeSubscription.items.data[0].price
+                const updatedStudent = await updateStudentPix(pixData, searchedStudent, studentData)
 
-                const { title, stripeProductID } = searchedSchoolClass
-
-                studentData.purcharsedSubscriptions.map(async subscription => {
-
-                    if (subscription.schoolClassID == sutdentDataSchoolClassID) {
-                        subscription.productID = stripeProductID,
-                            subscription.stripeSubscriptionID = id,
-                            subscription.productName = title,
-                            subscription.paymentMethod = 'creditcard',
-                            subscription.paymentStatus = status,
-                            subscription.paymentDate = new Date(start_date * 1000),
-                            subscription.valuePaid = unit_amount ?? studentData.purcharsedSubscriptions[0].valuePaid
-                    }
-                })
-
-                const updatedStudent = await prisma.students.update({
-                    where: { id: searchedStudent.id },
-                    data: {
-                        purcharsedSubscriptions: searchedStudent.purcharsedSubscriptions.concat(studentData.purcharsedSubscriptions)
-                    }
-                })
-
-                const { statusCode, successMessage, isValid } = stripeResponse
                 return {
-                    isValid,
-                    successMessage,
+                    isValid: true,
+                    errorMessage: `Estudante atualizado com sucesso!`,
                     students: updatedStudent,
-                    statusCode
+                    statusCode: 202
                 }
+
 
             }
 
-            // Student não encontrado no banco e no stripe:
-            const stripeCustomerCreatedID = await stripeCustomer.createCustomer(studentData)
-
-            const stripeFrontEnd = new StripeFakeFront()
-
-            const stripeResponse = await stripeFrontEnd.createSubscription({
-                stripeCustomerID: stripeCustomerCreatedID,
-                cpf: cpf,
-                rg: rg,
-                schoolClassID: sutdentDataSchoolClassID,
-                cycles: 1,
-                paymentMethodID: studentData.paymentMethodID,
-                productSelectedID: studentData.productSelectedID
-            })
+            // PIX COB
+            const pixData: pixCobDataProps = await criarCobrancaPix({ cpf, name, valuePaid })
 
 
-            if (!stripeResponse.isValid) {
-                return {
-                    isValid: stripeResponse.isValid,
-                    errorMessage: stripeResponse.errorMessage,
-                    statusCode: stripeResponse.statusCode
-                }
-            }
+            const createdStudent = await createStudentPix(studentData, pixData)
 
-            if (stripeResponse.stripeSubscription) {
-
-                const { status, start_date, id } = stripeResponse.stripeSubscription
-                const { unit_amount } = stripeResponse.stripeSubscription.items.data[0].price
-                const { title, stripeProductID } = searchedSchoolClass
-
-                studentData.purcharsedSubscriptions.map(async subscription => {
-
-                    if (subscription.schoolClassID == sutdentDataSchoolClassID) {
-
-                        subscription.paymentDate = new Date(start_date * 1000),
-                            subscription.stripeSubscriptionID = id,
-                            subscription.paymentMethod = 'creditcard',
-                            subscription.paymentStatus = status,
-                            subscription.productID = stripeProductID,
-                            subscription.productName = title,
-                            subscription.valuePaid = unit_amount ?? studentData.purcharsedSubscriptions[0].valuePaid
-                    }
-                })
-
-                const createdStudent = await prisma.students.create({
-                    data: {
-                        name: studentData.name,
-                        email: studentData.email,
-                        gender: studentData.gender ?? 'Não informado',
-                        birth: studentData.birth,
-                        phoneNumber: studentData.phoneNumber,
-                        isPhoneWhatsapp: studentData.isPhoneWhatsapp,
-                        state: studentData.state,
-
-                        city: studentData.city,
-                        street: studentData.street,
-                        homeNumber: studentData.homeNumber,
-                        complement: studentData.complement ?? 'Não informado',
-                        district: studentData.district,
-                        zipCode: studentData.zipCode,
-
-                        cpf: studentData.cpf,
-                        rg: studentData.rg,
-                        ufrg: studentData.ufrg,
-                        selfDeclaration: studentData.selfDeclaration,
-                        oldSchool: studentData.oldSchool,
-                        oldSchoolAdress: studentData.oldSchoolAdress,
-                        highSchoolGraduationDate: studentData.highSchoolGraduationDate,
-                        highSchoolPeriod: studentData.highSchoolPeriod,
-                        metUsMethod: studentData.metUsMethod,
-                        exStudent: studentData.exStudent,
-                        stripeCustomerID: stripeCustomerCreatedID,
-
-                        purcharsedSubscriptions: studentData.purcharsedSubscriptions
-                    }
-                })
-
-                const { statusCode, successMessage, isValid } = stripeResponse
-                return {
-                    isValid,
-                    successMessage,
-                    students: createdStudent,
-                    statusCode
-                }
-            }
-
-            //STRIPE RESPONSE DEU ERRO
-            let studentSchoolClasses: purcharsedSubscriptions[] = []
-
-            studentData.purcharsedSubscriptions.map((subscription) => {
-                studentSchoolClasses.push({
-                    schoolClassID: subscription.schoolClassID,
-                    stripeSubscriptionID: subscription.stripeSubscriptionID,
-                    paymentDate: subscription.paymentDate ?? null,
-                    paymentMethod: subscription.paymentMethod ?? 'Pagamento não confirmado',
-                    paymentStatus: subscription.paymentStatus ?? 'Pagamento não confirmado',
-                    productID: subscription.productID ?? 'Pagamento não confirmado',
-                    productName: subscription.productName ?? 'Pagamento não confirmado',
-                    valuePaid: subscription.valuePaid ?? 0
-                })
-            })
-
-            const createdStudent = await prisma.students.create({
-                data: {
-                    name: studentData.name,
-                    email: studentData.email,
-                    gender: studentData.gender ?? 'Não informado',
-                    birth: studentData.birth,
-                    phoneNumber: studentData.phoneNumber,
-                    isPhoneWhatsapp: studentData.isPhoneWhatsapp,
-                    state: studentData.state,
-
-                    city: studentData.city,
-                    street: studentData.street,
-                    homeNumber: studentData.homeNumber,
-                    complement: studentData.complement ?? 'Não informado',
-                    district: studentData.district,
-                    zipCode: studentData.zipCode,
-
-                    cpf: studentData.cpf,
-                    rg: studentData.rg,
-                    ufrg: studentData.ufrg,
-                    selfDeclaration: studentData.selfDeclaration,
-                    oldSchool: studentData.oldSchool,
-                    oldSchoolAdress: studentData.oldSchoolAdress,
-                    highSchoolGraduationDate: studentData.highSchoolGraduationDate,
-                    highSchoolPeriod: studentData.highSchoolPeriod,
-                    metUsMethod: studentData.metUsMethod,
-                    exStudent: studentData.exStudent,
-                    stripeCustomerID: stripeCustomerCreatedID,
-
-                    purcharsedSubscriptions: studentSchoolClasses
-                }
-            })
-
-
-            const { statusCode, isValid, errorMessage } = stripeResponse
             return {
-                isValid,
+                isValid: true,
                 successMessage: 'Estudante criado no banco de dados',
-                errorMessage,
                 students: createdStudent,
-                statusCode
+                statusCode: 202
             }
 
 
@@ -536,6 +287,101 @@ class StudentsRepository implements IStudentsRepository {
             }
             return { isValid: false, errorMessage: String(error), statusCode: 403 }
         }
+    }
+
+    async createStudentPaymentIntent(studentData: CreateStudentRequestProps): Promise<validationResponse> {
+
+        try {
+
+            const { purcharsedSubscriptions, cpf, rg } = studentData
+            const { schoolClassID, paymentMethod, currency } = purcharsedSubscriptions
+
+            // CHECA SE A TURMA EXISTE
+            const searchedSchoolClass = await checkSchoolClassExists(schoolClassID)
+
+            if (!searchedSchoolClass) {
+                return {
+                    isValid: false,
+                    errorMessage: `Turma não encontrada.`,
+                    statusCode: 403
+                }
+            }
+
+
+            // CHECA SE CLIENTE JÁ EXISTE NO STRIPE E CRIA
+            const stripeCustomerID = await getStripeStudentCustomerID(studentData)
+
+            // CHECA SE INSCRIÇÃO EXISTE NO BANCO DE DADOS
+            const searchedStudent = await getStudent(cpf, rg)
+
+            const stripeSubscriptions = new StripeSubscriptionsManager()
+            const stripeResponse = await stripeSubscriptions.createStudentPaymentIntent({
+                stripeCustomerID,
+                cpf,
+                rg,
+                searchedSchoolClass,
+                paymentMethod,
+                currency
+            })
+
+            if (searchedStudent) {
+
+                // FILTRA POSSÍVEL INSCRIÇÃO JÁ PAGA
+                const studentAlreadyActive = await getStudentAlreadyActive(searchedStudent.id, schoolClassID)
+                if (studentAlreadyActive) {
+
+                    return {
+                        isValid: false,
+                        errorMessage: `A inscrição já foi comprada e está ativa!.`,
+                        students: studentAlreadyActive,
+                        statusCode: 403
+                    }
+                }
+
+                const updatedStudent = await updateStudentPaymentInProgress(searchedStudent, schoolClassID)
+
+                if (updatedStudent) {
+
+                    return {
+                        ...stripeResponse,
+                        successMessage: 'Estudante atualizado e payment intent criado com sucesso!',
+                        students: updatedStudent
+                    }
+                }
+
+            }
+
+            const createdStudent = await createStudent(studentData, stripeCustomerID, schoolClassID)
+
+            return {
+                ...stripeResponse,
+                successMessage: 'Estudante e payment intents criados com sucesso!',
+                students: createdStudent
+
+            }
+
+
+
+        } catch (error: unknown) {
+            if (error instanceof Prisma.PrismaClientValidationError) {
+
+                const argumentPosition = error.message.search('Argument')
+                const mongoDBError = error.message.slice(argumentPosition)
+                return { isValid: false, errorMessage: mongoDBError, statusCode: 403 }
+
+
+            }
+            if (error instanceof Stripe.errors.StripeError) {
+                // Retorna uma resposta de erro com o código de status do erro do Stripe.
+                return {
+                    statusCode: error.statusCode ?? 403,
+                    isValid: false,
+                    errorMessage: error.message,
+                };
+            }
+            return { isValid: false, errorMessage: String(error), statusCode: 403 }
+        }
+
     }
 
     async updateStudent(studentData: UpdateStudentRequestProps, studentID: Students["id"]): Promise<validationResponse> {
@@ -603,6 +449,15 @@ class StudentsRepository implements IStudentsRepository {
                     errorMessage: "Estudante não encontrado."
                 }
             }
+
+            if (!stripeSubscriptionID) {
+                return {
+                    isValid: false,
+                    statusCode: 403,
+                    errorMessage: "Estudante não encontrado."
+                }
+            }
+
             const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionID)
 
             if (!subscription) {
@@ -854,25 +709,29 @@ class StudentsRepository implements IStudentsRepository {
 
                     const { stripeSubscriptionID } = subscription
 
-                    const stripeSubscription = await stripe.subscriptions.retrieve(stripeSubscriptionID)
+                    if (stripeSubscriptionID) {
 
-                    const { unit_amount } = stripeSubscription.items.data[0].price
 
-                    await prisma.students.update({
-                        where: { id: student.id },
-                        data: {
-                            purcharsedSubscriptions: {
-                                updateMany: {
-                                    where: {
-                                        stripeSubscriptionID: subscription.stripeSubscriptionID
-                                    }, data: {
-                                        paymentStatus: stripeSubscription.status ?? 'Not found',
-                                        valuePaid: unit_amount ?? 0
+                        const stripeSubscription = await stripe.subscriptions.retrieve(stripeSubscriptionID)
+
+                        const { unit_amount } = stripeSubscription.items.data[0].price
+
+                        await prisma.students.update({
+                            where: { id: student.id },
+                            data: {
+                                purcharsedSubscriptions: {
+                                    updateMany: {
+                                        where: {
+                                            stripeSubscriptionID: subscription.stripeSubscriptionID
+                                        }, data: {
+                                            paymentStatus: stripeSubscription.status ?? 'Not found',
+                                            valuePaid: unit_amount ?? 0
+                                        }
                                     }
                                 }
                             }
-                        }
-                    })
+                        })
+                    }
 
                 })
 

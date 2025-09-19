@@ -1,5 +1,6 @@
 import { validationResponse } from "../../../types"
-import { Students, purcharsedSubscriptions } from "../entities/Students"
+import { Students } from "../entities/Students"
+import { CreatePixStudentRequestProps } from "../useCases/Students/createPixStudents/CreatePixStudentsController"
 import { CreateStudentRequestProps } from "../useCases/Students/createStudents/CreateStudentsController"
 import { ListStudentsQuery } from "../useCases/Students/listStudents/ListStudentsController"
 import { UpdateStudentRequestProps } from "../useCases/Students/updateStudents/UpdateStudentController"
@@ -13,7 +14,9 @@ interface IStudentsRepository {
         pageRange: number
     ): Promise<validationResponse>
 
-    createStudent(studentData: CreateStudentRequestProps): Promise<validationResponse>
+    createStudentPaymentIntent(studentData: CreateStudentRequestProps): Promise<validationResponse>
+
+    createPixStudent(studentData: CreatePixStudentRequestProps): Promise<validationResponse>
 
     updateStudent(studentData: UpdateStudentRequestProps, studentID: Students["id"]): Promise<validationResponse>
 

@@ -121,6 +121,7 @@ class StripeCustomer {
         });
     }
     createStripeDonation(donationData) {
+        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const donationExists = yield prisma_1.prisma.donations.findFirst({
@@ -150,9 +151,8 @@ class StripeCustomer {
                     phone: donationData.phoneNumber,
                     metadata: {
                         customerType: 'Donation',
-                        donationValue: donationData.valuePaid,
-                        cpf: donationData.cpf,
-                        cnpj: donationData.cnpj
+                        cpf: (_a = donationData.cpf) !== null && _a !== void 0 ? _a : "NDA",
+                        cnpj: (_b = donationData.cnpj) !== null && _b !== void 0 ? _b : "NDA"
                     }
                 });
                 return {
@@ -313,35 +313,61 @@ class StripeCustomer {
     }
     searchCustomer(cpf, cnpj) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (cnpj && cnpj != "Não informado") {
-                const customer = yield server_1.stripe.customers.search({
-                    query: `metadata[\'cnpj\']:\'${cnpj}\'`,
-                });
-                if (customer.data.length == 0 || customer == null) {
-                    return undefined;
+            try {
+                if (cnpj && cnpj != "NDA") {
+                    const customer = yield server_1.stripe.customers.search({
+                        query: `metadata[\'cnpj\']:\'${cnpj}\'`,
+                    });
+                    if (customer.data.length == 0 || customer == null) {
+                        return undefined;
+                    }
+                    return customer.data[0].id;
                 }
-                return customer.data[0].id;
+                if (cpf && cpf != "NDA") {
+                    const customer = yield server_1.stripe.customers.search({
+                        query: `metadata[\'cpf\']:\'${cpf}\'`,
+                    });
+                    if (!customer.data || customer.data.length === 0) {
+                        return undefined;
+                    }
+                    return customer.data[0].id;
+                }
             }
-            if (cpf && cpf != "Não informado") {
-                const customer = yield server_1.stripe.customers.search({
-                    query: `metadata[\'cpf\']:\'${cpf}\'`,
-                });
-                if (!customer.data || customer.data.length === 0) {
-                    return undefined;
-                }
-                return customer.data[0].id;
+            catch (error) {
+                throw error;
             }
         });
     }
-    createCustomer(customerData) {
+    createCustomerStudent(customerData) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                let { cpf, rg } = customerData;
+                const customer = yield server_1.stripe.customers.create({
+                    description: `Customer criado por awer na data: ${(new Date()).toLocaleDateString('pt-BR')}`,
+                    address: {
+                        city: customerData.city,
+                        line1: customerData.street,
+                        state: customerData.state
+                    },
+                    email: customerData.email,
+                    name: customerData.name,
+                    phone: customerData.phoneNumber,
+                    metadata: {
+                        cpf: cpf,
+                        rg: rg !== null && rg !== void 0 ? rg : 'NDA',
+                        cnpj: 'NDA'
+                    }
+                });
+                return customer.id;
+            }
+            catch (error) {
+                throw error;
+            }
+        });
+    }
+    createCustomerDonations(customerData) {
         return __awaiter(this, void 0, void 0, function* () {
             let { cpf, rg, cnpj } = customerData;
-            if (cpf === "Não informado") {
-                cpf = null;
-            }
-            if (cnpj === "Não informado") {
-                cnpj = null;
-            }
             const customer = yield server_1.stripe.customers.create({
                 description: `Customer criado por awer na data: ${(new Date()).toLocaleDateString('pt-BR')}`,
                 address: {
@@ -353,9 +379,9 @@ class StripeCustomer {
                 name: customerData.name,
                 phone: customerData.phoneNumber,
                 metadata: {
-                    cpf: cpf !== null && cpf !== void 0 ? cpf : 'Não informado',
-                    rg: rg !== null && rg !== void 0 ? rg : 'Não informado',
-                    cnpj: cnpj !== null && cnpj !== void 0 ? cnpj : 'Não informado'
+                    cpf: cpf !== null && cpf !== void 0 ? cpf : 'NDA',
+                    rg: rg !== null && rg !== void 0 ? rg : 'NDA',
+                    cnpj: cnpj !== null && cnpj !== void 0 ? cnpj : 'NDA'
                 }
             });
             return customer.id;

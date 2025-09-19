@@ -17,38 +17,40 @@ const studentSchema = object({
     district: string().required("O bairro é obrigatório"),
     zipCode:string().required("O CEP é obrigatório").min(9, "O CEP deve conter 8 algarismos e um hífen. Ex: 08230-030"),
 
-    cpf: string().required().min(11, "O CPF deve conter 11 caracteres").max(11, "O CPF deve conter 11 caracteres"),
-    rg: string().min(9, "O RG deve conter 9 caracteres").max(9, "O RG deve conter 9 caracteres"),
-    ufrg: string().required("O estado de emissão do RG é obrigatório.").oneOf([
-        'AC',
-        'AL',
-        'AP',
-        'AM',
-        'BA',
-        'CE',
-        'DF',
-        'ES',
-        'GO',
-        'MA',
-        'MT',
-        'MS',
-        'MG',
-        'PA',
-        'PB',
-        'PR',
-        'PE',
-        'PI',
-        'RJ',
-        'RN',
-        'RS',
-        'RO',
-        'RR',
-        'SC',
-        'SP',
-        'SE',
-        'TO',
-        'Não informado'
-      ]),
+    cpf: string().length(11,'O CPF deve conter 11 caracteres'),
+  
+    rg: string().length(9, 'O RG deve conter 9 caracteres'),
+  
+    ufrg: string().oneOf([
+      'AC',
+      'AL',
+      'AP',
+      'AM',
+      'BA',
+      'CE',
+      'DF',
+      'ES',
+      'GO',
+      'MA',
+      'MT',
+      'MS',
+      'MG',
+      'PA',
+      'PB',
+      'PR',
+      'PE',
+      'PI',
+      'RJ',
+      'RN',
+      'RS',
+      'RO',
+      'RR',
+      'SC',
+      'SP',
+      'SE',
+      'TO',
+    ]),
+  
     selfDeclaration: string(),
     oldSchool: string(),
     oldSchoolAdress: string(),
@@ -56,9 +58,12 @@ const studentSchema = object({
     highSchoolPeriod: string(),
     metUsMethod: string(),
     exStudent: string().required(),
-    purcharsedSubscriptions: array().of(object({
-        schoolClassID: string().required("O ID da turma deve ser informado").min(36, "O ID deve possuir 36 caracteres no formato UUID")
-    })).required('É necessário comprar ao menos uma inscrição para prosseguir')
+    purcharsedSubscriptions: object({
+        schoolClassID: string().required("O ID da turma deve ser informado").min(36, "O ID deve possuir 36 caracteres no formato UUID"),
+        paymentMethod: string().required("O método de pagamento é obrigatório").oneOf(['card']),
+        currency: string().required("É necessário especificar o tipo de moeda: 'brl' ").oneOf(['brl'])
+      }).required('É necessário comprar ao menos uma inscrição para prosseguir'),
+        
 })
 
 export { studentSchema }

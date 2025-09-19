@@ -16,6 +16,7 @@ class CreateSchoolClassController {
     handle(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             const schoolClassData = req.body;
+            schoolClassData.status = 'Em processamento';
             /// instanciação da classe do caso de uso
             const schoolClassRepository = new SchoolClassRepository_1.SchoolClassRepository();
             const createSchoolClassUseCase = new CreateSchoolClassUseCase_1.CreateSchoolClassUseCase(schoolClassRepository);
