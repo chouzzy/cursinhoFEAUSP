@@ -8,6 +8,7 @@ import { studentsRoutes } from "./students.routes"
 import { webhooksRoutes } from "./webhooks"
 import { welcomeRoutes } from "./welcome.routes"
 import { webhookEfiRoutes } from "./efiwebhook"
+import { webhookSantanderRoutes } from "./webhookSantanderRoutes"
 
 
 const router = Router()
@@ -36,6 +37,7 @@ router.use('/schoolClass', schoolClassRoutes)
 
 
 router.use('/webhook-efi', webhookEfiRoutes)
+router.use('/webhooks', webhookSantanderRoutes)
 
 
 export { router }

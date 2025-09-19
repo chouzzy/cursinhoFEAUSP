@@ -9,9 +9,50 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.handlePaymentIntentRequiresAction = exports.handlePaymentIntentCanceled = exports.handlePaymentIntentFailed = exports.handlePaymentIntentSucceeded = exports.handleCustomerSubscriptionUpdated = exports.handleInvoicePaymentFailed = void 0;
+exports.handlePaymentIntentRequiresAction = exports.handlePaymentIntentCanceled = exports.handlePaymentIntentFailed = exports.handlePaymentIntentSucceeded = exports.handleCustomerSubscriptionUpdated = exports.handleInvoicePaymentFailed = exports.handleCustomerSubscriptionDeleted = void 0;
 const prisma_1 = require("../prisma");
 const server_1 = require("../server");
+// **
+//  * Lida com o evento de cancelamento de uma assinatura.
+//  * Encontra a assinatura no banco de dados local e atualiza seu status.
+//  */
+function handleCustomerSubscriptionDeleted(stripeEvent) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            if (stripeEvent.type === 'customer.subscription.deleted') {
+                const subscription = stripeEvent.data.object;
+                const { id, items, status } = subscription;
+                // Supondo que você salva o ID da assinatura do Stripe no seu banco de dados
+                // e que seu modelo Prisma se chama 'Donate' ou algo parecido.
+                // Ajuste 'stripeSubscriptionId' e 'Donate' para os nomes corretos do seu schema.
+                const updatedDonate = yield prisma_1.prisma.donations.updateMany({
+                    where: {
+                        // Encontra o registro pela ID da assinatura do Stripe
+                        stripeSubscriptionID: subscription.id,
+                    },
+                    data: {
+                        // Atualiza o status para indicar que foi cancelada
+                        paymentStatus: 'canceled',
+                        // Opcional: Salvar a data em que foi cancelada
+                        canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : new Date(),
+                    },
+                });
+                if (updatedDonate.count > 0) {
+                    console.log(`Assinatura ${subscription.id} marcada como 'canceled' no banco de dados.`);
+                }
+                else {
+                    console.warn(`Webhook 'customer.subscription.deleted': Nenhuma assinatura encontrada no DB com o ID ${subscription.id}`);
+                }
+            }
+        }
+        catch (error) {
+            console.error('Erro ao atualizar a assinatura para "canceled" no banco de dados:', error);
+            // Lançar o erro faz com que o Stripe tente reenviar o webhook, o que pode ser útil.
+            throw error;
+        }
+    });
+}
+exports.handleCustomerSubscriptionDeleted = handleCustomerSubscriptionDeleted;
 function handleInvoicePaymentFailed(stripeEvent) {
     return __awaiter(this, void 0, void 0, function* () {
         try {

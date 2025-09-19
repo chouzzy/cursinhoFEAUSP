@@ -1,3 +1,5 @@
+// src/modules/registrations/repositories/implementations/SchoolClassRepository.ts
+
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../../../prisma";
 import { StripeCreateProductProps, validationResponse } from "../../../../types";
@@ -167,9 +169,6 @@ class SchoolClassRepository implements ISchoolClassRepository {
 
 
             const allSchoolClasses = await prisma.schoolClass.findMany({
-                where: {
-                    status: undefined
-                },
                 skip: (page - 1) * pageRange,
                 take: pageRange
             })

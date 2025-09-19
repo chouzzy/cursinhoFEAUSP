@@ -1,4 +1,5 @@
 "use strict";
+// src/modules/registrations/repositories/implementations/SchoolClassRepository.ts
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -136,9 +137,6 @@ class SchoolClassRepository {
                     };
                 }
                 const allSchoolClasses = yield prisma_1.prisma.schoolClass.findMany({
-                    where: {
-                        status: undefined
-                    },
                     skip: (page - 1) * pageRange,
                     take: pageRange
                 });

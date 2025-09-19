@@ -34,6 +34,7 @@ const students_routes_1 = require("./students.routes");
 const webhooks_1 = require("./webhooks");
 const welcome_routes_1 = require("./welcome.routes");
 const efiwebhook_1 = require("./efiwebhook");
+const webhookSantanderRoutes_1 = require("./webhookSantanderRoutes");
 const router = (0, express_1.Router)();
 exports.router = router;
 router.use('/webhooks', webhooks_1.webhooksRoutes);
@@ -52,3 +53,4 @@ router.get('/logintest', ensureAuthenticate_1.ensureAuthenticated, (req, res) =>
 });
 router.use('/schoolClass', schoolClass_routes_1.schoolClassRoutes);
 router.use('/webhook-efi', efiwebhook_1.webhookEfiRoutes);
+router.use('/webhooks', webhookSantanderRoutes_1.webhookSantanderRoutes);

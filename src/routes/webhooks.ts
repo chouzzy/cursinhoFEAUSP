@@ -9,6 +9,7 @@ const webhooksRoutes = Router()
 
 webhooksRoutes.post('/', express.raw({ type: 'application/json' }), async (req: Request, res: Response) => {
     const endpointSecret = process.env.STRIPE_SIGNIN_SECRET_KEY
+    console.log('Dentro do Webhook')
 
     if (endpointSecret) {
         try {
@@ -24,6 +25,8 @@ webhooksRoutes.post('/', express.raw({ type: 'application/json' }), async (req: 
                 endpointSecret,
             ) as DiscriminatedEvent;
 
+            console.log('Evento recebido:', stripeEvent.type);
+
             // Lógica do Webhook
             switch (stripeEvent.type) {
                 case 'invoice.payment_failed':
@@ -33,7 +36,7 @@ webhooksRoutes.post('/', express.raw({ type: 'application/json' }), async (req: 
                 case 'customer.subscription.updated':
                     await handleCustomerSubscriptionUpdated(stripeEvent);
                     break;
-                
+
                 // NOVO CASE ADICIONADO AQUI
                 case 'customer.subscription.deleted':
                     await handleCustomerSubscriptionDeleted(stripeEvent);
@@ -61,7 +64,7 @@ webhooksRoutes.post('/', express.raw({ type: 'application/json' }), async (req: 
                 default:
                     console.log(`Unhandled event type ${stripeEvent.type}`);
             }
-            
+
             return res.sendStatus(200)
 
         } catch (error: any) {

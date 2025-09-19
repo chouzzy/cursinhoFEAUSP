@@ -1,3 +1,5 @@
+// src/modules/registrations/useCases/SchoolClass/listSchoolClass/ListSchoolClassUseCase.ts
+
 import { ISchoolClassRepository } from "../../../repositories/ISchoolClassRepository"
 import { validationResponse } from "../../../../../types"
 import { SchoolClass } from "../../../entities/SchoolClass"
