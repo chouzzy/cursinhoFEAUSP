@@ -4,8 +4,7 @@ import Stripe from 'stripe';
 const stripeRawHandler = async (req: Request, res: Response): Promise<void> => {
 
     const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
-
-    const webhookSecret = process.env.STRIPE_SIGNIN_SECRET_KEY;
+    console.log('proccessing stripe webhook', process.env.STRIPE_SECRET_KEY)
 
     
     if (req.method === 'POST') {
