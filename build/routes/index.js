@@ -35,6 +35,7 @@ const webhooks_1 = require("./webhooks");
 const welcome_routes_1 = require("./welcome.routes");
 const efiwebhook_1 = require("./efiwebhook");
 const webhookSantanderRoutes_1 = require("./webhookSantanderRoutes");
+const inscriptionsRoutes_1 = require("./inscriptionsRoutes");
 const router = (0, express_1.Router)();
 exports.router = router;
 router.use('/webhooks', webhooks_1.webhooksRoutes);
@@ -45,6 +46,8 @@ router.use('/', welcome_routes_1.welcomeRoutes);
 router.use('/donates', donations_routes_1.donationsRoutes);
 // students routes
 router.use('/students', students_routes_1.studentsRoutes);
+// students routes
+router.use('/inscriptions', inscriptionsRoutes_1.inscriptionsRoutes);
 //regristrations routes
 router.use('/admins', admins_routes_1.adminsRoutes);
 router.use('/refresh-token', refreshToken_routes_1.refreshTokenRoutes);
