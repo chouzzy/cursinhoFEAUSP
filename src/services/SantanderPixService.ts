@@ -4,7 +4,6 @@ import { randomBytes, randomUUID } from 'crypto';
 import { Students } from "@prisma/client";
 
 // Este tipo representa os dados que esperamos que o frontend envie.
-// Ele inclui todos os campos do modelo Student + o schoolClassID.
 type InscriptionData = Omit<Students, 'id' | 'createdAt' | 'purcharsedSubscriptions' | 'stripeCustomerID'> & {
   schoolClassID: string;
 };
@@ -13,26 +12,17 @@ const INSCRIPTION_PRICE = "10.00";
 
 export class SantanderPixService {
 
-  async createInscriptionWithPix(inscriptionData: any) { // Alterado para 'any' para lidar com dados inesperados do frontend
+  async createInscriptionWithPix(inscriptionData: any) {
     const txid = `insc-${randomBytes(14).toString('hex')}`;
 
-    // **A CORREÇÃO ESTÁ AQUI**
-    // 1. Separamos os campos que NÃO pertencem diretamente ao modelo Student.
-    // O frontend está enviando 'price' e 'schoolClassID' que não devem ser salvos na raiz do documento.
     const { schoolClassID, price, ...studentModelData } = inscriptionData;
 
-    // 2. Criamos o Student no banco de dados
     const newInscription = await prisma.students.create({
       data: {
-        // Agora, espalhamos apenas os dados que realmente existem no modelo 'Students'
         ...studentModelData, 
-        
-        // Geramos um UUID como placeholder para o campo obrigatório stripeCustomerID
         stripeCustomerID: randomUUID(), 
-
-        // Criamos a subscription com o schoolClassID que separamos
         purcharsedSubscriptions: [{
-            schoolClassID: schoolClassID, // Usamos a variável separada aqui
+            schoolClassID: schoolClassID,
             txid: txid,
             paymentMethod: "pix_santander",
             paymentStatus: "PENDENTE",
@@ -45,13 +35,22 @@ export class SantanderPixService {
 
     console.log(`Inscrição criada no banco para ${newInscription.name} com txid: ${txid}`);
 
+    // **A CORREÇÃO ESTÁ AQUI**
+    // Limpamos o CPF para remover pontos, traços e qualquer outro caractere não numérico.
+    const sanitizedCpf = inscriptionData.cpf.replace(/\D/g, '');
+
+    console.log(`CPF sanitizado para a cobrança PIX: ${sanitizedCpf}`);
+    console.log(`Nome do devedor: ${inscriptionData.name}`);
+    console.log(`Valor da cobrança: ${INSCRIPTION_PRICE}`);
+    console.log(`Chave PIX usada: ${process.env.SANTANDER_PIX_KEY}`);
+
     // Montar o corpo da requisição para a API do Santander
     const cobData = {
       calendario: {
         expiracao: 3600,
       },
       devedor: {
-        cpf: inscriptionData.cpf,
+        cpf: sanitizedCpf, // Usamos o CPF "limpo" aqui
         nome: inscriptionData.name,
       },
       valor: {

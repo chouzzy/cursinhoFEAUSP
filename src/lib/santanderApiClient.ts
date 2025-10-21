@@ -55,6 +55,8 @@ async function getAccessToken(): Promise<string> {
     }
   );
 
+  console.log('Resposta do token:', response.data);
+
   const { access_token, expires_in } = response.data;
   accessToken = access_token;
   // Armazena o timestamp de quando o token irá expirar, com 5 minutos de segurança
