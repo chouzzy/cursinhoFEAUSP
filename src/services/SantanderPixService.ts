@@ -13,12 +13,13 @@ const INSCRIPTION_PRICE = "10.00";
 
 export class SantanderPixService {
 
-  async createInscriptionWithPix(inscriptionData: InscriptionData) {
+  async createInscriptionWithPix(inscriptionData: any) { // Alterado para 'any' para lidar com dados inesperados do frontend
     const txid = `insc-${randomBytes(14).toString('hex')}`;
 
     // **A CORREÇÃO ESTÁ AQUI**
-    // 1. Separamos o `schoolClassID` do resto dos dados que pertencem ao modelo Student.
-    const { schoolClassID, ...studentModelData } = inscriptionData;
+    // 1. Separamos os campos que NÃO pertencem diretamente ao modelo Student.
+    // O frontend está enviando 'price' e 'schoolClassID' que não devem ser salvos na raiz do documento.
+    const { schoolClassID, price, ...studentModelData } = inscriptionData;
 
     // 2. Criamos o Student no banco de dados
     const newInscription = await prisma.students.create({
