@@ -1,92 +1,84 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { prisma } from "../prisma";
 
-// Interface para o payload que o Santander envia.
-// Ele envia um array de transações diretamente no corpo da requisição.
+// Interface para garantir a tipagem do payload que o Santander envia
 interface SantanderPixTransaction {
   endToEndId: string;
   txid: string;
   chave: string;
-  valor: string; // Santander envia valor como string
+  valor: string;
   horario: string;
 }
 
 const webhookSantanderRoutes = Router();
 
-// Criamos uma rota específica, por exemplo, /santander
-webhookSantanderRoutes.post('/santander', async (req, res) => {
+webhookSantanderRoutes.post('/santander', async (req: Request, res: Response) => {
   console.log('Webhook Santander PIX acionado');
 
   try {
-    // O corpo da requisição do Santander é um array de transações
+    // O Santander envia um objeto que contém uma propriedade 'pix' com um array de notificações
     const pixNotifications: SantanderPixTransaction[] = req.body.pix;
 
-    // Verificamos se o corpo é um array e se tem itens
     if (!pixNotifications || !Array.isArray(pixNotifications) || pixNotifications.length === 0) {
       console.log('Payload do webhook Santander vazio ou em formato inesperado.');
-      return res.sendStatus(200); // Retornamos 200 para o Santander não tentar de novo
+      // Retornamos 200 para o Santander entender que recebemos, mesmo que vazio, e não tente de novo.
+      return res.sendStatus(200);
     }
 
-    // Processamos cada notificação recebida (geralmente vem uma por vez)
+    // Processamos cada notificação recebida (geralmente vem uma de cada vez)
     for (const pixRecebido of pixNotifications) {
-      console.log(`Processando txid: ${pixRecebido.txid}`);
+      console.log(`Processando notificação para o txid: ${pixRecebido.txid}`);
 
-      // A lógica de busca no banco é a mesma que você já tem
-      const donation = await prisma.donations.findFirst({
+      // Lógica principal: encontrar a inscrição (Student) que contém a subscrição com este txid
+      const studentWithSubscription = await prisma.students.findFirst({
         where: {
-          txid: pixRecebido.txid
-        }
+          purcharsedSubscriptions: {
+            some: { txid: pixRecebido.txid },
+          },
+        },
       });
 
-      if (donation) {
-        await prisma.donations.update({
-          where: {
-            txid: pixRecebido.txid
-          },
-          data: {
-            pixStatus: 'CONCLUIDA',
-            paymentStatus: 'CONCLUIDA'
-          }
-        });
-        console.log(`Doação com txid ${pixRecebido.txid} atualizada para CONCLUIDA.`);
-      } else {
-        // Se não for doação, procura em assinaturas de estudantes
-        const student = await prisma.students.findFirst({
-          where: {
-            purcharsedSubscriptions: {
-              some: {
-                txid: pixRecebido.txid
-              }
-            }
-          }
-        });
+      if (studentWithSubscription) {
+        // Encontra a subscrição específica dentro do array para checar o status
+        const subscription = studentWithSubscription.purcharsedSubscriptions.find(sub => sub.txid === pixRecebido.txid);
 
-        if (student) {
-          await prisma.students.update({
-            where: { id: student.id },
-            data: {
-              purcharsedSubscriptions: {
-                updateMany: {
-                  where: { txid: pixRecebido.txid },
-                  data: {
-                    paymentStatus: "CONCLUIDA",
-                    pixStatus: "CONCLUIDA",
-                  }
-                }
-              }
-            }
-          });
-          console.log(`Assinatura do estudante ${student.name} (txid: ${pixRecebido.txid}) atualizada para CONCLUIDA.`);
-        } else {
-          console.warn(`Nenhuma doação ou assinatura encontrada para o txid: ${pixRecebido.txid}`);
+        // *** VERIFICAÇÃO DE IDEMPOTÊNCIA ***
+        // Se a inscrição já foi marcada como paga, apenas ignoramos para evitar processamento duplicado.
+        if (subscription && subscription.paymentStatus === 'CONCLUIDA') {
+           console.log(`A inscrição com txid ${pixRecebido.txid} já foi processada anteriormente. Ignorando.`);
+           continue; // Pula para a próxima notificação no loop
         }
+
+        // Atualiza a inscrição específica dentro do array 'purcharsedSubscriptions'
+        await prisma.students.update({
+          where: { id: studentWithSubscription.id },
+          data: {
+            purcharsedSubscriptions: {
+              updateMany: {
+                where: { txid: pixRecebido.txid },
+                data: {
+                  paymentStatus: "CONCLUIDA",
+                  pixStatus: "CONCLUIDA",
+                  pixDate: pixRecebido.horario, // Guardamos a data/hora exata do pagamento
+                },
+              },
+            },
+          },
+        });
+        console.log(`Inscrição do estudante ${studentWithSubscription.name} (txid: ${pixRecebido.txid}) atualizada para CONCLUIDA.`);
+      
+      } else {
+        // Adicionamos um log de aviso se nenhuma inscrição for encontrada
+        console.warn(`Nenhuma inscrição de estudante encontrada para o txid: ${pixRecebido.txid}. Verificando doações...`);
+        // Aqui você pode manter a lógica para checar doações, se necessário.
       }
     }
 
-    res.sendStatus(200); // Envia a resposta de sucesso para o Santander
+    // Responde ao Santander que o webhook foi recebido e processado com sucesso.
+    res.sendStatus(200);
 
   } catch (error) {
-    console.error('Erro ao processar o webhook do Santander:', error);
+    console.error('Erro fatal ao processar o webhook do Santander:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
