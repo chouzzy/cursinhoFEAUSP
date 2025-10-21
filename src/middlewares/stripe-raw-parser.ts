@@ -5,6 +5,7 @@ const stripeRawHandler = async (req: Request, res: Response): Promise<void> => {
 
     const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
     console.log('proccessing stripe webhook', process.env.STRIPE_SECRET_KEY)
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
     
     if (req.method === 'POST') {
@@ -55,10 +56,10 @@ export const config = {
 const buffer = (req:Request) => {
     return new Promise<Buffer>((resolve, reject) => {
 
-        const chunks: Buffer[] = [];
+        const chunks: Uint8Array<ArrayBufferLike>[] = [];
         
-        req.on('data', (chunk: Buffer) => {
-            chunks.push(chunk);
+        req.on('data', (chunk: ArrayBuffer) => {
+            chunks.push(new Uint8Array(chunk));
         });
         
         req.on('end', () => {
