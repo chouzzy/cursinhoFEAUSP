@@ -26,7 +26,7 @@ const httpsAgent = new https.Agent({
 
 // Instância do Axios pré-configurada para a API do Santander
 const apiClient = axios.create({
-  baseURL: 'https://trust-pix.santander.com.br/api/v1',
+  baseURL: 'https://trust-pix.santander.com.br/',
   httpsAgent,
 });
 
