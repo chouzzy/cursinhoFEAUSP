@@ -9,6 +9,7 @@ import { webhooksRoutes } from "./webhooks"
 import { welcomeRoutes } from "./welcome.routes"
 import { webhookEfiRoutes } from "./efiwebhook"
 import { webhookSantanderRoutes } from "./webhookSantanderRoutes"
+import { inscriptionsRoutes } from "./inscriptionsRoutes"
 
 
 const router = Router()
@@ -24,6 +25,8 @@ router.use('/donates', donationsRoutes)
 
 // students routes
 router.use('/students', studentsRoutes)
+// students routes
+router.use('/inscriptions', inscriptionsRoutes);
 
 //regristrations routes
 router.use('/admins', adminsRoutes)
