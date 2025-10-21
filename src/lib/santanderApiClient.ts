@@ -43,26 +43,33 @@ async function getAccessToken(): Promise<string> {
   }
 
   console.log('Gerando novo access_token para o Santander...');
-  const response = await axios.post(
-    'https://trust-pix.santander.com.br/oauth/token',
-    'grant_type=client_credentials',
-    {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${authString}`,
-      },
-      httpsAgent, // O endpoint de token também exige o certificado
-    }
-  );
+  try {
 
-  console.log('Resposta do token:', response.data);
+    const response = await axios.post(
+      'https://trust-pix.santander.com.br/oauth/token',
+      'grant_type=client_credentials',
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Basic ${authString}`,
+        },
+        httpsAgent, // O endpoint de token também exige o certificado
+      }
+    );
 
-  const { access_token, expires_in } = response.data;
-  accessToken = access_token;
-  // Armazena o timestamp de quando o token irá expirar, com 5 minutos de segurança
-  tokenExpiresAt = Date.now() + (expires_in - 300) * 1000;
-  console.log('Novo access_token gerado com sucesso.');
-  
+
+    console.log('Resposta do token:', response.data);
+
+    const { access_token, expires_in } = response.data;
+    accessToken = access_token;
+    // Armazena o timestamp de quando o token irá expirar, com 5 minutos de segurança
+    tokenExpiresAt = Date.now() + (expires_in - 300) * 1000;
+    console.log('Novo access_token gerado com sucesso.');
+
+  } catch (error) {
+    console.error('Erro ao obter access_token do Santander:', error);
+  }
+
   if (!accessToken) {
     throw new Error("Falha ao obter access_token do Santander.");
   }
@@ -78,7 +85,7 @@ async function getAccessToken(): Promise<string> {
  */
 async function createCob(txid: string, data: any) {
   const token = await getAccessToken();
-  
+
   // No seu YML, a URL de sandbox era diferente. Vamos usar a de produção aqui.
   // Se precisar testar, pode mudar a URL base ou o path.
   const response = await apiClient.put(`/cob/${txid}`, data, {
@@ -112,5 +119,5 @@ export const santanderApiClient = {
 //    SANTANDER_CERT_PATH="/caminho/no/servidor/para/certificado_publico.pem"
 //    SANTANDER_KEY_PATH="/caminho/no/servidor/para/chave_privada.pem"
 //    SANTANDER_PIX_KEY="sua-chave-pix-de-producao"
-   
+
 
