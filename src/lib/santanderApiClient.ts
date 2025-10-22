@@ -12,22 +12,25 @@ if (!SANTANDER_CLIENT_ID || !SANTANDER_CLIENT_SECRET || !CERT_PATH || !KEY_PATH)
   throw new Error("As variáveis de ambiente do Santander não foram configuradas corretamente.");
 }
 
-// REMOVIDO: const authString = Buffer.from(`${SANTANDER_CLIENT_ID}:${SANTANDER_CLIENT_SECRET}`).toString('base64');
-
 const httpsAgent = new https.Agent({
   cert: fs.readFileSync(CERT_PATH),
   key: fs.readFileSync(KEY_PATH),
 });
 
+// apiClient continua com a baseURL correta para /cob
+// mas não será usado diretamente para o token ou o cob PUT
 const apiClient = axios.create({
-  baseURL: 'https://trust-pix.santander.com.br',
-  httpsAgent,
+    baseURL: 'https://trust-pix.santander.com.br',
+    httpsAgent, // Mantemos aqui caso seja usado para outras chamadas futuras
 });
+
 
 let accessToken: string | null = null;
 let tokenExpiresAt: number | null = null;
 
 async function getAccessToken(): Promise<string> {
+  // accessToken = null; // Descomente para forçar a renovação
+
   if (accessToken && tokenExpiresAt && Date.now() < tokenExpiresAt) {
     console.log('Reutilizando access_token do Santander.');
     return accessToken;
@@ -35,34 +38,41 @@ async function getAccessToken(): Promise<string> {
 
   console.log('SANTANDER_CLIENT_ID:', SANTANDER_CLIENT_ID);
   console.log('SANTANDER_CLIENT_SECRET:', SANTANDER_CLIENT_SECRET);
+  console.log('Gerando novo access_token para o Santander com scopes...');
 
-  console.log('Gerando novo access_token para o Santander...');
+  // **AJUSTE 1: Solicitando Scopes no Corpo**
+  const urlForToken = `https://trust-pix.santander.com.br/oauth/token`; // URL base do token
+  const requiredScopes = 'cob.write cob.read pix.read pix.write webhook.read webhook.write';
 
-  // **CORREÇÃO CONFORME SOLICITADO:**
-  // 1. `grant_type` vai na URL como query parameter.
-  const urlWithGrantType = `/oauth/token?grant_type=client_credentials`;
-
-  // 2. `client_id` e `client_secret` vão no corpo da requisição, formatados como x-www-form-urlencoded.
   const requestBody = new URLSearchParams();
+  requestBody.append('grant_type', 'client_credentials'); // Grant_type também no corpo é o padrão OAuth
   requestBody.append('client_id', SANTANDER_CLIENT_ID || '');
   requestBody.append('client_secret', SANTANDER_CLIENT_SECRET || '');
-  // Não adicionamos 'scope' aqui, pois não foi mencionado e pode ser opcional ou padrão.
+  requestBody.append('scope', requiredScopes); // Solicitamos os scopes necessários aqui
+
+  console.log('Request URL for Token:', urlForToken);
   console.log('Request Body for Token:', requestBody.toString());
+
   try {
     const response = await axios.post(
-      urlWithGrantType,
-      requestBody, // Corpo da requisição com client_id e client_secret
+      urlForToken,
+      requestBody,
       {
-        baseURL: 'https://trust-pix.santander.com.br', // Assegurando a URL base correta
-        headers: {
-          // 3. Removemos o 'Authorization: Basic' e definimos o Content-Type correto.
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        httpsAgent,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        httpsAgent, // Certificado necessário para a conexão
       }
     );
 
     console.log('Access Token Response:', response.data);
+    // Verificamos se os scopes foram concedidos
+    if (!response.data.scopes || !requiredScopes.split(' ').every(scope => response.data.scopes.includes(scope))) {
+         console.warn(`Nem todos os scopes solicitados foram concedidos pelo Santander. Recebido: ${response.data.scopes}`);
+         // Poderíamos lançar um erro aqui se cob.write for essencial
+         // throw new Error('Scope cob.write não concedido pelo Santander.');
+    } else {
+        console.log("Scopes necessários foram concedidos!");
+    }
+
     const { access_token, expires_in } = response.data;
     accessToken = access_token;
     tokenExpiresAt = Date.now() + (expires_in - 300) * 1000;
@@ -73,37 +83,37 @@ async function getAccessToken(): Promise<string> {
     }
     return accessToken;
   } catch (error: any) {
-    console.error('Erro ao obter access_token do Santander:', error.response?.data || error.message);
+    console.error('Erro ao obter access_token do Santander:', error.response?.status, error.response?.data || error.message);
     throw new Error('Falha ao obter access_token do Santander.');
   }
 }
 
 async function createCob(txid: string, data: any) {
-  const token = await getAccessToken();
-  const url = `https://trust-pix.santander.com.br/cob/${txid}`; // URL completa
-  console.log('Token recebido para createCob:', token);
-  console.log(`Tentando fazer PUT para: ${url}`);
+  const token = await getAccessToken(); // Pega o token (esperamos que agora com os scopes certos)
+  const url = `https://trust-pix.santander.com.br/cob/${txid}`;
 
-  // Montamos as opções exatamente como no exemplo da documentação
+  console.log(`Tentando fazer PUT para: ${url}`);
+  console.log(`Usando token com scopes decodificados: ${accessToken ? JSON.stringify(accessToken.split('.')[1] ? JSON.parse(Buffer.from(accessToken.split('.')[1], 'base64').toString()) : {}) : 'N/A'}`);
+
+
+  // **AJUSTE 2: Garantindo httpsAgent na Chamada PUT**
   const options: AxiosRequestConfig = {
     method: 'PUT',
     url: url,
     headers: {
       'Content-Type': 'application/json',
-      // Accept: 'application/json, application/problem+json', // O Axios geralmente define o Accept padrão
       'Authorization': `Bearer ${token}`
     },
-    data: data, // O corpo da requisição (payload JSON)
+    data: data,
+    httpsAgent: httpsAgent // Inclui os certificados na chamada direta
   };
 
   try {
-    // Usamos axios.request com as opções configuradas
     const response = await axios.request(options);
     console.log(`PUT para ${url} bem-sucedido.`);
     return response.data;
   } catch (error: any) {
     console.error(`Erro ao fazer PUT para ${url}:`, error.response?.status, error.response?.data || error.message);
-    // Para ajudar a depurar, vamos logar as opções enviadas (exceto dados sensíveis)
     console.error('Opções da requisição (sem dados):', { method: options.method, url: options.url, headers: options.headers });
     throw error;
   }
