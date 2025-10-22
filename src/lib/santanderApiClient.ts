@@ -19,6 +19,8 @@ const httpsAgent = new https.Agent({
   key: fs.readFileSync(KEY_PATH),
 });
 
+
+
 const apiClient = axios.create({
   baseURL: 'https://trust-pix.santander.com.br',
   httpsAgent,
@@ -33,6 +35,9 @@ async function getAccessToken(): Promise<string> {
     return accessToken;
   }
 
+  console.log('HTTPS Agent:', httpsAgent);
+console.log('Cert Path:', CERT_PATH);
+console.log('Key Path:', KEY_PATH);
   console.log('Gerando novo access_token para o Santander...');
   
   // **CORREÇÃO DEFINITIVA:**
