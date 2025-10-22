@@ -12,14 +12,12 @@ if (!SANTANDER_CLIENT_ID || !SANTANDER_CLIENT_SECRET || !CERT_PATH || !KEY_PATH)
   throw new Error("As variáveis de ambiente do Santander não foram configuradas corretamente.");
 }
 
-const authString = Buffer.from(`${SANTANDER_CLIENT_ID}:${SANTANDER_CLIENT_SECRET}`).toString('base64');
+// REMOVIDO: const authString = Buffer.from(`${SANTANDER_CLIENT_ID}:${SANTANDER_CLIENT_SECRET}`).toString('base64');
 
 const httpsAgent = new https.Agent({
   cert: fs.readFileSync(CERT_PATH),
   key: fs.readFileSync(KEY_PATH),
 });
-
-
 
 const apiClient = axios.create({
   baseURL: 'https://trust-pix.santander.com.br',
@@ -35,25 +33,30 @@ async function getAccessToken(): Promise<string> {
     return accessToken;
   }
 
-  console.log('HTTPS Agent:', httpsAgent);
-console.log('Cert Path:', CERT_PATH);
-console.log('Key Path:', KEY_PATH);
-  console.log('Gerando novo access_token para o Santander...');
-  
-  // **CORREÇÃO DEFINITIVA:**
-  // Conforme a documentação, os parâmetros `grant_type` e `scope` são enviados na URL (query string),
-  // e não no corpo da requisição.
-  const scopes = 'cob.write cob.read pix.write pix.read webhook.write webhook.read';
-  const urlWithParams = `/oauth/token?grant_type=client_credentials&scope=${encodeURIComponent(scopes)}`;
+  console.log('SANTANDER_CLIENT_ID:', SANTANDER_CLIENT_ID);
+  console.log('SANTANDER_CLIENT_SECRET:', SANTANDER_CLIENT_SECRET);
 
+  console.log('Gerando novo access_token para o Santander...');
+
+  // **CORREÇÃO CONFORME SOLICITADO:**
+  // 1. `grant_type` vai na URL como query parameter.
+  const urlWithGrantType = `/oauth/token?grant_type=client_credentials`;
+
+  // 2. `client_id` e `client_secret` vão no corpo da requisição, formatados como x-www-form-urlencoded.
+  const requestBody = new URLSearchParams();
+  requestBody.append('client_id', SANTANDER_CLIENT_ID || '');
+  requestBody.append('client_secret', SANTANDER_CLIENT_SECRET || '');
+  // Não adicionamos 'scope' aqui, pois não foi mencionado e pode ser opcional ou padrão.
+  console.log('Request Body for Token:', requestBody.toString());
   try {
     const response = await axios.post(
-      urlWithParams,
-      null, // O corpo da requisição agora é vazio (null)
+      urlWithGrantType,
+      requestBody, // Corpo da requisição com client_id e client_secret
       {
-        baseURL: 'https://trust-pix.santander.com.br', // Assegurando a base da URL correta para esta chamada
+        baseURL: 'https://trust-pix.santander.com.br', // Assegurando a URL base correta
         headers: {
-          'Authorization': `Basic ${authString}`,
+          // 3. Removemos o 'Authorization: Basic' e definimos o Content-Type correto.
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
         httpsAgent,
       }
@@ -63,10 +66,10 @@ console.log('Key Path:', KEY_PATH);
     accessToken = access_token;
     tokenExpiresAt = Date.now() + (expires_in - 300) * 1000;
     console.log('Novo access_token gerado com sucesso.');
-    
+
     if (!accessToken) {
-      throw new Error('access_token não recebido do Santander.');
-    } 
+      throw new Error('Access token não recebido do Santander.');
+    }
     return accessToken;
   } catch (error: any) {
     console.error('Erro ao obter access_token do Santander:', error.response?.data || error.message);
@@ -76,10 +79,10 @@ console.log('Key Path:', KEY_PATH);
 
 async function createCob(txid: string, data: any) {
   const token = await getAccessToken();
-  
+
   const response = await apiClient.put(`/cob/${txid}`, data, {
     headers: {
-      'Authorization': `Bearer ${token}`,
+      'Authorization': `Bearer ${token}`, // As outras chamadas usam Bearer token
     },
   });
   return response.data;
