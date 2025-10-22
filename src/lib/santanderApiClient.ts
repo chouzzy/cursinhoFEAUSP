@@ -17,8 +17,7 @@ const httpsAgent = new https.Agent({
   key: fs.readFileSync(KEY_PATH),
 });
 
-// Mantemos apiClient para futuras chamadas GET ou PATCH, se necessário,
-// mas a createCob usará axios.request diretamente.
+// A baseURL está correta para as chamadas da API PIX (ex: /cob)
 const apiClient = axios.create({
   baseURL: 'https://trust-pix.santander.com.br',
   httpsAgent,
@@ -28,10 +27,7 @@ let accessToken: string | null = null;
 let tokenExpiresAt: number | null = null;
 
 async function getAccessToken(): Promise<string> {
-  // Limpamos o token antigo se a última tentativa falhou (para forçar a busca de um novo com os scopes corretos)
-  // Isso pode ser útil durante o desenvolvimento se os scopes mudarem.
-  // Em produção estável, a checagem de expiração abaixo é suficiente.
-  // accessToken = null; // Descomente se precisar forçar a renovação a cada chamada durante testes.
+  // accessToken = null; // Descomente para forçar a renovação
 
   if (accessToken && tokenExpiresAt && Date.now() < tokenExpiresAt) {
     console.log('Reutilizando access_token do Santander.');
@@ -42,10 +38,8 @@ async function getAccessToken(): Promise<string> {
   console.log('SANTANDER_CLIENT_SECRET:', SANTANDER_CLIENT_SECRET);
   console.log('Gerando novo access_token para o Santander...');
 
-  // **CORREÇÃO: Adicionando SCOPES na URL**
-  // Definimos os escopos necessários para criar cobranças e gerenciar webhooks.
-  const requiredScopes = 'cob.write cob.read pix.read pix.write webhook.read webhook.write';
-  const urlWithParams = `/api/v1/oauth/token?grant_type=client_credentials&scope=${encodeURIComponent(requiredScopes)}`;
+  // **ALTERAÇÃO:** Voltamos a usar a URL simples, apenas com grant_type
+  const urlWithParams = `/api/v1/oauth/token?grant_type=client_credentials`;
 
   const requestBody = new URLSearchParams();
   requestBody.append('client_id', SANTANDER_CLIENT_ID || '');
@@ -55,22 +49,18 @@ async function getAccessToken(): Promise<string> {
 
 
   try {
-    const response = await axios.post(
-      urlWithParams, // URL agora contém grant_type E scope
+    const response = await apiClient.post(
+      urlWithParams, // URL apenas com grant_type
       requestBody,
       {
-        baseURL: 'https://trust-pix.santander.com.br',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        httpsAgent,
       }
     );
 
     console.log('Access Token Response:', response.data);
-    // Verifica se os scopes retornados incluem os que pedimos
-    if (!response.data.scopes || !requiredScopes.split(' ').every(scope => response.data.scopes.includes(scope))) {
-      console.warn(`Nem todos os scopes solicitados foram concedidos pelo Santander. Recebido: ${response.data.scopes}`);
-      // Poderíamos lançar um erro aqui se um scope essencial faltar, mas por enquanto só avisamos.
-    }
+    // Verificamos os scopes que o Santander retornou por padrão
+    console.log(`Scopes concedidos por padrão: ${response.data.scopes || 'Nenhum'}`);
+
 
     const { access_token, expires_in } = response.data;
     accessToken = access_token;
@@ -88,10 +78,11 @@ async function getAccessToken(): Promise<string> {
 }
 
 async function createCob(txid: string, data: any) {
-  const token = await getAccessToken(); // Garante que temos um token com os scopes corretos
+  const token = await getAccessToken();
   const url = `https://trust-pix.santander.com.br/cob/${txid}`;
 
   console.log(`Tentando fazer PUT para: ${url}`);
+  console.log(`Usando token com scopes: ${accessToken ? JSON.stringify(accessToken.split('.').map(part => Buffer.from(part, 'base64').toString())) : 'N/A'}`); // Loga scopes decodificados
 
   const options: AxiosRequestConfig = {
     method: 'PUT',
