@@ -17,9 +17,10 @@ const httpsAgent = new https.Agent({
   key: fs.readFileSync(KEY_PATH),
 });
 
-// apiClient continua com a baseURL correta para /cob
+// A baseURL para operações como /cob precisa incluir /api/v1
+// A URL para /oauth/token é diferente e será chamada diretamente
 const apiClient = axios.create({
-    baseURL: 'https://trust-pix.santander.com.br',
+    baseURL: 'https://trust-pix.santander.com.br/api/v1', // **CORREÇÃO APLICADA AQUI**
     httpsAgent,
 });
 
@@ -37,18 +38,14 @@ async function getAccessToken(): Promise<string> {
 
   console.log('SANTANDER_CLIENT_ID:', SANTANDER_CLIENT_ID);
   console.log('SANTANDER_CLIENT_SECRET:', SANTANDER_CLIENT_SECRET);
-  console.log('Gerando novo access_token para o Santander com scopes...');
+  console.log('Gerando novo access_token para o Santander...');
 
-  // **AJUSTE FINAL: Combinando o que funcionou**
-  // 1. `grant_type` vai na URL, como na tentativa que obteve o token.
+  // URL para obter o token (sem /api/v1)
   const urlForToken = `https://trust-pix.santander.com.br/oauth/token?grant_type=client_credentials`;
-  const requiredScopes = 'cob.write cob.read pix.read pix.write webhook.read webhook.write';
 
-  // 2. `client_id`, `client_secret` e `scope` vão no corpo.
   const requestBody = new URLSearchParams();
   requestBody.append('client_id', SANTANDER_CLIENT_ID || '');
   requestBody.append('client_secret', SANTANDER_CLIENT_SECRET || '');
-  requestBody.append('scope', requiredScopes); // Solicitamos os scopes necessários aqui
 
   console.log('Request URL for Token:', urlForToken);
   console.log('Request Body for Token:', requestBody.toString());
@@ -57,7 +54,7 @@ async function getAccessToken(): Promise<string> {
     // Usamos axios diretamente para ter controle total
     const response = await axios.post(
       urlForToken, // URL contém grant_type
-      requestBody, // Corpo contém client_id, client_secret e scope
+      requestBody, // Corpo contém client_id, client_secret
       {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         httpsAgent, // Certificado necessário para a conexão
@@ -65,15 +62,7 @@ async function getAccessToken(): Promise<string> {
     );
 
     console.log('Access Token Response:', response.data);
-    if (!response.data.scopes || !requiredScopes.split(' ').every(scope => response.data.scopes.includes(scope))) {
-         console.warn(`Nem todos os scopes solicitados foram concedidos pelo Santander. Recebido: ${response.data.scopes}`);
-         // Considerar lançar erro se cob.write não for concedido
-         // if (!response.data.scopes?.includes('cob.write')) {
-         //   throw new Error('Scope essencial cob.write não concedido.');
-         // }
-    } else {
-        console.log("Scopes necessários foram concedidos!");
-    }
+    console.log(`Scopes concedidos pela configuração do portal: ${response.data.scopes || 'Nenhum'}`);
 
     const { access_token, expires_in } = response.data;
     accessToken = access_token;
@@ -92,29 +81,25 @@ async function getAccessToken(): Promise<string> {
 
 async function createCob(txid: string, data: any) {
   const token = await getAccessToken();
-  const url = `https://trust-pix.santander.com.br/cob/${txid}`;
+  
+  // Usamos apiClient que já tem a baseURL correta com /api/v1
+  const urlPath = `/cob/${txid}`; // **CORREÇÃO: Usamos apenas o path relativo**
 
-  console.log(`Tentando fazer PUT para: ${url}`);
+  console.log(`Tentando fazer PUT para: ${apiClient.defaults.baseURL}${urlPath}`);
   console.log(`Usando token com scopes decodificados: ${accessToken ? JSON.stringify(accessToken.split('.')[1] ? JSON.parse(Buffer.from(accessToken.split('.')[1], 'base64').toString()) : {}) : 'N/A'}`);
 
-  const options: AxiosRequestConfig = {
-    method: 'PUT',
-    url: url,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    data: data,
-    httpsAgent: httpsAgent
-  };
-
+  // Usamos a instância apiClient agora, que já tem baseURL e httpsAgent
   try {
-    const response = await axios.request(options);
-    console.log(`PUT para ${url} bem-sucedido.`);
+    const response = await apiClient.put(urlPath, data, {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    console.log(`PUT para ${urlPath} bem-sucedido.`);
     return response.data;
   } catch (error: any) {
-    console.error(`Erro ao fazer PUT para ${url}:`, error.response?.status, error.response?.data || error.message);
-    console.error('Opções da requisição (sem dados):', { method: options.method, url: options.url, headers: options.headers });
+    console.error(`Erro ao fazer PUT para ${apiClient.defaults.baseURL}${urlPath}:`, error.response?.status, error.response?.data || error.message);
+    console.error('Opções da requisição (sem dados):', { method: 'PUT', url: `${apiClient.defaults.baseURL}${urlPath}`, headers: { 'Authorization': `Bearer ${token}` } });
     throw error;
   }
 }
