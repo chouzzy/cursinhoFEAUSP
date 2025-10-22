@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 import https from 'https';
 import fs from 'fs';
 
@@ -80,13 +80,35 @@ async function getAccessToken(): Promise<string> {
 
 async function createCob(txid: string, data: any) {
   const token = await getAccessToken();
+  const url = `https://trust-pix.santander.com.br/cob/${txid}`; // URL completa
 
-  const response = await apiClient.put(`/cob/${txid}`, data, {
+  console.log(`Tentando fazer PUT para: ${url}`);
+
+  // Montamos as opções exatamente como no exemplo da documentação
+  const options: AxiosRequestConfig = {
+    method: 'PUT',
+    url: url,
     headers: {
-      'Authorization': `Bearer ${token}`, // As outras chamadas usam Bearer token
+      'Content-Type': 'application/json',
+      // Accept: 'application/json, application/problem+json', // O Axios geralmente define o Accept padrão
+      'Authorization': `Bearer ${token}`
     },
-  });
-  return response.data;
+    data: data, // O corpo da requisição (payload JSON)
+    httpsAgent: httpsAgent // ESSENCIAL: Inclui os certificados na chamada
+  };
+
+  try {
+    // Usamos axios.request com as opções configuradas
+    const response = await axios.request(options);
+    console.log(`PUT para ${url} bem-sucedido.`);
+    console.log('Response Data:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error(`Erro ao fazer PUT para ${url}:`, error.response?.status, error.response?.data || error.message);
+    // Para ajudar a depurar, vamos logar as opções enviadas (exceto dados sensíveis)
+    console.error('Opções da requisição (sem dados):', { method: options.method, url: options.url, headers: options.headers });
+    throw error;
+  }
 }
 
 export const santanderApiClient = {
