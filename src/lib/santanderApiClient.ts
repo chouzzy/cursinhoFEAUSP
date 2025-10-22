@@ -35,20 +35,19 @@ async function getAccessToken(): Promise<string> {
 
   console.log('Gerando novo access_token para o Santander...');
   
-  // **A CORREÇÃO ESTÁ AQUI**
-  // O corpo da requisição precisa incluir o parâmetro 'scope' com as permissões desejadas.
-  const requestBody = new URLSearchParams();
-  requestBody.append('grant_type', 'client_credentials');
-  // Adicionamos os escopos para criar e ler cobranças, que são os mais comuns.
-  requestBody.append('scope', 'cob.write cob.read pix.write pix.read webhook.write webhook.read');
+  // **CORREÇÃO DEFINITIVA:**
+  // Conforme a documentação, os parâmetros `grant_type` e `scope` são enviados na URL (query string),
+  // e não no corpo da requisição.
+  const scopes = 'cob.write cob.read pix.write pix.read webhook.write webhook.read';
+  const urlWithParams = `/oauth/token?grant_type=client_credentials&scope=${encodeURIComponent(scopes)}`;
 
   try {
     const response = await axios.post(
-      'https://trust-pix.santander.com.br/oauth/token',
-      requestBody, // Usamos o corpo da requisição formatado
+      urlWithParams,
+      null, // O corpo da requisição agora é vazio (null)
       {
+        baseURL: 'https://trust-pix.santander.com.br', // Assegurando a base da URL correta para esta chamada
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
           'Authorization': `Basic ${authString}`,
         },
         httpsAgent,
@@ -61,8 +60,8 @@ async function getAccessToken(): Promise<string> {
     console.log('Novo access_token gerado com sucesso.');
     
     if (!accessToken) {
-      throw new Error('Access token não recebido do Santander.');
-    }
+      throw new Error('access_token não recebido do Santander.');
+    } 
     return accessToken;
   } catch (error: any) {
     console.error('Erro ao obter access_token do Santander:', error.response?.data || error.message);
