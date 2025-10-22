@@ -5,37 +5,39 @@ import fs from 'fs';
 // --- CONFIGURAÇÃO ---
 const SANTANDER_CLIENT_ID = process.env.SANTANDER_CLIENT_ID_PROD;
 const SANTANDER_CLIENT_SECRET = process.env.SANTANDER_CLIENT_SECRET_PROD;
-// **NOVAS VARIÁVEIS PARA PFX**
-const PFX_PATH = process.env.SANTANDER_PFX_PATH; // Caminho para o arquivo .pfx no servidor
-const PFX_PASSPHRASE = process.env.SANTANDER_PFX_PASSPHRASE; // Senha do arquivo .pfx
+// **NOVA VARIÁVEL PARA O CERTIFICADO COMPLETO**
+const FULL_CERT_PATH = process.env.SANTANDER_FULL_CERT_PATH; // Caminho para o .pem completo
 
-// Removemos as variáveis antigas de .pem
+// Removemos as variáveis PEM separadas
 // const CERT_PATH = process.env.SANTANDER_CERT_PATH;
 // const KEY_PATH = process.env.SANTANDER_KEY_PATH;
 
-if (!SANTANDER_CLIENT_ID || !SANTANDER_CLIENT_SECRET || !PFX_PATH || PFX_PASSPHRASE === undefined) { // Verificamos PFX_PASSPHRASE !== undefined pois pode ser string vazia
-  throw new Error("As variáveis de ambiente do Santander (PFX) não foram configuradas corretamente.");
+if (!SANTANDER_CLIENT_ID || !SANTANDER_CLIENT_SECRET || !FULL_CERT_PATH) {
+  throw new Error("As variáveis de ambiente do Santander (Certificado Completo) não foram configuradas corretamente.");
 }
 
-console.log('Criando httpsAgent com o arquivo PFX...');
+console.log('Criando httpsAgent com o arquivo PEM completo...');
 let httpsAgent: https.Agent;
 try {
-  // **ALTERAÇÃO AQUI: Usando pfx e passphrase**
+  // **TENTATIVA COM ARQUIVO ÚNICO**
+  // Passamos o mesmo arquivo .pem para 'cert' (cadeia pública) e 'key' (chave privada)
+  const fullCertContent = fs.readFileSync(FULL_CERT_PATH);
   httpsAgent = new https.Agent({
-    pfx: fs.readFileSync(PFX_PATH), // Lê o arquivo .pfx
-    passphrase: PFX_PASSPHRASE,     // Usa a senha do .pfx
+    cert: fullCertContent, // Espera-se que ele leia a cadeia pública daqui
+    key: fullCertContent,   // Espera-se que ele leia a chave privada daqui
+    // passphrase: process.env.SANTANDER_KEY_PASSPHRASE // Senha da chave privada, se o PEM estiver criptografado
   });
-  console.log('httpsAgent criado com sucesso usando PFX.');
+  console.log('httpsAgent criado com sucesso usando PEM completo.');
 } catch (certError: any) {
-  console.error("ERRO AO LER O ARQUIVO PFX:", certError.message);
-  throw new Error("Falha ao carregar o certificado PFX do Santander. Verifique o caminho e a senha no .env");
+  console.error("ERRO AO LER O ARQUIVO PEM COMPLETO:", certError.message);
+  throw new Error("Falha ao carregar o certificado PEM completo do Santander. Verifique o caminho no .env");
 }
 
 
 // A baseURL para operações como /cob precisa incluir /api/v1
 const apiClient = axios.create({
     baseURL: 'https://trust-pix.santander.com.br/api/v1',
-    httpsAgent, // O agent agora usa o PFX
+    httpsAgent, // O agent agora usa o PEM completo
 });
 
 
@@ -52,7 +54,7 @@ async function getAccessToken(): Promise<string> {
   }
 
   console.log('SANTANDER_CLIENT_ID:', SANTANDER_CLIENT_ID);
-  // Não logamos o secret ou passphrase por segurança
+  console.log('SANTANDER_CLIENT_SECRET:', SANTANDER_CLIENT_SECRET);
   console.log('Gerando novo access_token para o Santander...');
 
   const urlForToken = `https://trust-pix.santander.com.br/oauth/token?grant_type=client_credentials`;
@@ -65,13 +67,13 @@ async function getAccessToken(): Promise<string> {
 
   try {
     console.log('Tentando fazer POST para obter token...');
-    // Usamos axios diretamente aqui, mas passamos o httpsAgent configurado com PFX
+    // Usamos axios diretamente aqui, mas passamos o httpsAgent configurado com PEM completo
     const response = await axios.post(
       urlForToken,
       requestBody,
       {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        httpsAgent, // Passamos o agent com PFX
+        httpsAgent, // Passamos o agent com PEM completo
         timeout: 15000
       }
     );
@@ -111,7 +113,7 @@ async function createCob(txid: string, data: any) {
 
   try {
     console.log('Tentando fazer PUT para criar cobrança...');
-    // Usamos apiClient.put, que já tem o httpsAgent (com PFX) configurado
+    // Usamos apiClient.put, que já tem o httpsAgent (com PEM completo) configurado
     const response = await apiClient.put(urlPath, data, {
         headers: {
             'Authorization': `Bearer ${token}`,
