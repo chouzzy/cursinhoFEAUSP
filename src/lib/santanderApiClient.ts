@@ -5,34 +5,37 @@ import fs from 'fs';
 // --- CONFIGURAÇÃO ---
 const SANTANDER_CLIENT_ID = process.env.SANTANDER_CLIENT_ID_PROD;
 const SANTANDER_CLIENT_SECRET = process.env.SANTANDER_CLIENT_SECRET_PROD;
-const CERT_PATH = process.env.SANTANDER_CERT_PATH;
-const KEY_PATH = process.env.SANTANDER_KEY_PATH;
+// **NOVAS VARIÁVEIS PARA PFX**
+const PFX_PATH = process.env.SANTANDER_PFX_PATH; // Caminho para o arquivo .pfx no servidor
+const PFX_PASSPHRASE = process.env.SANTANDER_PFX_PASSPHRASE; // Senha do arquivo .pfx
 
-if (!SANTANDER_CLIENT_ID || !SANTANDER_CLIENT_SECRET || !CERT_PATH || !KEY_PATH) {
-  throw new Error("As variáveis de ambiente do Santander não foram configuradas corretamente.");
+// Removemos as variáveis antigas de .pem
+// const CERT_PATH = process.env.SANTANDER_CERT_PATH;
+// const KEY_PATH = process.env.SANTANDER_KEY_PATH;
+
+if (!SANTANDER_CLIENT_ID || !SANTANDER_CLIENT_SECRET || !PFX_PATH || PFX_PASSPHRASE === undefined) { // Verificamos PFX_PASSPHRASE !== undefined pois pode ser string vazia
+  throw new Error("As variáveis de ambiente do Santander (PFX) não foram configuradas corretamente.");
 }
 
-console.log('Criando httpsAgent com os certificados...');
+console.log('Criando httpsAgent com o arquivo PFX...');
 let httpsAgent: https.Agent;
 try {
+  // **ALTERAÇÃO AQUI: Usando pfx e passphrase**
   httpsAgent = new https.Agent({
-    cert: fs.readFileSync(CERT_PATH),
-    key: fs.readFileSync(KEY_PATH),
-    // passphrase: process.env.SANTANDER_KEY_PASSPHRASE
+    pfx: fs.readFileSync(PFX_PATH), // Lê o arquivo .pfx
+    passphrase: PFX_PASSPHRASE,     // Usa a senha do .pfx
   });
-  console.log('httpsAgent criado com sucesso.');
+  console.log('httpsAgent criado com sucesso usando PFX.');
 } catch (certError: any) {
-  console.error("ERRO AO LER OS ARQUIVOS DE CERTIFICADO:", certError.message);
-  throw new Error("Falha ao carregar os certificados do Santander. Verifique os caminhos no .env");
+  console.error("ERRO AO LER O ARQUIVO PFX:", certError.message);
+  throw new Error("Falha ao carregar o certificado PFX do Santander. Verifique o caminho e a senha no .env");
 }
 
 
 // A baseURL para operações como /cob precisa incluir /api/v1
-// Continuamos usando apiClient para definir a baseURL e o agent padrão,
-// mas vamos passá-lo explicitamente nas chamadas problemáticas.
 const apiClient = axios.create({
     baseURL: 'https://trust-pix.santander.com.br/api/v1',
-    httpsAgent,
+    httpsAgent, // O agent agora usa o PFX
 });
 
 
@@ -49,7 +52,7 @@ async function getAccessToken(): Promise<string> {
   }
 
   console.log('SANTANDER_CLIENT_ID:', SANTANDER_CLIENT_ID);
-  console.log('SANTANDER_CLIENT_SECRET:', SANTANDER_CLIENT_SECRET);
+  // Não logamos o secret ou passphrase por segurança
   console.log('Gerando novo access_token para o Santander...');
 
   const urlForToken = `https://trust-pix.santander.com.br/oauth/token?grant_type=client_credentials`;
@@ -62,12 +65,13 @@ async function getAccessToken(): Promise<string> {
 
   try {
     console.log('Tentando fazer POST para obter token...');
+    // Usamos axios diretamente aqui, mas passamos o httpsAgent configurado com PFX
     const response = await axios.post(
       urlForToken,
       requestBody,
       {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        httpsAgent, // Passamos o agent aqui também explicitamente
+        httpsAgent, // Passamos o agent com PFX
         timeout: 15000
       }
     );
@@ -101,19 +105,19 @@ async function createCob(txid: string, data: any) {
   console.log('Token obtido para createCob.');
 
   const urlPath = `/cob/${txid}`;
-  const fullUrl = `${apiClient.defaults.baseURL}${urlPath}`; // URL completa para log
+  const fullUrl = `${apiClient.defaults.baseURL}${urlPath}`;
 
   console.log(`Tentando fazer PUT para: ${fullUrl}`);
 
   try {
     console.log('Tentando fazer PUT para criar cobrança...');
-    // Usamos apiClient.put, mas passamos httpsAgent e Accept header explicitamente
+    // Usamos apiClient.put, que já tem o httpsAgent (com PFX) configurado
     const response = await apiClient.put(urlPath, data, {
         headers: {
             'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json, application/problem+json', // **ADICIONADO HEADER ACCEPT**
+            'Accept': 'application/json, application/problem+json',
         },
-        httpsAgent: httpsAgent, // **PASSANDO O AGENT EXPLICITAMENTE**
+        // Não precisamos passar o agent de novo, já está na instância
         timeout: 15000
     });
     console.log('Chamada PUT para criar cobrança retornou.');
@@ -126,11 +130,10 @@ async function createCob(txid: string, data: any) {
     } else {
         console.error(`Erro ao fazer PUT para ${fullUrl}:`, error.response?.status, error.response?.data || error.message);
     }
-    // Logamos headers enviados
     console.error('Headers enviados na requisição PUT:', {
-        'Authorization': `Bearer ${token ? token.substring(0, 10) + '...' : 'N/A'}`, // Log truncado por segurança
+        'Authorization': `Bearer ${token ? token.substring(0, 10) + '...' : 'N/A'}`,
         'Accept': 'application/json, application/problem+json',
-        'Content-Type': 'application/json' // Adicionado pelo Axios por padrão com 'data'
+        'Content-Type': 'application/json'
     });
     throw error;
   }
