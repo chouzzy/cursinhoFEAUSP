@@ -62,6 +62,7 @@ async function getAccessToken(): Promise<string> {
       }
     );
 
+    console.log('Access Token Response:', response.data);
     const { access_token, expires_in } = response.data;
     accessToken = access_token;
     tokenExpiresAt = Date.now() + (expires_in - 300) * 1000;
