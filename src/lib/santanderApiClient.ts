@@ -44,8 +44,8 @@ async function getAccessToken(): Promise<string> {
 
   // **CORREÇÃO: Adicionando SCOPES na URL**
   // Definimos os escopos necessários para criar cobranças e gerenciar webhooks.
-  const requiredScopes = 'cob.write cob.read';
-  const urlWithParams = `/oauth/token?grant_type=client_credentials&scope=${encodeURIComponent(requiredScopes)}`;
+  const requiredScopes = 'cob.write cob.read pix.read pix.write webhook.read webhook.write';
+  const urlWithParams = `/api/v1/oauth/token?grant_type=client_credentials&scope=${encodeURIComponent(requiredScopes)}`;
 
   const requestBody = new URLSearchParams();
   requestBody.append('client_id', SANTANDER_CLIENT_ID || '');
@@ -68,8 +68,8 @@ async function getAccessToken(): Promise<string> {
     console.log('Access Token Response:', response.data);
     // Verifica se os scopes retornados incluem os que pedimos
     if (!response.data.scopes || !requiredScopes.split(' ').every(scope => response.data.scopes.includes(scope))) {
-         console.warn(`Nem todos os scopes solicitados foram concedidos pelo Santander. Recebido: ${response.data.scopes}`);
-         // Poderíamos lançar um erro aqui se um scope essencial faltar, mas por enquanto só avisamos.
+      console.warn(`Nem todos os scopes solicitados foram concedidos pelo Santander. Recebido: ${response.data.scopes}`);
+      // Poderíamos lançar um erro aqui se um scope essencial faltar, mas por enquanto só avisamos.
     }
 
     const { access_token, expires_in } = response.data;
