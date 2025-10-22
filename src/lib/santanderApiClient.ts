@@ -18,10 +18,9 @@ const httpsAgent = new https.Agent({
 });
 
 // apiClient continua com a baseURL correta para /cob
-// mas não será usado diretamente para o token ou o cob PUT
 const apiClient = axios.create({
     baseURL: 'https://trust-pix.santander.com.br',
-    httpsAgent, // Mantemos aqui caso seja usado para outras chamadas futuras
+    httpsAgent,
 });
 
 
@@ -40,12 +39,13 @@ async function getAccessToken(): Promise<string> {
   console.log('SANTANDER_CLIENT_SECRET:', SANTANDER_CLIENT_SECRET);
   console.log('Gerando novo access_token para o Santander com scopes...');
 
-  // **AJUSTE 1: Solicitando Scopes no Corpo**
-  const urlForToken = `https://trust-pix.santander.com.br/oauth/token`; // URL base do token
+  // **AJUSTE FINAL: Combinando o que funcionou**
+  // 1. `grant_type` vai na URL, como na tentativa que obteve o token.
+  const urlForToken = `https://trust-pix.santander.com.br/oauth/token?grant_type=client_credentials`;
   const requiredScopes = 'cob.write cob.read pix.read pix.write webhook.read webhook.write';
 
+  // 2. `client_id`, `client_secret` e `scope` vão no corpo.
   const requestBody = new URLSearchParams();
-  requestBody.append('grant_type', 'client_credentials'); // Grant_type também no corpo é o padrão OAuth
   requestBody.append('client_id', SANTANDER_CLIENT_ID || '');
   requestBody.append('client_secret', SANTANDER_CLIENT_SECRET || '');
   requestBody.append('scope', requiredScopes); // Solicitamos os scopes necessários aqui
@@ -54,9 +54,10 @@ async function getAccessToken(): Promise<string> {
   console.log('Request Body for Token:', requestBody.toString());
 
   try {
+    // Usamos axios diretamente para ter controle total
     const response = await axios.post(
-      urlForToken,
-      requestBody,
+      urlForToken, // URL contém grant_type
+      requestBody, // Corpo contém client_id, client_secret e scope
       {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         httpsAgent, // Certificado necessário para a conexão
@@ -64,11 +65,12 @@ async function getAccessToken(): Promise<string> {
     );
 
     console.log('Access Token Response:', response.data);
-    // Verificamos se os scopes foram concedidos
     if (!response.data.scopes || !requiredScopes.split(' ').every(scope => response.data.scopes.includes(scope))) {
          console.warn(`Nem todos os scopes solicitados foram concedidos pelo Santander. Recebido: ${response.data.scopes}`);
-         // Poderíamos lançar um erro aqui se cob.write for essencial
-         // throw new Error('Scope cob.write não concedido pelo Santander.');
+         // Considerar lançar erro se cob.write não for concedido
+         // if (!response.data.scopes?.includes('cob.write')) {
+         //   throw new Error('Scope essencial cob.write não concedido.');
+         // }
     } else {
         console.log("Scopes necessários foram concedidos!");
     }
@@ -89,14 +91,12 @@ async function getAccessToken(): Promise<string> {
 }
 
 async function createCob(txid: string, data: any) {
-  const token = await getAccessToken(); // Pega o token (esperamos que agora com os scopes certos)
+  const token = await getAccessToken();
   const url = `https://trust-pix.santander.com.br/cob/${txid}`;
 
   console.log(`Tentando fazer PUT para: ${url}`);
   console.log(`Usando token com scopes decodificados: ${accessToken ? JSON.stringify(accessToken.split('.')[1] ? JSON.parse(Buffer.from(accessToken.split('.')[1], 'base64').toString()) : {}) : 'N/A'}`);
 
-
-  // **AJUSTE 2: Garantindo httpsAgent na Chamada PUT**
   const options: AxiosRequestConfig = {
     method: 'PUT',
     url: url,
@@ -105,7 +105,7 @@ async function createCob(txid: string, data: any) {
       'Authorization': `Bearer ${token}`
     },
     data: data,
-    httpsAgent: httpsAgent // Inclui os certificados na chamada direta
+    httpsAgent: httpsAgent
   };
 
   try {
