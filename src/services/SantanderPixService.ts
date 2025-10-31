@@ -175,7 +175,7 @@ export class SantanderPixService {
     // 8. Retornar os dados essenciais para o frontend
     return {
       txid: createResponse.txid,
-      qrCodePayload: createResponse.location, // O frontend usa isso para o <QRCode>
+      qrCodePayload: pixCopiaECola, // O frontend usa isso para o <QRCode>
       copiaECola: pixCopiaECola,             // E usa isso para o botão de copiar
       valor: createResponse.valor.original,
     };
