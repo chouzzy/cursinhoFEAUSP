@@ -12,6 +12,13 @@ interface SantanderPixTransaction {
 
 const webhookSantanderRoutes = Router();
 
+webhookSantanderRoutes.get('/santander', async (req: Request, res: Response) => {
+  console.log('Recebida chamada de VALIDAÇÃO (GET) do Webhook Santander.');
+  // Apenas retornamos 200 OK para confirmar que o endpoint existe e está vivo.
+  res.sendStatus(200);
+});
+
+
 webhookSantanderRoutes.post('/santander', async (req: Request, res: Response) => {
   console.log('Webhook Santander PIX acionado');
 
