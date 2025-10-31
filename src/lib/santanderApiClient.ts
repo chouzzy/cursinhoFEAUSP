@@ -99,7 +99,7 @@ async function getAccessToken(): Promise<string> {
 
 async function createCob(txid: string, data: any) {
   console.log('Iniciando createCob...');
-  const token = await getAccessToken();
+  const token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzdWJqZWN0LXN1YmplY3QiLCJhdWQiOlsiYXVkaWVuY2UxIiwiYXVkaWVuY2UyIl0sInNjb3BlIjoid2ViaG9vay5yZWFkIiwiaXNzIjoidXJuOlwvXC9hcGlnZWUtZWRnZS1KV1QtcG9saWN5LXRlc3QiLCJjbnBqX3BhcmNlaXJvIjoiMTQuNzM4LjkwOFwvMDAwMS0wMSIsImV4cCI6MTc2MTkyNjQ0NCwiaWF0IjoxNzYxOTIyODQ0LCJqdGkiOiI1MDMwODk4Yy04YmU2LTQxOTAtYWIwNC0wN2JlMmNiZjk4YmMifQ.tZ6w1BJIOH_jMNqi9szkUJ7BxiOZgYfGCStVXay44Is'
   console.log('Token obtido para createCob.');
 
   const urlPath = `/cob/${txid}`;
