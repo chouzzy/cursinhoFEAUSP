@@ -54,7 +54,7 @@ export class SantanderPixService {
         nome: inscriptionData.name,
       },
       valor: {
-        original: INSCRIPTION_PRICE,
+        original: '10.50',
       },
       chave: process.env.SANTANDER_PIX_KEY!,
       solicitacaoPagador: "Taxa de Inscrição Cursinho FEA USP",
