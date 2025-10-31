@@ -13,6 +13,7 @@ const INSCRIPTION_PRICE = "10.00";
 
 // --- Funções Auxiliares para montar o EMV (sem alterações) ---
 function formatEMVField(id: string, value: string): string {
+// ... (código existente) ...
     const length = value.length.toString().padStart(2, '0');
     if (length.length > 2) {
         console.warn(`Valor do campo EMV (ID ${id}) muito longo: ${value.length}`);
@@ -21,6 +22,7 @@ function formatEMVField(id: string, value: string): string {
 }
 
 function buildEMVString(location: string, txid: string, valor: string, nomeRecebedor: string, cidadeRecebedor: string): string {
+// ... (código existente) ...
     const f00 = formatEMVField("00", "01");
     const f01 = formatEMVField("01", "12");
     const f26_sub00 = formatEMVField("00", "br.gov.bcb.pix");
@@ -67,7 +69,7 @@ export class SantanderPixService {
         studentId = existingStudent.id;
 
         // **LÓGICA DE VALIDAÇÃO REFORÇADA**
-        // Procurar por QUALQUER inscrição (paga OU pendente) para o mesmo curso
+        // Procurar por QUALQUER inscrição para o mesmo curso
         const existingSubscription = existingStudent.purcharsedSubscriptions.find(
             sub => sub.schoolClassID === schoolClassID
         );
@@ -79,52 +81,91 @@ export class SantanderPixService {
                 throw new Error('Você já está inscrito e com o pagamento confirmado para esta turma.');
             }
 
-            // Caso 2: Já existe um PIX pendente. Vamos reutilizá-lo!
-            // (Adicionaríamos uma lógica de expiração aqui no futuro, por enquanto, reutilizamos)
-            if (existingSubscription.paymentStatus === 'PENDENTE' && existingSubscription.pixCopiaECola && existingSubscription.pixQrCode) {
-                console.log(`Estudante ${existingStudent.id} já possui um PIX PENDENTE para a turma ${schoolClassID}. Reutilizando...`);
+            // Caso 2: Já existe um PIX pendente.
+            if (existingSubscription.paymentStatus === 'PENDENTE') {
                 
-                // Atualiza os dados cadastrais do aluno, mas não mexe na inscrição
-                await prisma.students.update({
-                    where: { id: existingStudent.id },
-                    data: {
-                        ...studentModelData,
-                        cpf: sanitizedCpf,
-                    }
-                });
-                
-                // Retorna os dados do PIX que já existe
-                return {
-                  txid: existingSubscription.txid,
-                  qrCodePayload: existingSubscription.pixQrCode,
-                  copiaECola: existingSubscription.pixCopiaECola,
-                  valor: existingSubscription.valuePaid.toFixed(2),
-                };
-            }
-        }
-        
-        // Se o estudante existe, mas não tem inscrição para ESTE curso,
-        // atualizamos os dados e adicionamos a nova tentativa de pagamento ao array
-        console.log(`Estudante ${existingStudent.id} existe, mas não possui inscrição para ${schoolClassID}. Criando nova...`);
-        const updatedStudent = await prisma.students.update({
-            where: { id: existingStudent.id },
-            data: {
-                ...studentModelData,
-                cpf: sanitizedCpf,
-                purcharsedSubscriptions: {
-                    push: [{ // Adiciona a nova tentativa
-                        schoolClassID: schoolClassID,
-                        txid: `insc${randomBytes(14).toString('hex')}`, // Geramos um txid aqui
-                        paymentMethod: "pix_santander",
-                        paymentStatus: "PENDENTE",
-                        pixStatus: "PENDENTE",
-                        paymentDate: new Date(),
-                        valuePaid: parseFloat(INSCRIPTION_PRICE),
-                    }]
+                // **NOVA VALIDAÇÃO:** Checa se o PIX pendente é válido (sem hífen e com dados)
+                const isDataPresent = existingSubscription.pixCopiaECola && existingSubscription.pixQrCode;
+                const isTxidValid = existingSubscription.txid && !existingSubscription.txid.includes('-');
+
+                if (isDataPresent && isTxidValid) {
+                    // O PIX pendente é VÁLIDO. Reutiliza.
+                    console.log(`Estudante ${existingStudent.id} já possui um PIX PENDENTE VÁLIDO para a turma ${schoolClassID}. Reutilizando...`);
+                    
+                    // Apenas atualiza os dados cadastrais do aluno (nome, etc.)
+                    await prisma.students.update({
+                        where: { id: existingStudent.id },
+                        data: {
+                            ...studentModelData,
+                            cpf: sanitizedCpf,
+                        }
+                    });
+                    
+                    // Retorna os dados do PIX que já existe
+                    return {
+                      txid: existingSubscription.txid,
+                      qrCodePayload: existingSubscription.pixQrCode,
+                      copiaECola: existingSubscription.pixCopiaECola,
+                      valor: existingSubscription.valuePaid.toFixed(2),
+                    };
+                } else {
+                    // O PIX pendente é INVÁLIDO (txid com bug, dados faltantes, etc.)
+                    // Vamos gerar um novo txid para esta inscrição pendente.
+                    const newTxid = `insc${randomBytes(14).toString('hex')}`;
+                    console.warn(`Estudante ${existingStudent.id} possui PIX pendente, mas é inválido (txid: ${existingSubscription.txid}). Atualizando com novo txid: ${newTxid}`);
+
+                    // Atualiza a inscrição pendente existente com o novo txid
+                    await prisma.students.update({
+                        where: { id: existingStudent.id },
+                        data: {
+                            ...studentModelData, // Atualiza dados cadastrais
+                            cpf: sanitizedCpf,
+                            purcharsedSubscriptions: {
+                                updateMany: { // Encontra a inscrição pendente
+                                    where: { 
+                                        schoolClassID: schoolClassID,
+                                        paymentStatus: 'PENDENTE' 
+                                    },
+                                    data: { // E atualiza com o novo txid e limpa dados antigos
+                                        txid: newTxid, 
+                                        paymentMethod: "pix_santander",
+                                        paymentDate: new Date(),
+                                        valuePaid: parseFloat(INSCRIPTION_PRICE),
+                                        pixCopiaECola: null, 
+                                        pixQrCode: null,
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    studentId = existingStudent.id;
+                    // O fluxo continua para gerar o PIX para o newTxid
                 }
             }
-        });
-        studentId = updatedStudent.id;
+        } else {
+            // Se o estudante existe, mas não tem inscrição para ESTE curso,
+            // atualizamos os dados e adicionamos a nova tentativa de pagamento ao array
+            console.log(`Estudante ${existingStudent.id} existe, mas não possui inscrição para ${schoolClassID}. Criando nova...`);
+            await prisma.students.update({
+                where: { id: existingStudent.id },
+                data: {
+                    ...studentModelData,
+                    cpf: sanitizedCpf,
+                    purcharsedSubscriptions: {
+                        push: [{ // Adiciona a nova tentativa
+                            schoolClassID: schoolClassID,
+                            txid: `insc${randomBytes(14).toString('hex')}`, // Geramos um txid aqui
+                            paymentMethod: "pix_santander",
+                            paymentStatus: "PENDENTE",
+                            pixStatus: "PENDENTE",
+                            paymentDate: new Date(),
+                            valuePaid: parseFloat(INSCRIPTION_PRICE),
+                        }]
+                    }
+                }
+            });
+            studentId = existingStudent.id;
+        }
     } else {
         // 3. Se não existe, CRIAR novo estudante
         console.log(`Novo estudante. Criando registro...`);
@@ -152,12 +193,13 @@ export class SantanderPixService {
     
     // Recarregar os dados do estudante para pegar o TXID correto
     const studentData = await prisma.students.findUnique({ where: { id: studentId } });
+    // Encontra a inscrição pendente para este curso (seja a recém-criada ou a recém-atualizada)
     const currentSubscription = studentData?.purcharsedSubscriptions.find(
         sub => sub.schoolClassID === schoolClassID && sub.paymentStatus === 'PENDENTE'
     );
 
     if (!currentSubscription || !currentSubscription.txid) {
-         throw new Error('Falha ao localizar a inscrição pendente recém-criada.');
+         throw new Error('Falha ao localizar a inscrição pendente recém-criada/atualizada.');
     }
 
     const txid = currentSubscription.txid;
@@ -165,6 +207,7 @@ export class SantanderPixService {
 
     // 4. Montar o corpo da requisição para o Santander
     const cobData = {
+// ... (código existente) ...
       calendario: { expiracao: 3600 },
       devedor: {
         cpf: sanitizedCpf,
@@ -177,14 +220,17 @@ export class SantanderPixService {
 
     // 5. Chamar nosso cliente de API para CRIAR a cobrança
     const createResponse = await santanderApiClient.createCob(txid, cobData);
+// ... (código existente) ...
     console.log(`Cobrança PIX criada no Santander para o txid: ${txid}. Status: ${createResponse.status}`);
     
     // 6. Construir o "Copia e Cola" (EMV) manualmente
     const nomeRecebedor = process.env.SANTANDER_RECEBEDOR_NOME || "CURSINHO FEA USP";
+// ... (código existente) ...
     const cidadeRecebedor = process.env.SANTANDER_RECEBEDOR_CIDADE || "SAO PAULO";
     
     const pixCopiaECola = buildEMVString(
       createResponse.location.replace('https://', ''),
+// ... (código existente) ...
       createResponse.txid,
       createResponse.valor.original,
       nomeRecebedor,
@@ -194,6 +240,7 @@ export class SantanderPixService {
 
     // 7. Atualizar a inscrição no banco com os dados do PIX gerado
     await prisma.students.update({
+// ... (código existente) ...
         where: { id: studentId },
         data: {
             purcharsedSubscriptions: {
@@ -210,6 +257,7 @@ export class SantanderPixService {
 
     // 8. Retornar os dados essenciais para o frontend
     return {
+// ... (código existente) ...
       txid: createResponse.txid,
       qrCodePayload: createResponse.location,
       copiaECola: pixCopiaECola,
