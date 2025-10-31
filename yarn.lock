@@ -374,6 +374,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/crc@npm:^4.0.0":
+  version: 4.0.0
+  resolution: "@types/crc@npm:4.0.0"
+  dependencies:
+    crc: "*"
+  checksum: a996b0ad425a620a846d80e14caef20a7633b0dc89a893b4074fec7c6f80800b9d7a8e582a792074a403f3407810184c2373d0f4f30a59c156f66c9db6bfba0d
+  languageName: node
+  linkType: hard
+
 "@types/crypto-js@npm:^4.1.2":
   version: 4.2.2
   resolution: "@types/crypto-js@npm:4.2.2"
@@ -1535,6 +1544,18 @@ __metadata:
     crc-32: ^1.2.0
     readable-stream: ^3.4.0
   checksum: d44d0ec6f04d8a1bed899ac3e4fbb82111ed567ea6d506be39147362af45c747887fce1032f4beca1646b4824e5a9614cd3332bfa94bbc5577ca5445e7f75ddd
+  languageName: node
+  linkType: hard
+
+"crc@npm:*, crc@npm:^4.3.2":
+  version: 4.3.2
+  resolution: "crc@npm:4.3.2"
+  peerDependencies:
+    buffer: ">=6.0.3"
+  peerDependenciesMeta:
+    buffer:
+      optional: true
+  checksum: 8231cc25331727083ffd22da3575110fc49b4dc8725de973bd43261d4426aba134ed3a75cc247f7c5e97a6e171f87dffc3325b82890e86d032de2e6bcef09c32
   languageName: node
   linkType: hard
 
@@ -4499,6 +4520,7 @@ __metadata:
     "@types/axios": ^0.14.0
     "@types/bcryptjs": ^2.4.2
     "@types/cors": ^2.8.13
+    "@types/crc": ^4.0.0
     "@types/crypto-js": ^4.1.2
     "@types/csv-parse": ^1.2.2
     "@types/express": ^4.17.14
@@ -4513,6 +4535,7 @@ __metadata:
     bcryptjs: ^2.4.3
     body-parser: ^1.20.2
     cors: ^2.8.5
+    crc: ^4.3.2
     crypto-js: ^4.1.1
     csv-parse: ^5.3.2
     dayjs: ^1.11.7
