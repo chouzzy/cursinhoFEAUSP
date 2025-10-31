@@ -6,7 +6,7 @@ import fs from 'fs';
 const SANTANDER_CLIENT_ID = process.env.SANTANDER_CLIENT_ID_PROD;
 const SANTANDER_CLIENT_SECRET = process.env.SANTANDER_CLIENT_SECRET_PROD;
 // **NOVA VARIÁVEL PARA O CERTIFICADO COMPLETO**
-const FULL_CERT_PATH = process.env.SANTANDER_FULL_CERT_PATH; // Caminho para o .pem completo
+const FULL_CERT_PATH = process.env.SANTANDER_PFX_PATH; // Caminho para o .pem completo
 
 // Removemos as variáveis PEM separadas
 // const CERT_PATH = process.env.SANTANDER_CERT_PATH;
@@ -23,7 +23,7 @@ try {
   // Passamos o mesmo arquivo .pem para 'cert' (cadeia pública) e 'key' (chave privada)
   const fullCertContent = fs.readFileSync(FULL_CERT_PATH);
   httpsAgent = new https.Agent({
-    cert: fullCertContent, // Espera-se que ele leia a cadeia pública daqui
+    cert: fullCertContent, // Espera-se que ele leia a cadeia pública daqui 
     key: fullCertContent,   // Espera-se que ele leia a chave privada daqui
     // passphrase: process.env.SANTANDER_KEY_PASSPHRASE // Senha da chave privada, se o PEM estiver criptografado
   });
