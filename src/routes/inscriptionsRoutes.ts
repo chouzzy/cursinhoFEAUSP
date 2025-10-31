@@ -1,61 +1,81 @@
 import { Router, Request, Response } from "express";
 import { SantanderPixService } from "../services/SantanderPixService";
+import { prisma } from "../prisma"; // Precisamos do Prisma para consultar o status
 
 const inscriptionsRoutes = Router();
 
-// Instanciamos o serviço que contém nossa lógica de negócio
+// Instanciamos o Serviço (nosso "Use Case")
 const santanderPixService = new SantanderPixService();
 
 /**
- * Rota para criar uma nova inscrição e gerar a cobrança PIX correspondente.
- * Espera receber no corpo (body) da requisição os dados do estudante
- * que correspondem ao tipo 'InscriptionData' definido no serviço.
+ * Rota POST para criar uma nova inscrição e gerar a cobrança PIX.
+ * (Controller)
  */
 inscriptionsRoutes.post('/', async (req: Request, res: Response) => {
-    console.log("Recebida nova requisição de inscrição via PIX Santander.");
+  console.log("Recebida nova requisição de inscrição via PIX Santander.");
+  
+  try {
+    const inscriptionData = req.body;
 
+    if (!inscriptionData || Object.keys(inscriptionData).length === 0) {
+        return res.status(400).json({ error: 'Corpo da requisição vazio. Nenhum dado de inscrição foi enviado.' });
+    }
+
+    // Chama o Serviço para fazer o trabalho pesado
+    const pixResponse = await santanderPixService.createInscriptionWithPix(inscriptionData);
+    return res.status(201).json(pixResponse);
+
+  } catch (error: any) {
+    console.error('Erro ao criar inscrição com PIX:', error.message);
+    return res.status(500).json({ 
+        error: 'Falha ao gerar a cobrança PIX.',
+        details: 'Ocorreu um erro interno no servidor.'
+    });
+  }
+});
+
+/**
+ * **NOVA ROTA DE POLLING**
+ * Rota GET para o frontend consultar o status de um pagamento.
+ * (Controller)
+ */
+inscriptionsRoutes.get('/status/:txid', async (req: Request, res: Response) => {
     try {
-        // Os dados do formulário de inscrição virão no corpo da requisição
-        const inscriptionData = req.body;
+        const { txid } = req.params;
 
-        // Validação básica para garantir que o corpo não está vazio
-        if (!inscriptionData || Object.keys(inscriptionData).length === 0) {
-            return res.status(400).json({ error: 'Corpo da requisição vazio. Nenhum dado de inscrição foi enviado.' });
+        console.log(`Recebida consulta de status para o txid: ${txid}`);
+
+        // Procura pelo estudante que tenha esta transação
+        const student = await prisma.students.findFirst({
+            where: {
+                purcharsedSubscriptions: {
+                    some: { txid: txid }
+                }
+            }
+        });
+
+        if (!student || !student.purcharsedSubscriptions || student.purcharsedSubscriptions.length === 0) {
+            console.log(`Consulta de status: Inscrição não encontrada para o txid: ${txid}`);
+            return res.status(404).json({ error: 'Inscrição não encontrada.' });
         }
 
-        // Chamamos o serviço que faz todo o trabalho pesado
-        const pixResponse = await santanderPixService.createInscriptionWithPix(inscriptionData);
-
-        // Se tudo deu certo, retornamos os dados do PIX para o frontend
-        return res.status(201).json(pixResponse);
+        // Pega a inscrição específica
+        const subscription = student.purcharsedSubscriptions.find(s => String(s.txid) === txid);
+        if (!subscription) {
+            console.log(`Consulta de status: nenhuma inscrição encontrada com txid: ${txid}`);
+            return res.status(404).json({ error: 'Inscrição não encontrada.' });
+        }
+        
+        console.log(`Consulta de status: Retornando status '${subscription.paymentStatus}' para o txid: ${txid}`);
+        // Retorna apenas o status para o frontend
+        return res.status(200).json({ status: subscription.paymentStatus });
 
     } catch (error: any) {
-        console.error('Erro ao criar inscrição com PIX:', error.message);
-
-        // Retornamos um erro genérico para o frontend por segurança
-        return res.status(500).json({
-            error: 'Falha ao gerar a cobrança PIX.',
-            details: 'Ocorreu um erro interno no servidor.' // Evitamos expor detalhes do erro
-        });
+        console.error(`Erro ao consultar status do txid ${req.params.txid}:`, error);
+        return res.status(500).json({ error: 'Erro interno ao consultar status.' });
     }
 });
 
+
 export { inscriptionsRoutes };
-// ```
-
-// ### **O que este código faz:**
-
-// * **Importa o `Router`** do Express e nosso `SantanderPixService`.
-// * **Cria uma instância** do serviço.
-// * **Define uma rota `POST`** no caminho raiz (`/`).
-// * **Chama o método `createInscriptionWithPix`**, passando os dados (`req.body`) que vêm do frontend.
-// * **Trata o sucesso**, enviando um status `201` (Created) e os dados do PIX.
-// * **Trata o erro**, enviando um status `500` e uma mensagem genérica para não expor detalhes da implementação ao cliente.
-
-// ### **Seus Próximos Passos:**
-
-// 1.  **Crie o arquivo** `src/routes/inscriptionsRoutes.ts` e cole este código.
-// 2.  **Integre a rota no seu servidor principal**. Vá até seu arquivo `server.ts` (ou `app.ts`) e adicione as seguintes linhas:
-
-//     ```typescript
 
