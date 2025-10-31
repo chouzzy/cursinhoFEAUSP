@@ -9,7 +9,7 @@ type InscriptionData = Omit<Students, 'id' | 'createdAt' | 'purcharsedSubscripti
   schoolClassID: string;
 };
 
-const INSCRIPTION_PRICE = "10.00";
+const INSCRIPTION_PRICE = "0.01";
 
 // --- Funções Auxiliares para montar o EMV ---
 
