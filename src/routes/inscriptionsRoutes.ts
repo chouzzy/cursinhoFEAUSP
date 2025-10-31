@@ -27,6 +27,18 @@ inscriptionsRoutes.post('/', async (req: Request, res: Response) => {
 
   } catch (error: any) {
     console.error('Erro ao criar inscrição com PIX:', error.message);
+
+    // **LÓGICA DE ERRO ATUALIZADA**
+    // Verifica se é o nosso erro customizado de duplicidade
+    if (error.message && error.message.includes('Você já está inscrito')) {
+        // Retorna um erro 409 (Conflict) com a mensagem exata
+        return res.status(409).json({
+            error: 'Inscrição Duplicada',
+            details: error.message // Repassa a mensagem do serviço para o frontend
+        });
+    }
+
+    // Se for qualquer outro erro, retorna 500
     return res.status(500).json({ 
         error: 'Falha ao gerar a cobrança PIX.',
         details: 'Ocorreu um erro interno no servidor.'
@@ -35,7 +47,7 @@ inscriptionsRoutes.post('/', async (req: Request, res: Response) => {
 });
 
 /**
- * **NOVA ROTA DE POLLING**
+ * **ROTA DE POLLING**
  * Rota GET para o frontend consultar o status de um pagamento.
  * (Controller)
  */
