@@ -13,7 +13,7 @@ const INSCRIPTION_PRICE = "10.00";
 export class SantanderPixService {
 
   async createInscriptionWithPix(inscriptionData: any) {
-    const txid = `insc-${randomBytes(14).toString('hex')}`;
+    const txid = `insc${randomBytes(14).toString('hex')}`;
 
     const { schoolClassID, price, ...studentModelData } = inscriptionData;
 
