@@ -5,39 +5,35 @@ import fs from 'fs';
 // --- CONFIGURAÇÃO ---
 const SANTANDER_CLIENT_ID = process.env.SANTANDER_CLIENT_ID_PROD;
 const SANTANDER_CLIENT_SECRET = process.env.SANTANDER_CLIENT_SECRET_PROD;
-// **NOVA VARIÁVEL PARA O CERTIFICADO COMPLETO**
-const FULL_CERT_PATH = process.env.SANTANDER_PFX_PATH; // Caminho para o .pem completo
+// **REVERTENDO PARA OS ARQUIVOS .PEM SEPARADOS**
+const CERT_PATH = process.env.SANTANDER_CERT_PATH; // Caminho para o .pem da chave pública (cadeia completa)
+const KEY_PATH = process.env.SANTANDER_KEY_PATH;   // Caminho para o .pem da chave privada
 
-// Removemos as variáveis PEM separadas
-// const CERT_PATH = process.env.SANTANDER_CERT_PATH;
-// const KEY_PATH = process.env.SANTANDER_KEY_PATH;
-
-if (!SANTANDER_CLIENT_ID || !SANTANDER_CLIENT_SECRET || !FULL_CERT_PATH) {
-  throw new Error("As variáveis de ambiente do Santander (Certificado Completo) não foram configuradas corretamente.");
+// Validamos as variáveis .PEM
+if (!SANTANDER_CLIENT_ID || !SANTANDER_CLIENT_SECRET || !CERT_PATH || !KEY_PATH) {
+  throw new Error("As variáveis de ambiente do Santander (CERT_PATH e KEY_PATH) não foram configuradas corretamente.");
 }
 
-console.log('Criando httpsAgent com o arquivo PEM completo...');
+console.log('Criando httpsAgent com os arquivos PEM separados...');
 let httpsAgent: https.Agent;
 try {
-  // **TENTATIVA COM ARQUIVO ÚNICO**
-  // Passamos o mesmo arquivo .pem para 'cert' (cadeia pública) e 'key' (chave privada)
-  const fullCertContent = fs.readFileSync(FULL_CERT_PATH);
+  // **VOLTANDO A USAR cert e key SEPARADAMENTE**
   httpsAgent = new https.Agent({
-    cert: fullCertContent, // Espera-se que ele leia a cadeia pública daqui 
-    key: fullCertContent,   // Espera-se que ele leia a chave privada daqui
-    // passphrase: process.env.SANTANDER_KEY_PASSPHRASE // Senha da chave privada, se o PEM estiver criptografado
+    cert: fs.readFileSync(CERT_PATH), // Lê o .pem com a cadeia pública
+    key: fs.readFileSync(KEY_PATH),   // Lê o .pem com a chave privada
+    // passphrase: process.env.SANTANDER_KEY_PASSPHRASE // Descomente se sua chave PEM privada tiver senha
   });
-  console.log('httpsAgent criado com sucesso usando PEM completo.');
+  console.log('httpsS Agent criado com sucesso usando arquivos PEM separados.');
 } catch (certError: any) {
-  console.error("ERRO AO LER O ARQUIVO PEM COMPLETO:", certError.message);
-  throw new Error("Falha ao carregar o certificado PEM completo do Santander. Verifique o caminho no .env");
+  console.error("ERRO AO LER OS ARQUIVOS PEM:", certError.message);
+  throw new Error("Falha ao carregar os certificados PEM do Santander. Verifique os caminhos no .env");
 }
 
 
 // A baseURL para operações como /cob precisa incluir /api/v1
 const apiClient = axios.create({
     baseURL: 'https://trust-pix.santander.com.br/api/v1',
-    httpsAgent, // O agent agora usa o PEM completo
+    httpsAgent, // O agent agora usa os PEMs separados
 });
 
 
@@ -67,13 +63,13 @@ async function getAccessToken(): Promise<string> {
 
   try {
     console.log('Tentando fazer POST para obter token...');
-    // Usamos axios diretamente aqui, mas passamos o httpsAgent configurado com PEM completo
+    // Usamos axios diretamente aqui, passando o httpsAgent configurado com PEM
     const response = await axios.post(
       urlForToken,
       requestBody,
       {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        httpsAgent, // Passamos o agent com PEM completo
+        httpsAgent, // Passamos o agent com PEM separados
         timeout: 15000
       }
     );
@@ -113,13 +109,12 @@ async function createCob(txid: string, data: any) {
 
   try {
     console.log('Tentando fazer PUT para criar cobrança...');
-    // Usamos apiClient.put, que já tem o httpsAgent (com PEM completo) configurado
+    // Usamos apiClient.put, que já tem o httpsAgent (com PEM separados) configurado
     const response = await apiClient.put(urlPath, data, {
         headers: {
             'Authorization': `Bearer ${token}`,
             'Accept': 'application/json, application/problem+json',
         },
-        // Não precisamos passar o agent de novo, já está na instância
         timeout: 15000
     });
     console.log('Chamada PUT para criar cobrança retornou.');
@@ -130,7 +125,7 @@ async function createCob(txid: string, data: any) {
     if (axios.isAxiosError(error) && error.code === 'ECONNABORTED') {
         console.error(`Erro ao fazer PUT para ${fullUrl}: Timeout da requisição.`);
     } else {
-        console.error(`Erro ao fazer PUT para ${fullUrl}:`, error.response?.status, error.response?.data || error.message);
+        console.log(` Erro em JSON:`, JSON.stringify(error.response?.data || error.message));
     }
     console.error('Headers enviados na requisição PUT:', {
         'Authorization': `Bearer ${token ? token.substring(0, 10) + '...' : 'N/A'}`,
