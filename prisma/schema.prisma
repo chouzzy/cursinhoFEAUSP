@@ -90,10 +90,24 @@ model Students {
   exStudent                String
   stripeCustomerID         String
 
+  emailResponsavel String? // Opcional, para o e-mail do responsável
+
   purcharsedSubscriptions PurchasedSubscriptions[]
   createdAt               DateTime                 @default(now())
 
   @@map("Students")
+}
+
+model DiscountCoupon {
+  id            String   @id @default(uuid()) @map("_id")
+  code          String   @unique // O código do cupom (ex: "PROMO10")
+  discountValue Float // O valor em BRL (ex: 5.00 para R$5,00)
+  isActive      Boolean  @default(true) // Para ativar/desativar
+  maxUses       Int? // Opcional: número máximo de usos
+  currentUses   Int      @default(0) // Quantas vezes foi usado
+  createdAt     DateTime @default(now())
+
+  @@map("DiscountCoupons")
 }
 
 model Admins {
@@ -133,15 +147,15 @@ model SchoolClass {
 }
 
 type PurchasedSubscriptions {
-  schoolClassID          String
-  stripeSubscriptionID   String?
-  productID              String?
-  productName            String?
-  paymentMethod          String
-  paymentStatus          String
-  paymentDate            DateTime
-  valuePaid              Float
-  
+  schoolClassID        String
+  stripeSubscriptionID String?
+  productID            String?
+  productName          String?
+  paymentMethod        String
+  paymentStatus        String
+  paymentDate          DateTime
+  valuePaid            Float
+
   txid                   String?
   pixCopiaECola          String?
   pixQrCode              String?
@@ -149,6 +163,7 @@ type PurchasedSubscriptions {
   pixValor               String?
   pixDate                String?
   pixExpiracaoEmSegundos Int?
+  codigoDesconto         String? // Para salvar qual cupom foi usado
 }
 
 type DocumentsTypes {
