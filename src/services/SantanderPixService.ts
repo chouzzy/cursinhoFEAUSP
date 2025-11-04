@@ -5,13 +5,15 @@ import { Students } from "@prisma/client";
 import { crc16ccitt } from 'crc'; // Importamos a função de CRC
 
 // Este tipo representa os dados que esperamos que o frontend envie.
-// Inclui os novos campos opcionais.
-type InscriptionData = Omit<Students, 'id' | 'createdAt' | 'purcharsedSubscriptions' | 'stripeCustomerID' | 'name' | 'emailResponsavel'> & {
+// Atualizado com os novos campos obrigatórios e opcionais.
+type InscriptionData = Omit<Students, 'id' | 'createdAt' | 'purcharsedSubscriptions' | 'stripeCustomerID' | 'name' | 'emailResponsavel' | 'aceiteTermoCiencia' | 'aceiteTermoInscricao'> & {
   schoolClassID: string;
   nome: string;
   sobrenome: string;
-  codigoDesconto?: string; // Opcional
+  aceiteTermoCiencia: boolean;
+  aceiteTermoInscricao: boolean;
   emailResponsavel?: string; // Opcional
+  codigoDesconto?: string; // Opcional
 };
 
 // O valor da taxa de inscrição PADRÃO.
@@ -54,13 +56,29 @@ export class SantanderPixService {
 
   async createInscriptionWithPix(inscriptionData: any) { 
     // 1. Separar dados, limpar CPF e CONCATENAR O NOME
-    const { schoolClassID, price, nome, sobrenome, codigoDesconto, emailResponsavel, ...studentModelData } = inscriptionData;
+    const { 
+      schoolClassID, 
+      price, // Ignoramos o 'price' vindo do front
+      nome, 
+      sobrenome, 
+      codigoDesconto, 
+      emailResponsavel,
+      aceiteTermoCiencia,
+      aceiteTermoInscricao, 
+      ...studentModelData 
+    } = inscriptionData;
+
+    // Validação dos termos (o frontend já deve fazer isso, mas é bom garantir)
+    if (!aceiteTermoCiencia || !aceiteTermoInscricao) {
+      throw new Error('Os termos de ciência e inscrição são obrigatórios.');
+    }
+
     const nomeCompleto = `${nome} ${sobrenome}`;
     const sanitizedCpf = inscriptionData.cpf.replace(/\D/g, '');
     let studentId: string;
 
     // --- LÓGICA DE DESCONTO ---
-    let finalPrice = INSCRIPTION_PRICE_DEFAULT;
+    let finalPrice = inscriptionData.price || INSCRIPTION_PRICE_DEFAULT;
     let couponCodeUsed: string | undefined = undefined;
 
     if (codigoDesconto) {
@@ -74,14 +92,13 @@ export class SantanderPixService {
 
       if (coupon) {
         // TODO: Adicionar checagem de maxUses vs currentUses se necessário
-        // (Ex: if (coupon.maxUses && coupon.currentUses >= coupon.maxUses) { ... } )
         finalPrice = INSCRIPTION_PRICE_DEFAULT - coupon.discountValue;
         if (finalPrice < 0) finalPrice = 0; // Não permite preço negativo
         couponCodeUsed = coupon.code;
         console.log(`Cupom aplicado! Novo preço: ${finalPrice}`);
       } else {
         console.warn(`Código de desconto inválido ou inativo: ${codigoDesconto}`);
-        // Opcional: Lançar um erro se o cupom for inválido e o usuário não puder prosseguir
+        // Opcional: Lançar um erro se o cupom for inválido
         // throw new Error('Código de desconto inválido.');
       }
     }
@@ -96,21 +113,17 @@ export class SantanderPixService {
         console.log(`Estudante já encontrado com email/cpf. ID: ${existingStudent.id}`);
         studentId = existingStudent.id;
 
-        // **LÓGICA DE VALIDAÇÃO REFORÇADA**
         const existingSubscription = existingStudent.purcharsedSubscriptions.find(
             sub => sub.schoolClassID === schoolClassID
         );
 
         if (existingSubscription) {
-            // Caso 1: Já está pago
             if (existingSubscription.paymentStatus === 'CONCLUIDA') {
                 console.warn(`Estudante ${existingStudent.id} já possui inscrição PAGA para a turma ${schoolClassID}.`);
                 throw new Error('Você já está inscrito e com o pagamento confirmado para esta turma.');
             }
 
-            // Caso 2: Já existe um PIX pendente.
             if (existingSubscription.paymentStatus === 'PENDENTE') {
-                
                 const isDataPresent = existingSubscription.pixCopiaECola && existingSubscription.pixQrCode;
                 const isTxidValid = existingSubscription.txid && !existingSubscription.txid.includes('-');
                 const agora = new Date();
@@ -121,18 +134,19 @@ export class SantanderPixService {
                 if (isDataPresent && isTxidValid && !isExpired) {
                     console.log(`Estudante ${existingStudent.id} já possui um PIX PENDENTE VÁLIDO. Reutilizando...`);
                     
-                    // Apenas atualiza os dados cadastrais do aluno
+                    // Atualiza dados cadastrais
                     await prisma.students.update({
                         where: { id: existingStudent.id },
                         data: {
                             ...studentModelData,
-                            name: nomeCompleto, 
+                            name: nomeCompleto,
                             cpf: sanitizedCpf,
-                            emailResponsavel: emailResponsavel, // Atualiza email do responsável
+                            emailResponsavel: emailResponsavel,
+                            aceiteTermoCiencia: aceiteTermoCiencia,
+                            aceiteTermoInscricao: aceiteTermoInscricao,
                         }
                     });
                     
-                    // Retorna os dados do PIX que já existe
                     return {
                       txid: existingSubscription.txid,
                       qrCodePayload: existingSubscription.pixCopiaECola,
@@ -140,25 +154,25 @@ export class SantanderPixService {
                       valor: existingSubscription.valuePaid.toFixed(2),
                     };
                 } else {
-                    // O PIX pendente é INVÁLIDO ou EXPIRADO
                     const newTxid = `insc${randomBytes(14).toString('hex')}`;
                     console.warn(`Estudante ${existingStudent.id} possui PIX pendente inválido/expirado. Atualizando com novo txid: ${newTxid}`);
 
-                    // Atualiza a inscrição pendente existente com o novo txid
                     await prisma.students.update({
                         where: { id: existingStudent.id },
                         data: {
-                            ...studentModelData, // Atualiza dados cadastrais
+                            ...studentModelData,
                             name: nomeCompleto, 
                             cpf: sanitizedCpf,
-                            emailResponsavel: emailResponsavel, // Atualiza email do responsável
+                            emailResponsavel: emailResponsavel,
+                            aceiteTermoCiencia: aceiteTermoCiencia,
+                            aceiteTermoInscricao: aceiteTermoInscricao,
                             purcharsedSubscriptions: {
-                                updateMany: { // Encontra a inscrição pendente
+                                updateMany: {
                                     where: { 
                                         schoolClassID: schoolClassID,
                                         paymentStatus: 'PENDENTE' 
                                     },
-                                    data: { // E atualiza com o novo txid e limpa dados antigos
+                                    data: {
                                         txid: newTxid, 
                                         paymentMethod: "pix_santander",
                                         paymentDate: new Date(),
@@ -172,12 +186,9 @@ export class SantanderPixService {
                         }
                     });
                     studentId = existingStudent.id;
-                    // O fluxo continua para gerar o PIX para o newTxid
                 }
             }
         } else {
-            // Se o estudante existe, mas não tem inscrição para ESTE curso,
-            // atualizamos os dados e adicionamos a nova tentativa de pagamento ao array
             console.log(`Estudante ${existingStudent.id} existe, mas não possui inscrição para ${schoolClassID}. Criando nova...`);
             await prisma.students.update({
                 where: { id: existingStudent.id },
@@ -185,17 +196,19 @@ export class SantanderPixService {
                     ...studentModelData,
                     name: nomeCompleto,
                     cpf: sanitizedCpf,
-                    emailResponsavel: emailResponsavel, // Adiciona email do responsável
+                    emailResponsavel: emailResponsavel,
+                    aceiteTermoCiencia: aceiteTermoCiencia,
+                    aceiteTermoInscricao: aceiteTermoInscricao,
                     purcharsedSubscriptions: {
-                        push: [{ // Adiciona a nova tentativa
+                        push: [{
                             schoolClassID: schoolClassID,
-                            txid: `insc${randomBytes(14).toString('hex')}`, // Geramos um txid aqui
+                            txid: `insc${randomBytes(14).toString('hex')}`,
                             paymentMethod: "pix_santander",
                             paymentStatus: "PENDENTE",
                             pixStatus: "PENDENTE",
                             paymentDate: new Date(),
-                            valuePaid: finalPrice, // Usa o preço final
-                            codigoDesconto: couponCodeUsed, // Salva o cupom
+                            valuePaid: finalPrice,
+                            codigoDesconto: couponCodeUsed,
                         }]
                     }
                 }
@@ -210,17 +223,19 @@ export class SantanderPixService {
             ...studentModelData,
             name: nomeCompleto, 
             cpf: sanitizedCpf,
-            emailResponsavel: emailResponsavel, // Adiciona email do responsável
+            emailResponsavel: emailResponsavel,
+            aceiteTermoCiencia: aceiteTermoCiencia,
+            aceiteTermoInscricao: aceiteTermoInscricao,
             stripeCustomerID: randomUUID(), 
             purcharsedSubscriptions: [{
                 schoolClassID: schoolClassID,
-                txid: `insc${randomBytes(14).toString('hex')}`, // Geramos um txid aqui
+                txid: `insc${randomBytes(14).toString('hex')}`,
                 paymentMethod: "pix_santander",
                 paymentStatus: "PENDENTE",
                 pixStatus: "PENDENTE",
                 paymentDate: new Date(),
-                valuePaid: finalPrice, // Usa o preço final
-                codigoDesconto: couponCodeUsed, // Salva o cupom
+                valuePaid: finalPrice,
+                codigoDesconto: couponCodeUsed,
             }]
           },
         });
@@ -230,9 +245,7 @@ export class SantanderPixService {
 
     // --- O restante do fluxo é para gerar um NOVO PIX ---
     
-    // Recarregar os dados do estudante para pegar o TXID correto
     const studentData = await prisma.students.findUnique({ where: { id: studentId } });
-    // Encontra a inscrição pendente para este curso (seja a recém-criada ou a recém-atualizada)
     const currentSubscription = studentData?.purcharsedSubscriptions.find(
         sub => sub.schoolClassID === schoolClassID && sub.paymentStatus === 'PENDENTE'
     );
@@ -293,8 +306,8 @@ export class SantanderPixService {
     // 8. Retornar os dados essenciais para o frontend
     return {
       txid: createResponse.txid,
-      qrCodePayload: pixCopiaECola, // Enviamos o EMV para o QR Code
-      copiaECola: pixCopiaECola,   // E também para o Copia e Cola
+      qrCodePayload: pixCopiaECola, // Corrigido para enviar o EMV para o QR Code
+      copiaECola: pixCopiaECola,
       valor: createResponse.valor.original,
     };
   }

@@ -90,7 +90,9 @@ model Students {
   exStudent                String
   stripeCustomerID         String
 
-  emailResponsavel String? // Opcional, para o e-mail do responsável
+  emailResponsavel     String? // Opcional, para o e-mail do responsável
+  aceiteTermoCiencia   Boolean // Obrigatório para o aceite
+  aceiteTermoInscricao Boolean // Obrigatório para o aceite
 
   purcharsedSubscriptions PurchasedSubscriptions[]
   createdAt               DateTime                 @default(now())
