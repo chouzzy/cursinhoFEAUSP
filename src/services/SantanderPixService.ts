@@ -92,7 +92,7 @@ export class SantanderPixService {
 
       if (coupon) {
         // TODO: Adicionar checagem de maxUses vs currentUses se necessário
-        finalPrice = INSCRIPTION_PRICE_DEFAULT - coupon.discountValue;
+        finalPrice = finalPrice - coupon.discountValue;
         if (finalPrice < 0) finalPrice = 0; // Não permite preço negativo
         couponCodeUsed = coupon.code;
         console.log(`Cupom aplicado! Novo preço: ${finalPrice}`);
