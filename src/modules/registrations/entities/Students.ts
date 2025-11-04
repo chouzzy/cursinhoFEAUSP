@@ -20,6 +20,10 @@ class Students {
     rg!: string | null
     ufrg!: string
 
+    emailResponsavel!: string | null // Opcional, para o e-mail do responsável
+    aceiteTermoCiencia!: boolean // Obrigatório para o aceite
+    aceiteTermoInscricao!: boolean // Obrigatório para o aceite
+
     selfDeclaration!: string
     oldSchool!: string
     oldSchoolAdress!: string

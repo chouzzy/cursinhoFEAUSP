@@ -20,6 +20,10 @@ interface CreatePixStudentRequestProps {
     district: Students["district"]
     zipCode: Students["zipCode"]
 
+    emailResponsavel: Students["emailResponsavel"],
+    aceiteTermoCiencia: Students["aceiteTermoCiencia"],
+    aceiteTermoInscricao: Students["aceiteTermoInscricao"],
+
     cpf: Students["cpf"],
     rg: Students["rg"],
     ufrg: Students["ufrg"],
@@ -42,7 +46,7 @@ class CreatePixStudentController {
     async handle(req: Request, res: Response): Promise<Response> {
 
         try {
-        
+
             const studentData: CreatePixStudentRequestProps = req.body
 
             /// instanciação da classe do caso de uso
