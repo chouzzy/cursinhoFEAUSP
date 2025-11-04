@@ -78,10 +78,7 @@ export class SantanderPixService {
     let studentId: string;
 
     // --- LÓGICA DE DESCONTO ---
-    // Converte price (ex: 3650) para número em reais (36.50). Quando precisar da string use .toFixed(2).
-    let finalPrice: number = (typeof inscriptionData.price === 'number' && !isNaN(inscriptionData.price))
-      ? inscriptionData.price / 100
-      : INSCRIPTION_PRICE_DEFAULT;
+    let finalPrice = inscriptionData.price/100   || INSCRIPTION_PRICE_DEFAULT;
     let couponCodeUsed: string | undefined = undefined;
 
     if (codigoDesconto) {
