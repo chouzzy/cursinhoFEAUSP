@@ -235,7 +235,7 @@ export class SantanderPixService {
                 paymentStatus: "PENDENTE",
                 pixStatus: "PENDENTE",
                 paymentDate: new Date(),
-                valuePaid: finalPrice,
+                valuePaid: parseFloat(String(finalPrice)),
                 codigoDesconto: couponCodeUsed,
             }]
           },
