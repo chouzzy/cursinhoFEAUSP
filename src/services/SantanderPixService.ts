@@ -159,32 +159,32 @@ export class SantanderPixService {
                     console.warn(`Estudante ${existingStudent.id} possui PIX pendente inválido/expirado. Atualizando com novo txid: ${newTxid}`);
 
                     await prisma.students.update({
-                        where: { id: existingStudent.id },
-                        data: {
-                            ...studentModelData,
-                            name: nomeCompleto, 
-                            cpf: sanitizedCpf,
-                            emailResponsavel: emailResponsavel,
-                            aceiteTermoCiencia: aceiteTermoCiencia,
-                            aceiteTermoInscricao: aceiteTermoInscricao,
-                            purcharsedSubscriptions: {
-                                updateMany: {
-                                    where: { 
-                                        schoolClassID: schoolClassID,
-                                        paymentStatus: 'PENDENTE' 
-                                    },
-                                    data: {
-                                        txid: newTxid, 
-                                        paymentMethod: "pix_santander",
-                                        paymentDate: new Date(),
-                                        valuePaid: finalPrice, // Usa o preço final
-                                        codigoDesconto: couponCodeUsed, // Salva o cupom
-                                        pixCopiaECola: null, 
-                                        pixQrCode: null,
-                                    }
-                                }
+                      where: { id: existingStudent.id },
+                      data: {
+                        ...studentModelData,
+                        name: nomeCompleto, 
+                        cpf: sanitizedCpf,
+                        emailResponsavel: emailResponsavel,
+                        aceiteTermoCiencia: aceiteTermoCiencia,
+                        aceiteTermoInscricao: aceiteTermoInscricao,
+                        purcharsedSubscriptions: {
+                          updateMany: {
+                            where: { 
+                              schoolClassID: schoolClassID,
+                              paymentStatus: 'PENDENTE' 
+                            },
+                            data: {
+                              txid: newTxid, 
+                              paymentMethod: "pix_santander",
+                              paymentDate: new Date(),
+                              valuePaid: parseFloat(String(finalPrice)), // Converte string '36.50' para número 36.5
+                              codigoDesconto: couponCodeUsed, // Salva o cupom
+                              pixCopiaECola: null, 
+                              pixQrCode: null,
                             }
+                          }
                         }
+                      }
                     });
                     studentId = existingStudent.id;
                 }
@@ -208,7 +208,7 @@ export class SantanderPixService {
                             paymentStatus: "PENDENTE",
                             pixStatus: "PENDENTE",
                             paymentDate: new Date(),
-                            valuePaid: finalPrice,
+                            valuePaid: parseFloat(String(finalPrice)),
                             codigoDesconto: couponCodeUsed,
                         }]
                     }
