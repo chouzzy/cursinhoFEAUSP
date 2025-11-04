@@ -176,6 +176,9 @@ async function createStudentPix(studentData: CreatePixStudentRequestProps, pixDa
                 phoneNumber: studentData.phoneNumber,
                 isPhoneWhatsapp: studentData.isPhoneWhatsapp,
                 state: studentData.state,
+                emailResponsavel: studentData.emailResponsavel ?? 'Não informado',
+                aceiteTermoCiencia: studentData.aceiteTermoCiencia,
+                aceiteTermoInscricao: studentData.aceiteTermoInscricao,
 
                 city: studentData.city,
                 street: studentData.street,
@@ -357,7 +360,7 @@ async function getStripeDonationCustomerID(donationData: CreateDonationProps) {
     try {
         const stripeCustomer = new StripeCustomer()
 
-        const {cpf, cnpj} = donationData
+        const { cpf, cnpj } = donationData
 
         let stripeSearchedCustomerID
 
@@ -460,6 +463,9 @@ async function createStudent(studentData: CreateStudentRequestProps, stripeCusto
                 phoneNumber: studentData.phoneNumber,
                 isPhoneWhatsapp: studentData.isPhoneWhatsapp,
                 state: studentData.state,
+                emailResponsavel: studentData.emailResponsavel ?? 'Não informado',
+                aceiteTermoCiencia: studentData.aceiteTermoCiencia,
+                aceiteTermoInscricao: studentData.aceiteTermoInscricao,
 
                 city: studentData.city,
                 street: studentData.street,

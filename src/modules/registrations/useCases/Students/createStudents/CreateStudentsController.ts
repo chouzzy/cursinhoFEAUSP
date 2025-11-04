@@ -21,6 +21,9 @@ interface CreateStudentRequestProps {
     complement?: Students["complement"]
     district: Students["district"]
     zipCode: Students["zipCode"]
+    emailResponsavel: Students["emailResponsavel"] // Obrigatório para o aceite
+    aceiteTermoCiencia: Students["aceiteTermoCiencia"] // Obrigatório para o aceite
+    aceiteTermoInscricao: Students["aceiteTermoInscricao"] // Obrigatório para o aceite
 
     cpf: Students["cpf"],
     rg: Students["rg"],
@@ -63,7 +66,7 @@ class CreateStudentController {
 
             return res.status(response.statusCode).json({ response })
         } catch (error) {
-            return res.status(403).json({ error:error })
+            return res.status(403).json({ error: error })
         }
 
     }
