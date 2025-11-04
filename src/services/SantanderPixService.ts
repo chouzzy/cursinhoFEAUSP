@@ -17,7 +17,7 @@ type InscriptionData = Omit<Students, 'id' | 'createdAt' | 'purcharsedSubscripti
 };
 
 // O valor da taxa de inscrição PADRÃO.
-const INSCRIPTION_PRICE_DEFAULT = 10.00; 
+const INSCRIPTION_PRICE_DEFAULT = 36.00; 
 
 // --- Funções Auxiliares para montar o EMV (sem alterações) ---
 function formatEMVField(id: string, value: string): string {
@@ -78,7 +78,10 @@ export class SantanderPixService {
     let studentId: string;
 
     // --- LÓGICA DE DESCONTO ---
-    let finalPrice = inscriptionData.price || INSCRIPTION_PRICE_DEFAULT;
+    // Converte price (ex: 3650) para número em reais (36.50). Quando precisar da string use .toFixed(2).
+    let finalPrice: number = (typeof inscriptionData.price === 'number' && !isNaN(inscriptionData.price))
+      ? inscriptionData.price / 100
+      : INSCRIPTION_PRICE_DEFAULT;
     let couponCodeUsed: string | undefined = undefined;
 
     if (codigoDesconto) {
