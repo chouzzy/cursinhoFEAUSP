@@ -78,6 +78,7 @@ export class SantanderPixService {
     let studentId: string;
 
     // --- LÓGICA DE DESCONTO ---
+    console.log('Inscription data received:', inscriptionData.price);
     let finalPrice = inscriptionData.price   || INSCRIPTION_PRICE_DEFAULT;
     let couponCodeUsed: string | undefined = undefined;
 
