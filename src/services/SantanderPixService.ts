@@ -82,6 +82,7 @@ export class SantanderPixService {
     let finalPrice = inscriptionData.price   || INSCRIPTION_PRICE_DEFAULT;
     let couponCodeUsed: string | undefined = undefined;
 
+    let cupom
     if (codigoDesconto) {
       console.log(`Verificando código de desconto: ${codigoDesconto}`);
       const coupon = await prisma.discountCoupon.findFirst({
@@ -90,6 +91,8 @@ export class SantanderPixService {
           isActive: true
         }
       });
+
+      cupom = coupon;
 
       if (coupon) {
         // TODO: Adicionar checagem de maxUses vs currentUses se necessário
@@ -132,7 +135,7 @@ export class SantanderPixService {
                 const expiracao = new Date(dataCriacao.getTime() + 3600 * 1000); // 1 hora
                 const isExpired = agora > expiracao;
 
-                if (isDataPresent && isTxidValid && !isExpired && !codigoDesconto) {
+                if (isDataPresent && isTxidValid && !isExpired && !cupom) {
                     console.log(`Estudante ${existingStudent.id} já possui um PIX PENDENTE VÁLIDO. Reutilizando...`);
                     
                     // Atualiza dados cadastrais
