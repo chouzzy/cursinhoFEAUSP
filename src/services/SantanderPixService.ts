@@ -132,7 +132,7 @@ export class SantanderPixService {
                 const expiracao = new Date(dataCriacao.getTime() + 3600 * 1000); // 1 hora
                 const isExpired = agora > expiracao;
 
-                if (isDataPresent && isTxidValid && !isExpired) {
+                if (isDataPresent && isTxidValid && !isExpired && !codigoDesconto) {
                     console.log(`Estudante ${existingStudent.id} já possui um PIX PENDENTE VÁLIDO. Reutilizando...`);
                     
                     // Atualiza dados cadastrais
