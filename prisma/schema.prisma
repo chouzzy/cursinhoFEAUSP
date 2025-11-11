@@ -135,8 +135,12 @@ model RefreshToken {
 }
 
 model SchoolClass {
-  id              String                              @id @default(uuid()) @map("_id")
-  title           String
+  id    String @id @default(uuid()) @map("_id")
+  title String
+
+  code                String? // Cód da turma (ex: "TSA")
+  registrationCounter Int     @default(0) // Contador sequencial
+
   informations    SchoolClassInformations
   subscriptions   SchoolClassSubscriptionInformations
   selectiveStages SchoolClassSelectiveStages[]
@@ -157,6 +161,8 @@ type PurchasedSubscriptions {
   paymentStatus        String
   paymentDate          DateTime
   valuePaid            Float
+
+  matriculaID String? // NOVO: Para guardar o ID (2026TSA0001)
 
   txid                   String?
   pixCopiaECola          String?
