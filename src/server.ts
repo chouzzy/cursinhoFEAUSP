@@ -51,6 +51,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     })
 })
 
-app.listen(8081, () => console.log('Sir, we are back online! 🦥'))
+const port = process.env.NODE_ENV === 'production' ? 3000 : 8081;
+app.listen(port, () => console.log(`Sir, we are back online on port ${port}! 🦥`));
 
 export { stripe, cert, agent }
