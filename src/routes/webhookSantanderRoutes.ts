@@ -1,24 +1,23 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../prisma";
+import { MailService } from "../services/MailService"; 
 
 interface SantanderPixTransaction {
   endToEndId: string;
   txid: string;
   chave: string;
-  valor: string; // Santander envia valor como string
+  valor: string;
   horario: string;
 }
 
 const webhookSantanderRoutes = Router();
+const mailService = new MailService(); 
 
-// Rota GET (validação) - permanece igual
 webhookSantanderRoutes.get('/santander', async (req: Request, res: Response) => {
   console.log('Recebida chamada de VALIDAÇÃO (GET) do Webhook Santander.');
   res.sendStatus(200);
 });
 
-
-// Rota POST (notificação de pagamento)
 webhookSantanderRoutes.post('/santander', async (req: Request, res: Response) => {
   console.log('Webhook Santander PIX (POST) acionado');
 
@@ -33,77 +32,55 @@ webhookSantanderRoutes.post('/santander', async (req: Request, res: Response) =>
     for (const pixRecebido of pixNotifications) {
       console.log(`Processando txid: ${pixRecebido.txid}`);
 
-      // 1. Tenta encontrar o txid em uma Doação (lógica existente)
-      const donation = await prisma.donations.findFirst({
-        where: { txid: pixRecebido.txid },
-      });
-
+      // 1. Doações
+      const donation = await prisma.donations.findFirst({ where: { txid: pixRecebido.txid } });
       if (donation) {
-        // ... (lógica de atualização da doação) ...
-        if (donation.paymentStatus === 'CONCLUIDA') {
-          console.log(`Doação com txid ${pixRecebido.txid} já foi processada. Ignorando.`);
-          continue;
-        }
-        await prisma.donations.update({
-          where: { id: donation.id },
-          data: { pixStatus: 'CONCLUIDA', paymentStatus: 'CONCLUIDA' },
-        });
-        console.log(`Doação com txid ${pixRecebido.txid} atualizada.`);
-        continue;
+         if (donation.paymentStatus !== 'CONCLUIDA') {
+             await prisma.donations.update({
+                 where: { id: donation.id },
+                 data: { pixStatus: 'CONCLUIDA', paymentStatus: 'CONCLUIDA' },
+             });
+         }
+         continue;
       }
 
-      // 2. Se não encontrou em doações, procura em inscrições (Students)
+      // 2. Inscrições (Students)
       const studentWithSubscription = await prisma.students.findFirst({
         where: {
-          purcharsedSubscriptions: {
-            some: { txid: pixRecebido.txid },
-          },
+          purcharsedSubscriptions: { some: { txid: pixRecebido.txid } },
         },
       });
 
       if (studentWithSubscription) {
-        // Encontra a inscrição específica
         const subscription = studentWithSubscription.purcharsedSubscriptions.find(sub => sub.txid === pixRecebido.txid);
         
-        if (!subscription) {
-            console.warn(`Inscrição não encontrada para o txid ${pixRecebido.txid} dentro do aluno ${studentWithSubscription.id}`);
-            continue;
-        }
-
-        // Checagem de idempotência
-        if (subscription.paymentStatus === 'CONCLUIDA') {
+        if (subscription && subscription.paymentStatus === 'CONCLUIDA') {
            console.log(`Inscrição com txid ${pixRecebido.txid} já foi processada. Ignorando.`);
            continue;
         }
 
-        // **INÍCIO DA NOVA LÓGICA DE GERAÇÃO DE MATRÍCULA**
         let novaMatriculaID = null;
+        let turma = null;
+
         try {
-          // 1. Incrementa o contador da turma atomicamente
-          // Esta operação garante que o número seja único
-          const turma = await prisma.schoolClass.update({
-            where: { id: subscription.schoolClassID },
-            data: {
-              registrationCounter: {
-                increment: 1
-              }
-            }
+          // Incrementa contador e JÁ recupera os dados da turma, incluindo documents se necessário
+          // O update retorna o objeto atualizado
+          turma = await prisma.schoolClass.update({
+            where: { id: subscription!.schoolClassID },
+            data: { registrationCounter: { increment: 1 } }
           });
 
-          // 2. Pega os dados para formar o ID
           const ano = new Date().getFullYear();
-          const codigoTurma = turma.code || 'GERAL'; // Usa 'GERAL' se o código da turma não estiver definido
-          // O 'registrationCounter' retornado já é o número incrementado e único
-          const sequencial = turma.registrationCounter.toString().padStart(4, '0'); // Formata para 0001, 0002...
-
+          const codigoTurma = turma.code || 'GERAL';
+          const sequencial = turma.registrationCounter.toString().padStart(4, '0');
           novaMatriculaID = `${ano}${codigoTurma}${sequencial}`;
-          console.log(`Novo ID de Matrícula gerado: ${novaMatriculaID}`);
-
         } catch (error: any) {
-          console.error(`ERRO CRÍTICO ao gerar ID de Matrícula para txid ${pixRecebido.txid}: ${error.message}`);
-          // Continua para salvar o pagamento mesmo se a geração da matrícula falhar, mas loga o erro
+          console.error(`Erro ao gerar matrícula: ${error.message}`);
+           // Tenta buscar a turma apenas para pegar os documentos caso o update falhe (embora improvável aqui se chegou até aqui)
+           if (!turma && subscription?.schoolClassID) {
+               turma = await prisma.schoolClass.findUnique({ where: { id: subscription.schoolClassID }});
+           }
         }
-        // **FIM DA NOVA LÓGICA**
 
         // Atualiza a inscrição no banco
         await prisma.students.update({
@@ -116,14 +93,80 @@ webhookSantanderRoutes.post('/santander', async (req: Request, res: Response) =>
                   paymentStatus: "CONCLUIDA",
                   pixStatus: "CONCLUIDA",
                   pixDate: pixRecebido.horario,
-                  matriculaID: novaMatriculaID, // Salva o novo ID de matrícula
+                  matriculaID: novaMatriculaID,
                 },
               },
             },
           },
         });
-        console.log(`Inscrição do estudante ${studentWithSubscription.name} (txid: ${pixRecebido.txid}) atualizada para CONCLUIDA.`);
-      
+        console.log(`Inscrição do estudante ${studentWithSubscription.name} atualizada para CONCLUIDA.`);
+
+        // **ENVIO DE E-MAIL COM LINKS**
+        console.log(`Enviando e-mail de confirmação para ${studentWithSubscription.email}...`);
+        
+        // Constrói o HTML dos links
+        let linksHtml = '';
+        if (turma && turma.documents && turma.documents.length > 0) {
+            linksHtml = `
+              <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
+                <h3 style="margin-top: 0; color: #004aad;">Documentos Importantes</h3>
+                <p style="margin-bottom: 10px;">Por favor, acesse e leia os documentos abaixo:</p>
+                <ul style="padding-left: 20px;">
+                  ${turma.documents.map((doc: any) => 
+                    `<li style="margin-bottom: 8px;">
+                       <a href="${doc.downloadLink}" target="_blank" style="color: #004aad; text-decoration: none; font-weight: bold; font-size: 16px;">
+                         ${doc.title} 
+                         <span style="font-size: 12px; color: #666;">(Clique para acessar)</span>
+                       </a>
+                     </li>`
+                  ).join('')}
+                </ul>
+              </div>
+            `;
+        }
+
+        await mailService.sendEmail({
+            toEmail: studentWithSubscription.email,
+            toName: studentWithSubscription.name,
+            subject: 'Inscrição Confirmada - Cursinho FEA USP',
+            htmlContent: `
+                <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 8px; background-color: #ffffff;">
+                    
+                    <div style="text-align: center; border-bottom: 2px solid #f4c430; padding-bottom: 15px; margin-bottom: 20px;">
+                        <h1 style="color: #00274c; margin: 0;">Inscrição Confirmada!</h1>
+                    </div>
+                    
+                    <p style="font-size: 16px;">Olá, <strong>${studentWithSubscription.name}</strong>!</p>
+                    
+                    <p>Temos o prazer de confirmar que o seu pagamento foi recebido e sua inscrição no <strong>Cursinho FEA USP</strong> foi realizada com sucesso.</p>
+                    
+                    <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 25px 0; text-align: center; border: 1px solid #eee;">
+                        <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 1px;">Número de Matrícula</p>
+                        <p style="margin: 5px 0 0 0; font-size: 2em; font-weight: bold; color: #00274c;">${novaMatriculaID || 'Em processamento'}</p>
+                    </div>
+
+                    ${linksHtml}
+                    
+                    <div style="margin-top: 30px;">
+                        <h3 style="color: #333;">Próximos Passos</h3>
+                        <p>Fique tranquilo(a)! Nossa equipe de seleção entrará em contato em breve.</p>
+                        <p>Fique atento ao seu <strong>e-mail</strong> e <strong>WhatsApp</strong> (caso tenha informado) para receber as datas das entrevistas e demais instruções.</p>
+                    </div>
+                    
+                    <br />
+                    <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+                    
+                    <p style="font-size: 0.9em; color: #888; text-align: center;">
+                        Atenciosamente,<br/>
+                        <strong>Equipe Cursinho FEA USP</strong><br/>
+                        <a href="https://cursinhofeausp.com.br" style="color: #004aad; text-decoration: none;">cursinhofeausp.com.br</a>
+                    </p>
+                </div>
+            `,
+            textContent: `Olá ${studentWithSubscription.name}, sua inscrição foi confirmada! Matrícula: ${novaMatriculaID}. A equipe entrará em contato em breve. Acesse os documentos da turma pelo portal.`,
+            // Attachments removidos conforme solicitado
+        });
+
       } else {
         console.warn(`Nenhuma doação ou inscrição encontrada para o txid: ${pixRecebido.txid}`);
       }
