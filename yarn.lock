@@ -469,6 +469,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/node-cron@npm:^3.0.11":
+  version: 3.0.11
+  resolution: "@types/node-cron@npm:3.0.11"
+  checksum: a73f69bcca52a5f3b1671cfb00a8e4a1d150d0aef36a611564a2f94e66b6981bade577e267ceeeca6fcee241768902d55eb8cf3a81f9ef4ed767a23112fdb16d
+  languageName: node
+  linkType: hard
+
 "@types/node@npm:*, @types/node@npm:>=8.1.0":
   version: 22.5.2
   resolution: "@types/node@npm:22.5.2"
@@ -3976,6 +3983,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"node-cron@npm:^4.2.1":
+  version: 4.2.1
+  resolution: "node-cron@npm:4.2.1"
+  checksum: 961e18a452f2d0cd12cde1dfa5897d788ebbba259861ceca6b717ab80a0962f916be10584381647d6e20415620c17bbdc9238b3d601c7675afcb6c157fed9d97
+  languageName: node
+  linkType: hard
+
 "node-domexception@npm:^1.0.0":
   version: 1.0.0
   resolution: "node-domexception@npm:1.0.0"
@@ -4639,6 +4653,7 @@ __metadata:
     "@types/express": ^4.17.14
     "@types/jsonwebtoken": ^8.5.9
     "@types/multer": ^1.4.7
+    "@types/node-cron": ^3.0.11
     "@types/swagger-ui-express": ^4.1.3
     "@types/uuid": ^8.3.4
     "@typescript-eslint/eslint-plugin": ^5.42.0
@@ -4668,6 +4683,7 @@ __metadata:
     jsonwebtoken: ^8.5.1
     mailersend: ^2.6.0
     multer: ^1.4.5-lts.1
+    node-cron: ^4.2.1
     pg: ^8.8.0
     prettier: ^2.7.1
     prisma: ^5.19.0

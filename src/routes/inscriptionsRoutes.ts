@@ -1,14 +1,16 @@
 import { Router, Request, Response } from "express";
 import { SantanderPixService } from "../services/SantanderPixService";
-import { TrackingService } from "../services/TrackingService"; 
+import { TrackingService } from "../services/TrackingService";
 import { MailService } from "../services/MailService"; // Importe o MailService
-import { prisma } from "../prisma"; 
+import { prisma } from "../prisma";
+import { StripeInscriptionController } from "../controllers/StripeInscriptionController";
 
 const inscriptionsRoutes = Router();
 
 const santanderPixService = new SantanderPixService();
 const trackingService = new TrackingService();
 const mailService = new MailService(); // Instancie o MailService
+const stripeInscriptionController = new StripeInscriptionController();
 
 // ... (suas rotas existentes: POST /, GET /status/:txid, GET /track/:identifier) ...
 
@@ -16,34 +18,34 @@ const mailService = new MailService(); // Instancie o MailService
  * Rota POST para criar uma nova inscrição e gerar a cobrança PIX.
  */
 inscriptionsRoutes.post('/', async (req: Request, res: Response) => {
-  // ... (código existente da rota POST /)
-  console.log("Recebida nova requisição de inscrição via PIX Santander.");
-  
-  try {
-    const inscriptionData = req.body;
+    // ... (código existente da rota POST /)
+    console.log("Recebida nova requisição de inscrição via PIX Santander.");
 
-    if (!inscriptionData || Object.keys(inscriptionData).length === 0) {
-        return res.status(400).json({ error: 'Corpo da requisição vazio. Nenhum dado de inscrição foi enviado.' });
-    }
+    try {
+        const inscriptionData = req.body;
 
-    const pixResponse = await santanderPixService.createInscriptionWithPix(inscriptionData);
-    return res.status(201).json(pixResponse);
+        if (!inscriptionData || Object.keys(inscriptionData).length === 0) {
+            return res.status(400).json({ error: 'Corpo da requisição vazio. Nenhum dado de inscrição foi enviado.' });
+        }
 
-  } catch (error: any) {
-    console.error('Erro ao criar inscrição com PIX:', error.message);
+        const pixResponse = await santanderPixService.createInscriptionWithPix(inscriptionData);
+        return res.status(201).json(pixResponse);
 
-    if (error.message && error.message.includes('Você já está inscrito')) {
-        return res.status(409).json({
-            error: 'Inscrição Duplicada',
-            details: error.message 
+    } catch (error: any) {
+        console.error('Erro ao criar inscrição com PIX:', error.message);
+
+        if (error.message && error.message.includes('Você já está inscrito')) {
+            return res.status(409).json({
+                error: 'Inscrição Duplicada',
+                details: error.message
+            });
+        }
+
+        return res.status(500).json({
+            error: 'Falha ao gerar a cobrança PIX.',
+            details: 'Ocorreu um erro interno no servidor.'
         });
     }
-
-    return res.status(500).json({ 
-        error: 'Falha ao gerar a cobrança PIX.',
-        details: 'Ocorreu um erro interno no servidor.'
-    });
-  }
 });
 
 /**
@@ -69,7 +71,7 @@ inscriptionsRoutes.get('/status/:txid', async (req: Request, res: Response) => {
         if (!subscription) {
             return res.status(404).json({ error: 'Inscrição não encontrada.' });
         }
-        
+
         return res.status(200).json({ status: subscription.paymentStatus });
 
     } catch (error: any) {
@@ -89,9 +91,9 @@ inscriptionsRoutes.get('/track/:identifier', async (req: Request, res: Response)
         const result = await trackingService.track(identifier);
 
         if (!result.found) {
-            return res.status(404).json({ 
-                error: 'Inscrição não encontrada', 
-                details: 'Nenhuma inscrição foi localizada com os dados fornecidos.' 
+            return res.status(404).json({
+                error: 'Inscrição não encontrada',
+                details: 'Nenhuma inscrição foi localizada com os dados fornecidos.'
             });
         }
 
@@ -105,27 +107,29 @@ inscriptionsRoutes.get('/track/:identifier', async (req: Request, res: Response)
 
 // **NOVA ROTA DE TESTE DE EMAIL (Temporária)**
 inscriptionsRoutes.post('/test-email', async (req: Request, res: Response) => {
-  const { email } = req.body;
+    const { email } = req.body;
 
-  if (!email) {
-    return res.status(400).json({ error: 'Email é obrigatório para o teste.' });
-  }
+    if (!email) {
+        return res.status(400).json({ error: 'Email é obrigatório para o teste.' });
+    }
 
-  console.log(`Tentando enviar e-mail de teste para: ${email}`);
+    console.log(`Tentando enviar e-mail de teste para: ${email}`);
 
-  const success = await mailService.sendEmail({
-    toEmail: email,
-    toName: 'Tester',
-    subject: 'Teste de Integração MailerSend',
-    htmlContent: '<h1>Funciona!</h1><p>Se você está vendo isso, o MailerSend está configurado corretamente no servidor.</p>',
-    textContent: 'Funciona! O MailerSend está configurado corretamente.'
-  });
+    const success = await mailService.sendEmail({
+        toEmail: email,
+        toName: 'Tester',
+        subject: 'Teste de Integração MailerSend',
+        htmlContent: '<h1>Funciona!</h1><p>Se você está vendo isso, o MailerSend está configurado corretamente no servidor.</p>',
+        textContent: 'Funciona! O MailerSend está configurado corretamente.'
+    });
 
-  if (success) {
-    return res.status(200).json({ message: 'E-mail enviado com sucesso!' });
-  } else {
-    return res.status(500).json({ error: 'Falha ao enviar e-mail.' });
-  }
+    if (success) {
+        return res.status(200).json({ message: 'E-mail enviado com sucesso!' });
+    } else {
+        return res.status(500).json({ error: 'Falha ao enviar e-mail.' });
+    }
 });
+
+inscriptionsRoutes.post('/checkout', stripeInscriptionController.handle);
 
 export { inscriptionsRoutes };
