@@ -1,12 +1,10 @@
-import { format } from "date-fns"
 import { validationResponse } from "../../../../../types"
 import { Students } from "../../../entities/Students"
 import { IStudentsRepository } from "../../../repositories/IStudentsRepository"
 import { checkQuery } from "./ExcelListStudentsCheck"
 import { ExcelListStudentsQuery } from "./ExcelListStudentsController"
 import { Workbook, Worksheet } from "exceljs"
-
-//////
+import { format } from "date-fns" 
 
 class ExcelListStudentsUseCase {
     constructor(
@@ -45,7 +43,6 @@ class ExcelListStudentsUseCase {
             }
         }
         
-        // A busca no repositório permanece a mesma
         const students = await this.studentsRepository.filterStudent(studentsRequest, pageAsNumber, pageRangeAsNumber)
         
         if (students.statusCode != 202) {
@@ -56,122 +53,82 @@ class ExcelListStudentsUseCase {
         const workbook = new Workbook()
 
         // Add a new worksheet to the workbook
-        const worksheet: Worksheet = workbook.addWorksheet("Students")
+        const worksheet: Worksheet = workbook.addWorksheet("Inscrições")
 
-        // **ETAPA 1: ATUALIZAR OS CABEÇALHOS**
-        // Set the columns headers in the worksheet
+        // **ETAPA 1: CABEÇALHOS SOLICITADOS PELO CLIENTE**
         worksheet.addRow([
-            "id",
-            "name",
-            "email",
-            "gender",
-            "birth",
-            "phoneNumber",
-            "isPhoneWhatsapp",
-        
-            "state",
-            "city",
-            "street",
-            "homeNumber",
-            "complement",
-            "district",
-            "zipCode",
-        
-            "cpf",
-            "rg",
-            "selfDeclaration",
-            "oldSchool",
-            "oldSchoolAdress",
-            "highSchoolGraduationDate",
-            "highSchoolPeriod",
-            "metUsMethod",
-            "exStudent",
-            "stripeCustomerID",
-        
-            // --- NOVAS COLUNAS DE INSCRIÇÃO ---
+            "Valor",
+            "Data compra",
+            "Nº pedido",
+            "Email",
+            "Estado de pagamento",
+            "Cupom de Desconto",
+            "Método de pagamento",
+            "User_Agent",
+            "Referrer",
+            "Nome Completo",
+            "E-mail para contato",
+            "Confirmação do e-mail",
+            "Email responsável (se menor)",
+            "Telefone",
+            "CPF",
+            "RG",
+            "Termo de Consentimento",
+            "Termo de Inscrição",
+            // Campos extras úteis (opcionais, mas bons para debug)
             "ID Matrícula",
-            "Status Pagamento",
-            "Valor Pago (R$)",
-            "Data Pagamento",
-            "Cód. Cupom",
-            "Turma (ID)",
-            // ---------------------------------
-            
-            "createdAt (Data de Criação do Aluno)",
+            "Turma (ID)"
         ])
 
-        // **ETAPA 2: ATUALIZAR A LÓGICA DE CRIAÇÃO DE LINHAS**
-        // Iteramos por cada estudante E por cada inscrição dentro dele
+        // **ETAPA 2: LÓGICA DE DADOS (FLATTEN)**
         students.studentsList?.forEach(student => {
-            // Se o estudante não tiver inscrições, ele não aparecerá no relatório de inscrições
             if (student.purcharsedSubscriptions && student.purcharsedSubscriptions.length > 0) {
                 
-                student.purcharsedSubscriptions.forEach((sub: { matriculaID: any; paymentStatus: any; valuePaid: any; paymentDate: string | number | Date; codigoDesconto: any; schoolClassID: any }) => {
-                    // Criamos uma linha para CADA inscrição
-                    worksheet.addRow([
-                        student.id,
-                        student.name,
-                        student.email,
-                        student.gender,
-                        student.birth,
-                        student.phoneNumber,
-                        student.isPhoneWhatsapp,
-                    
-                        student.state,
-                        student.city,
-                        student.street,
-                        student.homeNumber,
-                        student.complement,
-                        student.district,
-                        student.zipCode,
-                    
-                        student.cpf,
-                        student.rg,
-                        student.selfDeclaration,
-                        student.oldSchool,
-                        student.oldSchoolAdress,
-                        student.highSchoolGraduationDate,
-                        student.highSchoolPeriod,
-                        student.metUsMethod,
-                        student.exStudent,
-                        student.stripeCustomerID,
-                    
-                        // --- DADOS DAS NOVAS COLUNAS ---
-                        sub.matriculaID || '', // ID da Matrícula
-                        sub.paymentStatus,     // Status Pagamento
-                        sub.valuePaid,         // Valor Pago
-                        sub.paymentDate ? format(new Date(sub.paymentDate), 'dd/MM/yyyy HH:mm') : '', // Data Pagamento
-                        sub.codigoDesconto || '', // Cód. Cupom
-                        sub.schoolClassID,     // Turma (ID)
-                        // ------------------------------
+                student.purcharsedSubscriptions.forEach((sub: { paymentDate: string | number | Date; valuePaid: any; txid: any; paymentStatus: any; codigoDesconto: any; paymentMethod: any; matriculaID: any; schoolClassID: any }) => {
+                    // Formatações
+                    const paymentDateFormatted = sub.paymentDate ? format(new Date(sub.paymentDate), 'dd/MM/yyyy HH:mm') : '';
+                    const aceiteCiencia = student.aceiteTermoCiencia ? "Sim" : "Não";
+                    const aceiteInscricao = student.aceiteTermoInscricao ? "Sim" : "Não";
+                    const emailResponsavel = student.emailResponsavel || "Não"; // Se vazio, coloca "Não" (regra de negócio para maior de idade)
 
-                        student.createdAt,
+                    // Criamos a linha seguindo a ordem exata dos cabeçalhos
+                    worksheet.addRow([
+                        sub.valuePaid,               // Valor
+                        paymentDateFormatted,        // Data compra
+                        sub.txid || '',              // Nº pedido (usamos txid)
+                        student.email,               // Email
+                        sub.paymentStatus,           // Estado de pagamento
+                        sub.codigoDesconto || '',    // Cupom de Desconto
+                        sub.paymentMethod,           // Método de pagamento
+                        '',                          // User_Agent (Vazio)
+                        '',                          // Referrer (Vazio)
+                        student.name,                // Nome Completo
+                        student.email,               // E-mail para contato (Repetido)
+                        student.email,               // Confirmação do e-mail (Repetido ou Vazio)
+                        emailResponsavel,            // Email responsável
+                        student.phoneNumber,         // Telefone
+                        student.cpf,                 // CPF
+                        student.rg,                  // RG
+                        aceiteCiencia,               // Termo de Consentimento
+                        aceiteInscricao,             // Termo de Inscrição
+                        sub.matriculaID || '',       // ID Matrícula (Extra)
+                        sub.schoolClassID            // Turma ID (Extra)
                     ])
                 })
             }
-            // (Se quiséssemos incluir estudantes sem inscrição, faríamos um 'else' aqui)
         })
 
-        // Formatando colunas (Opcional, mas melhora a leitura)
-        worksheet.getColumn('C').width = 30; // Email
-        worksheet.getColumn('B').width = 30; // Name
-        worksheet.getColumn('O').width = 15; // CPF
-        worksheet.getColumn('AB').width = 18; // Status Pagamento
-        worksheet.getColumn('AC').width = 15; // Valor Pago
-        worksheet.getColumn('AD').width = 20; // Data Pagamento
-        worksheet.getColumn('AE').width = 15; // Cód. Cupom
-        worksheet.getColumn('AF').width = 30; // Turma (ID)
+        // Ajuste de largura das colunas principais
+        worksheet.getColumn(4).width = 30;  // Email
+        worksheet.getColumn(10).width = 30; // Nome
+        worksheet.getColumn(2).width = 20;  // Data
 
-        // Generate the Excel file
         const fileBuffer = await workbook.xlsx.writeBuffer()
-
-        // Você pode salvar o arquivo para testar se quiser
-        // await workbook.xlsx.writeFile("students_export_test.xlsx")
 
         return {
             isValid: true,
             statusCode: 202,
-            fileBuffer: fileBuffer // Include the file buffer in the response
+            fileBuffer: fileBuffer
         }
     }
 }

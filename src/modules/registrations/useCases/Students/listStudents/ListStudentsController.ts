@@ -21,6 +21,8 @@ interface ListStudentsQuery {
 class ListStudentsController {
     async handle(req: Request, res: Response): Promise<Response> {
 
+
+        
         const query: ListStudentsQuery = req.query as unknown as ListStudentsQuery;
 
         // Instanciando o useCase no repositório com as funções

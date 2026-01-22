@@ -1,7 +1,8 @@
-import { stripe } from "../server";
+
 import { prisma } from "../prisma";
 import { randomUUID } from 'crypto';
 import { Students } from "@prisma/client";
+import { stripe } from "../server";
 
 // Tipo derivado do modelo
 type InscriptionData = Omit<Students, 'id' | 'createdAt' | 'purcharsedSubscriptions' | 'stripeCustomerID' | 'name' | 'emailResponsavel' | 'aceiteTermoCiencia' | 'aceiteTermoInscricao'> & {
@@ -26,7 +27,6 @@ export class StripeInscriptionService {
       emailResponsavel,
       aceiteTermoCiencia,
       aceiteTermoInscricao,
-      // Removemos campos extras do objeto principal
       paymentMethod, price, value, interval, cycles,
       ...studentModelData 
     } = inscriptionData;
@@ -34,7 +34,7 @@ export class StripeInscriptionService {
     const nomeCompleto = `${nome} ${sobrenome}`;
     const sanitizedCpf = inscriptionData.cpf.replace(/\D/g, '');
 
-    // **CORREÇÃO: Buscar o preço real da turma no banco de dados**
+    // Buscar o preço real da turma no banco de dados
     const schoolClass = await prisma.schoolClass.findUnique({
         where: { id: schoolClassID }
     });
@@ -43,17 +43,12 @@ export class StripeInscriptionService {
         throw new Error('Turma não encontrada.');
     }
 
-    // O valor no banco geralmente está em centavos (pelo seu frontend, parece ser isso).
-    // Se no banco 'subscriptions.price' for 3600 (R$ 36,00), dividimos por 100 para ter o valor float base.
-    let basePrice = (schoolClass.subscriptions.price || 0) / 100;
-    
-    // Se por acaso o valor for 0, usamos um fallback ou lançamos erro
-    if (basePrice <= 0) basePrice = 10.00; // Fallback de segurança
+    let basePrice = (schoolClass.registrations?.value || 0) / 100;
+    if (basePrice <= 0) basePrice = 10.00;
 
     let finalPrice = basePrice;
     let couponCodeUsed: string | undefined = undefined;
 
-    // Lógica de Desconto
     if (codigoDesconto) {
       const coupon = await prisma.discountCoupon.findFirst({
         where: { code: codigoDesconto, isActive: true }
@@ -65,10 +60,8 @@ export class StripeInscriptionService {
       }
     }
 
-    // Busca ou Cria Cliente no Stripe
     const customer = await this.findOrCreateCustomer(inscriptionData.email, nomeCompleto, sanitizedCpf);
 
-    // Verifica/Cria Estudante no Banco
     let studentId: string;
     let existingStudent = await prisma.students.findFirst({
         where: { OR: [{ email: inscriptionData.email }, { cpf: sanitizedCpf }] }
@@ -87,12 +80,13 @@ export class StripeInscriptionService {
                 purcharsedSubscriptions: {
                     push: [{
                         schoolClassID: schoolClassID,
+                        productName: schoolClass.title, // SALVANDO O NOME DA TURMA
                         txid: txid,
                         paymentMethod: "stripe_checkout",
                         paymentStatus: "PENDENTE",
                         pixStatus: "PENDENTE",
                         paymentDate: new Date(),
-                        valuePaid: finalPrice, // Salva o valor correto em Reais
+                        valuePaid: finalPrice,
                         codigoDesconto: couponCodeUsed,
                     }]
                 }
@@ -111,12 +105,13 @@ export class StripeInscriptionService {
                 stripeCustomerID: customer.id,
                 purcharsedSubscriptions: [{
                     schoolClassID: schoolClassID,
+                    productName: schoolClass.title, // SALVANDO O NOME DA TURMA
                     txid: txid,
                     paymentMethod: "stripe_checkout",
                     paymentStatus: "PENDENTE",
                     pixStatus: "PENDENTE",
                     paymentDate: new Date(),
-                    valuePaid: finalPrice, // Salva o valor correto em Reais
+                    valuePaid: finalPrice,
                     codigoDesconto: couponCodeUsed,
                 }]
             }
@@ -124,7 +119,6 @@ export class StripeInscriptionService {
         studentId = newStudent.id;
     }
 
-    // Cria a Sessão de Checkout
     let appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     if (!appUrl.startsWith('http')) {
         const protocol = appUrl.includes('localhost') ? 'http://' : 'https://';
@@ -141,8 +135,8 @@ export class StripeInscriptionService {
       line_items: [{
         price_data: {
             currency: 'brl',
-            product_data: { name: `Inscrição - ${schoolClass.title}` }, // Nome da turma no checkout
-            unit_amount: Math.round(finalPrice * 100), // Converte Reais para Centavos
+            product_data: { name: `Inscrição - ${schoolClass.title}` },
+            unit_amount: Math.round(finalPrice * 100),
         },
         quantity: 1,
       }],
@@ -152,7 +146,6 @@ export class StripeInscriptionService {
         txid: txid,
         type: 'inscription'
       },
-      // Redireciona para a página de sucesso correta
       success_url: `${appUrl}/inscricoes/sucesso?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/inscricoes`,
     });

@@ -65,7 +65,7 @@ model Donations {
 model Students {
   id              String  @id @default(uuid()) @map("_id")
   name            String
-  email           String  @unique
+  email           String
   gender          String
   birth           String
   phoneNumber     String
@@ -78,7 +78,7 @@ model Students {
   district        String
   zipCode         String
 
-  cpf                      String
+  cpf                      String @unique
   rg                       String?
   ufrg                     String
   selfDeclaration          String

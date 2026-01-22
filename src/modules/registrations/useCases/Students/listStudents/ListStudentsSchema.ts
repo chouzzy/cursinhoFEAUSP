@@ -10,7 +10,7 @@ const listStudentsSchema = object({
     endDate: string().min(10, "A data deve estar no formato ISO 8601 YYYY-MM-DD com os hífens")
     .max(10, 'A data deve estar no formato ISO 8601 YYYY-MM-DD com os hífens'),
     page: string(),
-    paymentStatus: string().oneOf(["active","canceled","refunded"]).nullable()
+    paymentStatus: string().oneOf(["CONCLUIDA","PENDENTE","REFUNDED"]).nullable()
 })
 
 export {listStudentsSchema}
