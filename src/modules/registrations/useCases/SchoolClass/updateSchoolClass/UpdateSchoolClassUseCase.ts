@@ -13,14 +13,15 @@ class UpdateSchoolClassUseCase {
 
         const bodyValidation = await checkBody(schoolClassData)
 
-        if (schoolClassData.subscriptions.price) {
-            return ({
-                isValid: false,
-                statusCode: 403,
-                errorMessage: "O Stripe não aceita atualizações de preços.",
-            })
-        }
-
+        console.log('After checkBody in UpdateSchoolClassUseCase');
+        // if (schoolClassData.subscriptions.price) {
+        //     return ({
+        //         isValid: false,
+        //         statusCode: 403,
+        //         errorMessage: "O Stripe não aceita atualizações de preços.",
+        //     })
+        // }
+        console.log('After checkBody in UpdateSchoolClassUseCase');
         if (bodyValidation.isValid === false) {
             return ({
                 isValid: false,
@@ -28,6 +29,7 @@ class UpdateSchoolClassUseCase {
                 errorMessage: bodyValidation.errorMessage,
             })
         }
+        console.log('Before repository updateSchoolClass in UpdateSchoolClassUseCase');
 
         const upatedSchoolClassResponse = await this.schoolClassRepository.updateSchoolClass(schoolClassData, schoolClassID)
 

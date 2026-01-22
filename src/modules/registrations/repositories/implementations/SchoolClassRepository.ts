@@ -1,19 +1,17 @@
-// src/modules/registrations/repositories/implementations/SchoolClassRepository.ts
-
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../../../prisma";
-import { StripeCreateProductProps, validationResponse } from "../../../../types";
+import { validationResponse } from "../../../../types";
 import { DocumentsTypes, SchoolClass, SchoolClassSelectiveStages } from "../../entities/SchoolClass";
 import { CreateSchoolClassRequestProps } from "../../useCases/SchoolClass/createSchoolClass/CreateSchoolClassController";
 import { UpdateSchoolClassRequestProps } from "../../useCases/SchoolClass/updateSchoolClass/UpdateSchoolClassController";
 import { ISchoolClassRepository } from "../ISchoolClassRepository";
-import { StripeProducts } from "../../../../hooks/StripeProducts";
+// import { StripeProducts } from "../../../../hooks/StripeProducts"; // REMOVIDO
 import { CreateSchoolClassDocsRequestProps } from "../../useCases/SchoolClass/createSchoolClassDocs/CreateSchoolClassDocsController";
 import { Students } from "../../entities/Students";
 import { CreateSchoolClassStagesRequestProps } from "../../useCases/SchoolClass/createSchoolClassStages/CreateSchoolClassStagesController";
 import { v4 as uuidV4 } from "uuid";
 import { getPrismaSchoolClass, updatePrismaSchoolClass } from "../../../../utils/schoolClassHelpers";
-import { stripe } from "../../../../server";
+// import { stripe } from "../../../../server"; // REMOVIDO
 
 
 class SchoolClassRepository implements ISchoolClassRepository {
@@ -56,42 +54,26 @@ class SchoolClassRepository implements ISchoolClassRepository {
                 data: schoolClassData
             })
 
-            const stripeProduct = new StripeProducts()
-
-            const { id, title, subscriptions, informations } = createdSchoolClass
-
-            const { price } = subscriptions
-
-            const { description, dateSchedule } = informations
-
-            const product: StripeCreateProductProps = {
-                name: title,
-                default_price_data: price,
-                description: description,
-                metadata: {
-                    schoolClassID: id,
-                    productType: 'SchoolClass',
-                    title: title,
-                    semester: dateSchedule,
-                    year: dateSchedule,
-                }
-            }
-
-            const stripeCreatedProduct = await stripeProduct.createProduct(product)
+            // --- REMOVIDA A CRIAÇÃO DE PRODUTO NO STRIPE ---
+            // Como o sistema agora usa preços dinâmicos no checkout, 
+            // não precisamos criar o produto no catálogo do Stripe.
+            // Geramos um ID fictício apenas para preencher o campo no banco se for obrigatório.
+            
+            const dummyStripeId = `prod_legacy_${uuidV4()}`;
 
             const updatedSchoolClassProduct = await prisma.schoolClass.update({
-                where:{ id },
+                where:{ id: createdSchoolClass.id },
                 data: {
-                    stripeProductID: stripeCreatedProduct.id,
-                    status: stripeCreatedProduct.active? 'active' : 'inactive'
+                    stripeProductID: dummyStripeId,
+                    status: 'active' // Padrão ativo ao criar
                 }
             })
 
             return {
                 isValid: true,
                 statusCode: 202,
-                schoolClass: createdSchoolClass,
-                successMessage: "Produto criado com sucesso!"
+                schoolClass: updatedSchoolClassProduct, // Retorna a turma atualizada
+                successMessage: "Turma criada com sucesso!"
             }
 
 
@@ -196,43 +178,22 @@ class SchoolClassRepository implements ISchoolClassRepository {
         schoolClassID: SchoolClass["id"]
     ): Promise<validationResponse> {
 
-
-
         try {
 
+            console.log('Before getPrismaSchoolClass in SchoolClassRepository');
             const schoolClass = await getPrismaSchoolClass(schoolClassID)
+            console.log('After getPrismaSchoolClass in SchoolClassRepository');
 
-            const { stripeProductID } = schoolClass
-
-            //Se tiver o product ID, iremos atualizá-lo, pois se trata de um update do webhook
-
-            if (!stripeProductID) {
-                throw Error("A turma não está cadastrada no Stripe, por favor exclua e crie uma nova.")
-            }
+            // --- REMOVIDA A VERIFICAÇÃO E ATUALIZAÇÃO NO STRIPE ---
+            // Não verificamos mais stripeProductID nem chamamos StripeProducts.
+            
             const updatedSchoolClass = await updatePrismaSchoolClass(schoolClassData, schoolClass, schoolClassID)
-
-            // ATUALIZAR NO STRIPE!!!!!!!!!
-
-            const stripeProducts = new StripeProducts()
-
-            const { status, informations, title } = schoolClassData
-
-            const product = await stripeProducts.getProduct(stripeProductID)
-
-            await stripeProducts.updateProduct(
-                stripeProductID,
-                title,
-                status == 'active' ? true : false,
-                informations?.description ?? null,
-                product
-            )
-
-
+            console.log('After updatePrismaSchoolClass in SchoolClassRepository');
 
             return {
                 isValid: true,
                 statusCode: 202,
-                successMessage: 'Turma criada no servidor Stripe e atualizada com sucesso no banco de dados.',
+                successMessage: 'Turma atualizada com sucesso no banco de dados.',
                 schoolClass: updatedSchoolClass
             }
 
@@ -271,9 +232,9 @@ class SchoolClassRepository implements ISchoolClassRepository {
 
                 try {
 
-                    const stripeProducts = new StripeProducts()
-
-                    await stripeProducts.deleteProduct(schoolClass.stripeProductID)
+                    // --- REMOVIDA A DELEÇÃO NO STRIPE ---
+                    // const stripeProducts = new StripeProducts()
+                    // await stripeProducts.deleteProduct(schoolClass.stripeProductID)
 
                     await prisma.schoolClass.delete({
                         where: {
@@ -283,7 +244,7 @@ class SchoolClassRepository implements ISchoolClassRepository {
 
                     return {
                         isValid: true,
-                        successMessage: 'Estudante deletado com sucesso',
+                        successMessage: 'Turma deletada com sucesso',
                         statusCode: 202,
                         schoolClass: schoolClass
                     }

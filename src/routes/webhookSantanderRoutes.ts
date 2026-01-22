@@ -141,7 +141,7 @@ webhookSantanderRoutes.post('/santander', async (req: Request, res: Response) =>
                     <p>Temos o prazer de confirmar que o seu pagamento foi recebido e sua inscrição no <strong>Cursinho FEA USP</strong> foi realizada com sucesso.</p>
                     
                     <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 25px 0; text-align: center; border: 1px solid #eee;">
-                        <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 1px;">Número de Matrícula</p>
+                        <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 1px;">Número de inscrição</p>
                         <p style="margin: 5px 0 0 0; font-size: 2em; font-weight: bold; color: #00274c;">${novaMatriculaID || 'Em processamento'}</p>
                     </div>
 

@@ -34,7 +34,7 @@ class ListStudentsUseCase {
         
         const pageAsNumber = parseInt(page?.toString() || "0", 10);
         const pageRangeAsNumber = parseInt(pageRange?.toString() || "10", 10);
-
+        
         if (isNaN(pageAsNumber) || isNaN(pageRangeAsNumber)) {
             return {
                 isValid: false,

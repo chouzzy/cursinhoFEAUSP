@@ -12,6 +12,7 @@ async function checkQuery(studentsQuery: ListStudentsQuery) {
             abortEarly: false
         })
     } catch (error) {
+        console.log('Erro em JSON', JSON.stringify(error, null, 2));
         if (error instanceof ValidationError) {
             return { errorMessage: error.errors, statusCode: 403, isValid: false }
         }

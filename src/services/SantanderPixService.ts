@@ -2,24 +2,19 @@ import { prisma } from "../prisma";
 import { santanderApiClient } from "../lib/santanderApiClient";
 import { randomBytes, randomUUID } from 'crypto';
 import { Students } from "@prisma/client";
-import { crc16ccitt } from 'crc'; // Importamos a função de CRC
+import { crc16ccitt } from 'crc'; 
 
-// Este tipo representa os dados que esperamos que o frontend envie.
-// Atualizado com os novos campos obrigatórios e opcionais.
 type InscriptionData = Omit<Students, 'id' | 'createdAt' | 'purcharsedSubscriptions' | 'stripeCustomerID' | 'name' | 'emailResponsavel' | 'aceiteTermoCiencia' | 'aceiteTermoInscricao'> & {
   schoolClassID: string;
   nome: string;
   sobrenome: string;
-  aceiteTermoCiencia: boolean;
-  aceiteTermoInscricao: boolean;
-  emailResponsavel?: string; // Opcional
-  codigoDesconto?: string; // Opcional
+  codigoDesconto?: string; 
+  emailResponsavel?: string; 
+  paymentMethod?: string;
 };
 
-// O valor da taxa de inscrição PADRÃO.
-const INSCRIPTION_PRICE_DEFAULT = 36.00; 
+const INSCRIPTION_PRICE_DEFAULT = 36.00
 
-// --- Funções Auxiliares para montar o EMV (sem alterações) ---
 function formatEMVField(id: string, value: string): string {
     const length = value.length.toString().padStart(2, '0');
     if (length.length > 2) {
@@ -49,236 +44,155 @@ function buildEMVString(location: string, txid: string, valor: string, nomeReceb
     const f63 = "6304" + crc;
     return payload + f63;
 }
-// --- Fim das Funções Auxiliares ---
-
 
 export class SantanderPixService {
 
   async createInscriptionWithPix(inscriptionData: any) { 
-    // 1. Separar dados, limpar CPF e CONCATENAR O NOME
+    // Limpeza de dados
+    // ADICIONADO: 'cpf' na desestruturação para retirá-lo de studentModelData
     const { 
       schoolClassID, 
-      price, // Ignoramos o 'price' vindo do front
+      price, 
       nome, 
       sobrenome, 
       codigoDesconto, 
       emailResponsavel,
       aceiteTermoCiencia,
-      aceiteTermoInscricao, 
+      aceiteTermoInscricao,
+      paymentMethod,
+      cpf, // <--- REMOVIDO DO SPREAD
       ...studentModelData 
     } = inscriptionData;
 
-    // Validação dos termos (o frontend já deve fazer isso, mas é bom garantir)
     if (!aceiteTermoCiencia || !aceiteTermoInscricao) {
       throw new Error('Os termos de ciência e inscrição são obrigatórios.');
     }
 
     const nomeCompleto = `${nome} ${sobrenome}`;
-    const sanitizedCpf = inscriptionData.cpf.replace(/\D/g, '');
-    let studentId: string;
+    // Usamos o CPF que extraímos para sanitizar
+    const sanitizedCpf = cpf.replace(/\D/g, '');
+    
+    // Busca informações da turma
+    const schoolClass = await prisma.schoolClass.findUnique({
+        where: { id: schoolClassID }
+    });
+    const nomeTurma = schoolClass?.title || 'Turma';
 
-    // --- LÓGICA DE DESCONTO ---
-    console.log('Inscription data received:', inscriptionData.price);
-    let finalPrice = inscriptionData.price   || INSCRIPTION_PRICE_DEFAULT;
+    // Lógica de Desconto
+    let finalPrice = INSCRIPTION_PRICE_DEFAULT;
     let couponCodeUsed: string | undefined = undefined;
 
-    let cupom
     if (codigoDesconto) {
-      console.log(`Verificando código de desconto: ${codigoDesconto}`);
       const coupon = await prisma.discountCoupon.findFirst({
-        where: {
-          code: codigoDesconto,
-          isActive: true
-        }
+        where: { code: codigoDesconto, isActive: true }
       });
-
-      cupom = coupon;
-
       if (coupon) {
-        // TODO: Adicionar checagem de maxUses vs currentUses se necessário
-        finalPrice = finalPrice - coupon.discountValue;
-        if (finalPrice < 0) finalPrice = 0; // Não permite preço negativo
+        finalPrice = INSCRIPTION_PRICE_DEFAULT - coupon.discountValue;
+        if (finalPrice < 0) finalPrice = 0; 
         couponCodeUsed = coupon.code;
-        console.log(`Cupom aplicado! Novo preço: ${finalPrice}`);
-      } else {
-        console.warn(`Código de desconto inválido ou inativo: ${codigoDesconto}`);
-        // Opcional: Lançar um erro se o cupom for inválido
-        // throw new Error('Código de desconto inválido.');
       }
     }
-    // --- FIM DA LÓGICA DE DESCONTO ---
 
-    // 2. VERIFICAR SE O USUÁRIO JÁ EXISTE (POR CPF OU EMAIL)
+    // 1. GERAÇÃO DE NOVO TXID
+    const txid = `insc${randomBytes(14).toString('hex')}`; 
+
+    let studentId: string;
+
+    // 2. BUSCA DO ESTUDANTE
     let existingStudent = await prisma.students.findFirst({
-        where: { OR: [{ email: inscriptionData.email }, { cpf: sanitizedCpf }] }
+        where: { cpf: sanitizedCpf }
     });
 
     if (existingStudent) {
-        console.log(`Estudante já encontrado com email/cpf. ID: ${existingStudent.id}`);
         studentId = existingStudent.id;
+        console.log(`Estudante encontrado por CPF. ID: ${studentId}`);
 
-        const existingSubscription = existingStudent.purcharsedSubscriptions.find(
-            sub => sub.schoolClassID === schoolClassID
+        // Verifica se já existe inscrição CONCLUÍDA para esta turma
+        const completedSubscription = existingStudent.purcharsedSubscriptions.find(
+            sub => sub.schoolClassID === schoolClassID && sub.paymentStatus === 'CONCLUIDA'
         );
 
-        if (existingSubscription) {
-            if (existingSubscription.paymentStatus === 'CONCLUIDA') {
-                console.warn(`Estudante ${existingStudent.id} já possui inscrição PAGA para a turma ${schoolClassID}.`);
-                throw new Error('Você já está inscrito e com o pagamento confirmado para esta turma.');
-            }
-
-            if (existingSubscription.paymentStatus === 'PENDENTE') {
-                const isDataPresent = existingSubscription.pixCopiaECola && existingSubscription.pixQrCode;
-                const isTxidValid = existingSubscription.txid && !existingSubscription.txid.includes('-');
-                const agora = new Date();
-                const dataCriacao = new Date(existingSubscription.paymentDate!);
-                const expiracao = new Date(dataCriacao.getTime() + 3600 * 1000); // 1 hora
-                const isExpired = agora > expiracao;
-
-                if (isDataPresent && isTxidValid && !isExpired && !cupom) {
-                    console.log(`Estudante ${existingStudent.id} já possui um PIX PENDENTE VÁLIDO. Reutilizando...`);
-                    
-                    // Atualiza dados cadastrais
-                    await prisma.students.update({
-                        where: { id: existingStudent.id },
-                        data: {
-                            ...studentModelData,
-                            name: nomeCompleto,
-                            cpf: sanitizedCpf,
-                            emailResponsavel: emailResponsavel,
-                            aceiteTermoCiencia: aceiteTermoCiencia,
-                            aceiteTermoInscricao: aceiteTermoInscricao,
-                        }
-                    });
-                    
-                    return {
-                      txid: existingSubscription.txid,
-                      qrCodePayload: existingSubscription.pixCopiaECola,
-                      copiaECola: existingSubscription.pixCopiaECola,
-                      valor: existingSubscription.valuePaid.toFixed(2),
-                    };
-                } else {
-                    const newTxid = `insc${randomBytes(14).toString('hex')}`;
-                    console.warn(`Estudante ${existingStudent.id} possui PIX pendente inválido/expirado. Atualizando com novo txid: ${newTxid}`);
-
-                    await prisma.students.update({
-                      where: { id: existingStudent.id },
-                      data: {
-                        ...studentModelData,
-                        name: nomeCompleto, 
-                        cpf: sanitizedCpf,
-                        emailResponsavel: emailResponsavel,
-                        aceiteTermoCiencia: aceiteTermoCiencia,
-                        aceiteTermoInscricao: aceiteTermoInscricao,
-                        purcharsedSubscriptions: {
-                          updateMany: {
-                            where: { 
-                              schoolClassID: schoolClassID,
-                              paymentStatus: 'PENDENTE' 
-                            },
-                            data: {
-                              txid: newTxid, 
-                              paymentMethod: "pix_santander",
-                              paymentDate: new Date(),
-                              valuePaid: parseFloat(String(finalPrice)), // Converte string '36.50' para número 36.5
-                              codigoDesconto: couponCodeUsed, // Salva o cupom
-                              pixCopiaECola: null, 
-                              pixQrCode: null,
-                            }
-                          }
-                        }
-                      }
-                    });
-                    studentId = existingStudent.id;
-                }
-            }
-        } else {
-            console.log(`Estudante ${existingStudent.id} existe, mas não possui inscrição para ${schoolClassID}. Criando nova...`);
-            await prisma.students.update({
-                where: { id: existingStudent.id },
-                data: {
-                    ...studentModelData,
-                    name: nomeCompleto,
-                    cpf: sanitizedCpf,
-                    emailResponsavel: emailResponsavel,
-                    aceiteTermoCiencia: aceiteTermoCiencia,
-                    aceiteTermoInscricao: aceiteTermoInscricao,
-                    purcharsedSubscriptions: {
-                        push: [{
-                            schoolClassID: schoolClassID,
-                            txid: `insc${randomBytes(14).toString('hex')}`,
-                            paymentMethod: "pix_santander",
-                            paymentStatus: "PENDENTE",
-                            pixStatus: "PENDENTE",
-                            paymentDate: new Date(),
-                            valuePaid: parseFloat(String(finalPrice)),
-                            codigoDesconto: couponCodeUsed,
-                        }]
-                    }
-                }
-            });
-            studentId = existingStudent.id;
+        if (completedSubscription) {
+            throw new Error('Você já está inscrito e com o pagamento confirmado para esta turma.');
         }
+
+        console.log(`Criando nova intenção de pagamento (push) para o aluno existente...`);
+        
+        await prisma.students.update({
+            where: { id: studentId },
+            data: {
+                ...studentModelData, // NÃO CONTÉM MAIS O CPF BRUTO
+                name: nomeCompleto,
+                email: inscriptionData.email,
+                emailResponsavel: emailResponsavel,
+                aceiteTermoCiencia: aceiteTermoCiencia,
+                aceiteTermoInscricao: aceiteTermoInscricao,
+                // Garantimos que o CPF no banco seja o sanitizado (embora já deva ser)
+                cpf: sanitizedCpf, 
+                
+                purcharsedSubscriptions: {
+                    push: [{
+                        schoolClassID: schoolClassID,
+                        productName: nomeTurma,
+                        txid: txid,
+                        paymentMethod: "pix_santander",
+                        paymentStatus: "PENDENTE",
+                        pixStatus: "PENDENTE",
+                        paymentDate: new Date(),
+                        valuePaid: finalPrice,
+                        codigoDesconto: couponCodeUsed,
+                    }]
+                }
+            }
+        });
+
     } else {
-        // 3. Se não existe, CRIAR novo estudante
-        console.log(`Novo estudante. Criando registro...`);
+        // 3. CRIAR NOVO ESTUDANTE
+        console.log(`CPF não encontrado. Criando novo registro de estudante...`);
         const newInscription = await prisma.students.create({
           data: {
-            ...studentModelData,
+            ...studentModelData, // NÃO CONTÉM MAIS O CPF BRUTO
             name: nomeCompleto, 
-            cpf: sanitizedCpf,
+            cpf: sanitizedCpf, // CPF Limpo
+            email: inscriptionData.email,
             emailResponsavel: emailResponsavel,
             aceiteTermoCiencia: aceiteTermoCiencia,
             aceiteTermoInscricao: aceiteTermoInscricao,
             stripeCustomerID: randomUUID(), 
             purcharsedSubscriptions: [{
                 schoolClassID: schoolClassID,
-                txid: `insc${randomBytes(14).toString('hex')}`,
+                productName: nomeTurma,
+                txid: txid,
                 paymentMethod: "pix_santander",
                 paymentStatus: "PENDENTE",
                 pixStatus: "PENDENTE",
                 paymentDate: new Date(),
-                valuePaid: parseFloat(String(finalPrice)),
+                valuePaid: finalPrice,
                 codigoDesconto: couponCodeUsed,
             }]
           },
         });
         studentId = newInscription.id;
-        console.log(`Inscrição criada no banco para ${nomeCompleto}.`);
     }
-
-    // --- O restante do fluxo é para gerar um NOVO PIX ---
     
-    const studentData = await prisma.students.findUnique({ where: { id: studentId } });
-    const currentSubscription = studentData?.purcharsedSubscriptions.find(
-        sub => sub.schoolClassID === schoolClassID && sub.paymentStatus === 'PENDENTE'
-    );
+    // --- GERAÇÃO DA COBRANÇA PIX ---
+    console.log(`Gerando cobrança PIX para txid: ${txid}`);
+    
+    const priceForPix = finalPrice.toFixed(2); 
 
-    if (!currentSubscription || !currentSubscription.txid) {
-         throw new Error('Falha ao localizar a inscrição pendente recém-criada/atualizada.');
-    }
-
-    const txid = currentSubscription.txid;
-    const priceForPix = currentSubscription.valuePaid.toFixed(2); // Pega o preço final do banco
-    console.log(`Iniciando geração de PIX para o txid: ${txid} com valor de R$${priceForPix}`);
-
-    // 4. Montar o corpo da requisição para o Santander
     const cobData = {
       calendario: { expiracao: 3600 },
       devedor: {
         cpf: sanitizedCpf,
         nome: nomeCompleto,
       },
-      valor: { original: priceForPix }, // Usa o preço final (com desconto, se houver)
+      valor: { original: priceForPix },
       chave: process.env.SANTANDER_PIX_KEY!,
       solicitacaoPagador: "Taxa de Inscrição Cursinho FEA USP",
     };
 
-    // 5. Chamar nosso cliente de API para CRIAR a cobrança
     const createResponse = await santanderApiClient.createCob(txid, cobData);
-    console.log(`Cobrança PIX criada no Santander para o txid: ${txid}. Status: ${createResponse.status}`);
     
-    // 6. Construir o "Copia e Cola" (EMV) manualmente
     const nomeRecebedor = process.env.SANTANDER_RECEBEDOR_NOME || "CURSINHO FEA USP";
     const cidadeRecebedor = process.env.SANTANDER_RECEBEDOR_CIDADE || "SAO PAULO";
     
@@ -289,9 +203,7 @@ export class SantanderPixService {
       nomeRecebedor,
       cidadeRecebedor
     );
-    console.log(`PIX Copia e Cola gerado: ${pixCopiaECola}`);
 
-    // 7. Atualizar a inscrição no banco com os dados do PIX gerado
     await prisma.students.update({
         where: { id: studentId },
         data: {
@@ -307,13 +219,11 @@ export class SantanderPixService {
         }
     });
 
-    // 8. Retornar os dados essenciais para o frontend
     return {
-      txid: createResponse.txid,
-      qrCodePayload: pixCopiaECola, // Corrigido para enviar o EMV para o QR Code
+      txid: txid,
+      qrCodePayload: pixCopiaECola,
       copiaECola: pixCopiaECola,
       valor: createResponse.valor.original,
     };
   }
 }
-

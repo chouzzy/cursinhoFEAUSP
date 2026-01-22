@@ -2,10 +2,10 @@ import { SchoolClass } from "../modules/registrations/entities/SchoolClass";
 import { UpdateSchoolClassRequestProps } from "../modules/registrations/useCases/SchoolClass/updateSchoolClass/UpdateSchoolClassController";
 import { prisma } from "../prisma";
 
-async function getPrismaSchoolClass(schoolClassID:SchoolClass["id"]) {
+async function getPrismaSchoolClass(schoolClassID: SchoolClass["id"]) {
 
     try {
-        
+
         const schoolClass = await prisma.schoolClass.findUnique({
             where: {
                 id: schoolClassID
@@ -21,15 +21,15 @@ async function getPrismaSchoolClass(schoolClassID:SchoolClass["id"]) {
     } catch (error) {
         throw error
     }
-    
+
 }
 
-async function updatePrismaSchoolClass(schoolClassData: UpdateSchoolClassRequestProps, schoolClass:SchoolClass,  schoolClassID: SchoolClass["id"]) {
+async function updatePrismaSchoolClass(schoolClassData: UpdateSchoolClassRequestProps, schoolClass: SchoolClass, schoolClassID: SchoolClass["id"]) {
 
     try {
 
-        const {selectiveStages, documents, subscriptions, informations, registrations} = schoolClassData
-        
+        const { selectiveStages, documents, subscriptions, informations, registrations } = schoolClassData
+
 
         const data: any = {
             title: schoolClassData.title ?? schoolClass.title,
@@ -40,8 +40,8 @@ async function updatePrismaSchoolClass(schoolClassData: UpdateSchoolClassRequest
         if (registrations) {
             data.registrations = {
                 update: {
-                    description: registrations.description?? schoolClass.registrations.description,
-                    value: registrations.value?? schoolClass.registrations.value,
+                    description: registrations.description ?? schoolClass.registrations.description,
+                    value: registrations.value ?? schoolClass.registrations.value,
                 }
             };
 
@@ -49,28 +49,29 @@ async function updatePrismaSchoolClass(schoolClassData: UpdateSchoolClassRequest
         if (informations) {
             data.informations = {
                 update: {
-                    description: informations.description?? schoolClass.informations.description,
-                    whoCanParticipate: informations.whoCanParticipate?? schoolClass.informations.whoCanParticipate,
-                    observations: informations.observations?? schoolClass.informations.observations,
-                    classContent: informations.classContent?? schoolClass.informations.classContent,
-                    dateSchedule: informations.dateSchedule?? schoolClass.informations.dateSchedule,
-                    hourSchedule: informations.hourSchedule?? schoolClass.informations.hourSchedule,
-                    color: informations.color?? schoolClass.informations.color,
+                    description: informations.description ?? schoolClass.informations.description,
+                    whoCanParticipate: informations.whoCanParticipate ?? schoolClass.informations.whoCanParticipate,
+                    observations: informations.observations ?? schoolClass.informations.observations,
+                    classContent: informations.classContent ?? schoolClass.informations.classContent,
+                    dateSchedule: informations.dateSchedule ?? schoolClass.informations.dateSchedule,
+                    hourSchedule: informations.hourSchedule ?? schoolClass.informations.hourSchedule,
+                    color: informations.color ?? schoolClass.informations.color,
                 }
             };
 
         }
 
-        if (subscriptions) {
-            data.subscriptions = {
+            if (subscriptions) {
+                data.subscriptions = {
                 update: {
-                    status:subscriptions.status,
-                    price: schoolClass.subscriptions.price,
-                    subscriptionSchedule:subscriptions.subscriptionSchedule
+                    // CORREÇÃO: Usamos o valor novo se existir, senão mantemos o antigo
+                    status: subscriptions.status ?? schoolClass.subscriptions.status,
+                    price: subscriptions.price ? parseInt(String(subscriptions.price), 10) : schoolClass.subscriptions.price,
+                    subscriptionSchedule: subscriptions.subscriptionSchedule ?? schoolClass.subscriptions.subscriptionSchedule
                 }
-            };
-
-        }
+                };
+                console.log("subscriptions update payload:", data.subscriptions);
+            }
         if (selectiveStages) {
             data.selectiveStages = {
                 updateMany: {
@@ -89,12 +90,14 @@ async function updatePrismaSchoolClass(schoolClassData: UpdateSchoolClassRequest
                 }
             };
         }
-
+        console.log('Subscrptions to be updated:', data.subscriptions);
         const updatedSchoolClass = await prisma.schoolClass.update({
             where: { id: schoolClassID },
             data: data // Usa o objeto data construído dinamicamente
         });
-
+        
+        console.log("updatedSchoolClass price:", updatedSchoolClass.subscriptions.price);
+        
         if (!updatedSchoolClass) {
             throw Error("Turma não encontrada.")
         }
@@ -104,7 +107,7 @@ async function updatePrismaSchoolClass(schoolClassData: UpdateSchoolClassRequest
     } catch (error) {
         throw error
     }
-    
+
 }
 
 export {
