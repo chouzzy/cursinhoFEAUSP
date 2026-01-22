@@ -2,7 +2,10 @@
 import { prisma } from "../prisma";
 import { randomUUID } from 'crypto';
 import { Students } from "@prisma/client";
+import { MailService } from "./MailService"; 
 import { stripe } from "../server";
+
+const mailService = new MailService();
 
 // Tipo derivado do modelo
 type InscriptionData = Omit<Students, 'id' | 'createdAt' | 'purcharsedSubscriptions' | 'stripeCustomerID' | 'name' | 'emailResponsavel' | 'aceiteTermoCiencia' | 'aceiteTermoInscricao'> & {
@@ -13,7 +16,6 @@ type InscriptionData = Omit<Students, 'id' | 'createdAt' | 'purcharsedSubscripti
   aceiteTermoInscricao: boolean;
   emailResponsavel?: string;
   codigoDesconto?: string;
-  // Campos extras removidos...
   paymentMethod?: string;
   price?: string;
   value?: number;
@@ -32,30 +34,35 @@ export class StripeInscriptionService {
       emailResponsavel,
       aceiteTermoCiencia,
       aceiteTermoInscricao,
-      // Extraímos os campos que NÃO vão para o modelo Students
       paymentMethod,
       price,
       value,
       interval,
       cycles,
-      cpf, // <--- CORREÇÃO: Removemos 'cpf' do spread para não tentar atualizar o campo unique
+      cpf, 
       ...studentModelData 
     } = inscriptionData;
 
     const nomeCompleto = `${nome} ${sobrenome}`;
-    const sanitizedCpf = inscriptionData.cpf.replace(/\D/g, ''); // Usamos o original para sanitizar
+    const sanitizedCpf = inscriptionData.cpf.replace(/\D/g, ''); 
 
-    // Buscar o preço real da turma no banco de dados
     const schoolClass = await prisma.schoolClass.findUnique({
-        where: { id: schoolClassID }
+        where: { id: schoolClassID },
+        include: { documents: true } 
     });
 
     if (!schoolClass) {
         throw new Error('Turma não encontrada.');
     }
 
-    let basePrice = (schoolClass.registrations?.value || 0) / 100;
-    if (basePrice <= 0) basePrice = 10.00;
+    // **CORREÇÃO AQUI:** // Lendo de 'subscriptions.price' para alinhar com o frontend.
+    // Fallback para 'registrations.value' apenas por segurança.
+    let rawPrice = schoolClass.subscriptions?.price ?? schoolClass.registrations?.value ?? 0;
+    
+    // Converte de centavos para reais (float)
+    let basePrice = rawPrice / 100;
+
+    console.log(`[StripeInscription] Turma: ${schoolClass.title}, Preço Bruto (DB): ${rawPrice}, Preço Base (Reais): ${basePrice}`);
 
     let finalPrice = basePrice;
     let couponCodeUsed: string | undefined = undefined;
@@ -68,6 +75,7 @@ export class StripeInscriptionService {
         finalPrice = basePrice - coupon.discountValue;
         if (finalPrice < 0) finalPrice = 0;
         couponCodeUsed = coupon.code;
+        console.log(`[StripeInscription] Cupom aplicado: ${coupon.code}, Novo Preço: ${finalPrice}`);
       }
     }
 
@@ -75,7 +83,6 @@ export class StripeInscriptionService {
 
     let studentId: string;
     
-    // **CORREÇÃO: Busca apenas por CPF** para garantir unicidade correta
     let existingStudent = await prisma.students.findFirst({
         where: { cpf: sanitizedCpf }
     });
@@ -83,7 +90,6 @@ export class StripeInscriptionService {
     const txid = `stripe_insc_${randomUUID()}`;
 
     if (existingStudent) {
-        // Verifica se já existe inscrição CONCLUÍDA para esta turma
         const completedSubscription = existingStudent.purcharsedSubscriptions.find(
             sub => sub.schoolClassID === schoolClassID && sub.paymentStatus === 'CONCLUIDA'
         );
@@ -95,10 +101,9 @@ export class StripeInscriptionService {
         const updatedStudent = await prisma.students.update({
             where: { id: existingStudent.id },
             data: {
-                ...studentModelData, // Agora limpo, sem CPF
+                ...studentModelData, 
                 name: nomeCompleto,
-                // cpf: sanitizedCpf, // CPF não precisa ser atualizado pois já foi encontrado por ele
-                email: inscriptionData.email, // Atualiza email se mudou
+                email: inscriptionData.email, 
                 emailResponsavel: emailResponsavel,
                 purcharsedSubscriptions: {
                     push: [{
@@ -119,9 +124,9 @@ export class StripeInscriptionService {
     } else {
         const newStudent = await prisma.students.create({
             data: {
-                ...studentModelData, // Agora limpo, sem CPF
+                ...studentModelData, 
                 name: nomeCompleto,
-                cpf: sanitizedCpf, // CPF inserido explicitamente aqui na criação
+                cpf: sanitizedCpf, 
                 email: inscriptionData.email,
                 emailResponsavel: emailResponsavel,
                 aceiteTermoCiencia: aceiteTermoCiencia,
@@ -152,6 +157,92 @@ export class StripeInscriptionService {
         appUrl = appUrl.slice(0, -1);
     }
 
+    const successUrl = `${appUrl}/inscricoes/sucesso`;
+
+    // --- TRATAMENTO PARA VALOR GRATUITO OU ABAIXO DO MÍNIMO ---
+    // O mínimo do Stripe é aprox R$ 2.50. Colocamos 3.00 para segurança.
+    // Se for menor que isso, aprovamos direto para não dar erro.
+    if (finalPrice < 3.00) {
+        console.log(`Valor (${finalPrice}) abaixo do mínimo do Stripe. Processando como gratuito/isento.`);
+        
+        let novaMatriculaID = null;
+        try {
+            const updatedTurma = await prisma.schoolClass.update({
+                where: { id: schoolClassID },
+                data: { registrationCounter: { increment: 1 } }
+            });
+            const ano = new Date().getFullYear();
+            const codigoTurma = updatedTurma.code || 'GERAL';
+            const sequencial = updatedTurma.registrationCounter.toString().padStart(4, '0');
+            novaMatriculaID = `${ano}${codigoTurma}${sequencial}`;
+        } catch (err) {
+            console.error('Erro ao gerar matrícula para inscrição gratuita:', err);
+        }
+
+        const finalStudent = await prisma.students.update({
+            where: { id: studentId },
+            data: {
+                purcharsedSubscriptions: {
+                    updateMany: {
+                        where: { txid: txid },
+                        data: {
+                            paymentStatus: 'CONCLUIDA',
+                            pixStatus: 'CONCLUIDA',
+                            matriculaID: novaMatriculaID,
+                            paymentDate: new Date()
+                        }
+                    }
+                }
+            }
+        });
+
+        if (finalStudent.email) {
+            let linksHtml = '';
+            if (schoolClass.documents && schoolClass.documents.length > 0) {
+                linksHtml = `
+                  <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
+                    <h3 style="margin-top: 0; color: #004aad;">Documentos Importantes</h3>
+                    <ul style="padding-left: 20px;">
+                      ${schoolClass.documents.map((doc: any) => 
+                        `<li style="margin-bottom: 8px;">
+                           <a href="${doc.downloadLink}" target="_blank" style="color: #004aad; text-decoration: none; font-weight: bold; font-size: 16px;">
+                             ${doc.title} 
+                           </a>
+                         </li>`
+                      ).join('')}
+                    </ul>
+                  </div>
+                `;
+            }
+
+            await mailService.sendEmail({
+                toEmail: finalStudent.email,
+                toName: finalStudent.name,
+                subject: 'Inscrição Confirmada - Cursinho FEA USP',
+                htmlContent: `
+                    <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto;">
+                        <h1 style="color: #00274c;">Inscrição Confirmada!</h1>
+                        <p>Olá, <strong>${finalStudent.name}</strong>!</p>
+                        <p>Sua inscrição foi realizada com sucesso (Isenta/Gratuita).</p>
+                        
+                        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 25px 0; text-align: center; border: 1px solid #eee;">
+                            <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase;">Número de Matrícula</p>
+                            <p style="margin: 5px 0 0 0; font-size: 2em; font-weight: bold; color: #00274c;">${novaMatriculaID || 'Em processamento'}</p>
+                        </div>
+                        ${linksHtml}
+                        <p>Fique atento ao seu e-mail para informações sobre as entrevistas.</p>
+                        <br/>
+                        <p>Atenciosamente,<br/><strong>Equipe Cursinho FEA USP</strong></p>
+                    </div>
+                `,
+                textContent: `Inscrição confirmada! Matrícula: ${novaMatriculaID}`
+            });
+        }
+
+        return { url: successUrl };
+    }
+
+    // --- FLUXO NORMAL (PAGAMENTO > R$ 3.00) ---
     const session = await stripe.checkout.sessions.create({
       customer: customer.id,
       mode: 'payment',
@@ -170,7 +261,7 @@ export class StripeInscriptionService {
         txid: txid,
         type: 'inscription'
       },
-      success_url: `${appUrl}/inscricoes/sucesso?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/inscricoes`,
     });
 
