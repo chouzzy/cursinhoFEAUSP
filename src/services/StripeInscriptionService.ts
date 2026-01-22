@@ -14,6 +14,11 @@ type InscriptionData = Omit<Students, 'id' | 'createdAt' | 'purcharsedSubscripti
   emailResponsavel?: string;
   codigoDesconto?: string;
   // Campos extras removidos...
+  paymentMethod?: string;
+  price?: string;
+  value?: number;
+  interval?: string;
+  cycles?: number;
 };
 
 export class StripeInscriptionService {
@@ -27,12 +32,18 @@ export class StripeInscriptionService {
       emailResponsavel,
       aceiteTermoCiencia,
       aceiteTermoInscricao,
-      paymentMethod, price, value, interval, cycles,
+      // Extraímos os campos que NÃO vão para o modelo Students
+      paymentMethod,
+      price,
+      value,
+      interval,
+      cycles,
+      cpf, // <--- CORREÇÃO: Removemos 'cpf' do spread para não tentar atualizar o campo unique
       ...studentModelData 
     } = inscriptionData;
 
     const nomeCompleto = `${nome} ${sobrenome}`;
-    const sanitizedCpf = inscriptionData.cpf.replace(/\D/g, '');
+    const sanitizedCpf = inscriptionData.cpf.replace(/\D/g, ''); // Usamos o original para sanitizar
 
     // Buscar o preço real da turma no banco de dados
     const schoolClass = await prisma.schoolClass.findUnique({
@@ -63,24 +74,36 @@ export class StripeInscriptionService {
     const customer = await this.findOrCreateCustomer(inscriptionData.email, nomeCompleto, sanitizedCpf);
 
     let studentId: string;
+    
+    // **CORREÇÃO: Busca apenas por CPF** para garantir unicidade correta
     let existingStudent = await prisma.students.findFirst({
-        where: { OR: [{ email: inscriptionData.email }, { cpf: sanitizedCpf }] }
+        where: { cpf: sanitizedCpf }
     });
 
     const txid = `stripe_insc_${randomUUID()}`;
 
     if (existingStudent) {
+        // Verifica se já existe inscrição CONCLUÍDA para esta turma
+        const completedSubscription = existingStudent.purcharsedSubscriptions.find(
+            sub => sub.schoolClassID === schoolClassID && sub.paymentStatus === 'CONCLUIDA'
+        );
+
+        if (completedSubscription) {
+            throw new Error('Você já está inscrito e com o pagamento confirmado para esta turma.');
+        }
+
         const updatedStudent = await prisma.students.update({
             where: { id: existingStudent.id },
             data: {
-                ...studentModelData,
+                ...studentModelData, // Agora limpo, sem CPF
                 name: nomeCompleto,
-                cpf: sanitizedCpf,
+                // cpf: sanitizedCpf, // CPF não precisa ser atualizado pois já foi encontrado por ele
+                email: inscriptionData.email, // Atualiza email se mudou
                 emailResponsavel: emailResponsavel,
                 purcharsedSubscriptions: {
                     push: [{
                         schoolClassID: schoolClassID,
-                        productName: schoolClass.title, // SALVANDO O NOME DA TURMA
+                        productName: schoolClass.title,
                         txid: txid,
                         paymentMethod: "stripe_checkout",
                         paymentStatus: "PENDENTE",
@@ -96,16 +119,17 @@ export class StripeInscriptionService {
     } else {
         const newStudent = await prisma.students.create({
             data: {
-                ...studentModelData,
+                ...studentModelData, // Agora limpo, sem CPF
                 name: nomeCompleto,
-                cpf: sanitizedCpf,
+                cpf: sanitizedCpf, // CPF inserido explicitamente aqui na criação
+                email: inscriptionData.email,
                 emailResponsavel: emailResponsavel,
                 aceiteTermoCiencia: aceiteTermoCiencia,
                 aceiteTermoInscricao: aceiteTermoInscricao,
                 stripeCustomerID: customer.id,
                 purcharsedSubscriptions: [{
                     schoolClassID: schoolClassID,
-                    productName: schoolClass.title, // SALVANDO O NOME DA TURMA
+                    productName: schoolClass.title,
                     txid: txid,
                     paymentMethod: "stripe_checkout",
                     paymentStatus: "PENDENTE",
