@@ -9,6 +9,7 @@ import { RefundDonationController } from "../modules/donations/useCases/refundDo
 import { ListChargesDonationController } from "../modules/donations/useCases/listChargesDonation/ListChargesDonationController"
 import { SyncDonationsController } from "../modules/donations/useCases/syncDonations/SyncDonationsController"
 import { CreatePixDonationController } from "../modules/donations/useCases/createPixDonation/CreatePixDonationController"
+// 1. Importe o novo Controller
 
 // 1. Importe o novo Controller
 import { StripeDonationController } from "../controllers/StripeDonationController" 
@@ -29,15 +30,20 @@ const pixDonationController = new CreatePixDonationController()
 donationsRoutes.post('/pix',  pixDonationController.handle)
 
 
-// --- ROTAS DO STRIPE (NOVAS) ---
+// --- ROTAS DO STRIPE / ASAAS (NOVAS) ---
 const stripeDonationController = new StripeDonationController()
 
-// Cria sessão de pagamento (Checkout)
+// 1. Cria sessão de pagamento (Checkout)
 donationsRoutes.post('/checkout', stripeDonationController.handle)
 
-// Envia link de gerenciamento (Portal)
+// 2. Envia link de gerenciamento por e-mail (Portal)
 donationsRoutes.post('/portal', stripeDonationController.handlePortal)
-// ------------------------------
+
+// 3. Obtém informações da assinatura via Token (Para o Painel do Doador)
+donationsRoutes.get('/portal/info', stripeDonationController.getSubscriptionInfo)
+
+// 4. Cancela a assinatura via Token
+donationsRoutes.post('/portal/cancel', stripeDonationController.cancelSubscription)
 
 
 const updateDonationController = new UpdateDonationController()
