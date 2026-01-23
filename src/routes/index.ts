@@ -11,12 +11,14 @@ import { webhookEfiRoutes } from "./efiwebhook"
 import { webhookSantanderRoutes } from "./webhookSantanderRoutes"
 import { inscriptionsRoutes } from "./inscriptionsRoutes"
 import { couponRoutes } from "./coupon.routes"
+import { asaasWebhookRoutes } from "./asaasWebhookRoutes"
 
 
 const router = Router()
 
 
 router.use('/webhooks', webhooksRoutes)
+router.use('/webhooks/asaas', asaasWebhookRoutes);
 router.use(express.json({type:"application/json"}))
 
 //welcome routes
