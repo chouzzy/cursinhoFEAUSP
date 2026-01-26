@@ -129,7 +129,7 @@ export async function handleStudentCheckoutCompleted(event: Stripe.Event) {
                     <p>Seu pagamento via cartão foi aprovado e sua inscrição realizada com sucesso.</p>
                     
                     <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 25px 0; text-align: center; border: 1px solid #eee;">
-                        <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase;">Número de Matrícula</p>
+                        <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase;">Número de Pedido</p>
                         <p style="margin: 5px 0 0 0; font-size: 2em; font-weight: bold; color: #00274c;">${novaMatriculaID || 'Em processamento'}</p>
                     </div>
 
