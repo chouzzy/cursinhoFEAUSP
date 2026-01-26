@@ -13,6 +13,8 @@ class UpdateSchoolClassUseCase {
 
         const bodyValidation = await checkBody(schoolClassData)
 
+        console.log('BodyValidation:', bodyValidation);
+
         console.log('After checkBody in UpdateSchoolClassUseCase');
         // if (schoolClassData.subscriptions.price) {
         //     return ({

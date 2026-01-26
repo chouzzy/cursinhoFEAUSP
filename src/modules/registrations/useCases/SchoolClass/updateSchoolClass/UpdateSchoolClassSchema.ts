@@ -16,7 +16,7 @@ const updateSchoolClassSchema = yup.object({
     }),
 
     subscriptions: yup.object({
-        status: yup.string().oneOf(['Aberto', 'Fechado'], "O status deve ser um dos seguintes valores: 'active' ou 'inactive' "),
+        status: yup.string().oneOf(['Aberto', 'Fechado', 'Em breve'], "O status deve ser um dos seguintes valores: 'active' ou 'inactive' "),
         subscriptionSchedule: yup.string(),
     }),
 

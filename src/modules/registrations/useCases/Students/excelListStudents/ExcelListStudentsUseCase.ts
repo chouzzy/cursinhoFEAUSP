@@ -5,6 +5,8 @@ import { checkQuery } from "./ExcelListStudentsCheck"
 import { ExcelListStudentsQuery } from "./ExcelListStudentsController"
 import { Workbook, Worksheet } from "exceljs"
 import { format } from "date-fns" 
+// Importamos o prisma para buscar os nomes das turmas
+import { prisma } from "../../../../../prisma"; 
 
 class ExcelListStudentsUseCase {
     constructor(
@@ -49,13 +51,25 @@ class ExcelListStudentsUseCase {
             return students
         }
 
+        // **NOVO: Buscar todas as turmas para mapear ID -> Nome**
+        // Isso evita fazer uma query por linha e deixa a exportação rápida
+        const allClasses = await prisma.schoolClass.findMany({
+            select: { id: true, title: true }
+        });
+        
+        // Criamos um dicionário para acesso rápido: { 'id_123': 'Turma Manhã', ... }
+        const classesMap: Record<string, string> = {};
+        allClasses.forEach(cls => {
+            classesMap[cls.id] = cls.title;
+        });
+
         // Create a new Excel workbook
         const workbook = new Workbook()
 
         // Add a new worksheet to the workbook
         const worksheet: Worksheet = workbook.addWorksheet("Inscrições")
 
-        // **ETAPA 1: CABEÇALHOS SOLICITADOS PELO CLIENTE**
+        // **ETAPA 1: CABEÇALHOS**
         worksheet.addRow([
             "Valor",
             "Data compra",
@@ -75,23 +89,26 @@ class ExcelListStudentsUseCase {
             "RG",
             "Termo de Consentimento",
             "Termo de Inscrição",
-            // Campos extras úteis (opcionais, mas bons para debug)
+            // Campos extras úteis
             "ID Matrícula",
-            "Turma (ID)"
+            "Turma" // Agora mostrará o Nome
         ])
 
-        // **ETAPA 2: LÓGICA DE DADOS (FLATTEN)**
+        // **ETAPA 2: PREENCHIMENTO DOS DADOS**
         students.studentsList?.forEach(student => {
             if (student.purcharsedSubscriptions && student.purcharsedSubscriptions.length > 0) {
                 
-                student.purcharsedSubscriptions.forEach((sub: { paymentDate: string | number | Date; valuePaid: any; txid: any; paymentStatus: any; codigoDesconto: any; paymentMethod: any; matriculaID: any; schoolClassID: any }) => {
+                student.purcharsedSubscriptions.forEach((sub: { paymentDate: string | number | Date; schoolClassID: string | number; valuePaid: any; txid: any; paymentStatus: any; codigoDesconto: any; paymentMethod: any; matriculaID: any }) => {
                     // Formatações
                     const paymentDateFormatted = sub.paymentDate ? format(new Date(sub.paymentDate), 'dd/MM/yyyy HH:mm') : '';
                     const aceiteCiencia = student.aceiteTermoCiencia ? "Sim" : "Não";
                     const aceiteInscricao = student.aceiteTermoInscricao ? "Sim" : "Não";
-                    const emailResponsavel = student.emailResponsavel || "Não"; // Se vazio, coloca "Não" (regra de negócio para maior de idade)
+                    const emailResponsavel = student.emailResponsavel || "Não"; 
 
-                    // Criamos a linha seguindo a ordem exata dos cabeçalhos
+                    // Busca o nome da turma no mapa, ou usa o ID se não encontrar
+                    const className = classesMap[sub.schoolClassID] || sub.schoolClassID || 'Desconhecida';
+
+                    // Criamos a linha
                     worksheet.addRow([
                         sub.valuePaid,               // Valor
                         paymentDateFormatted,        // Data compra
@@ -100,28 +117,29 @@ class ExcelListStudentsUseCase {
                         sub.paymentStatus,           // Estado de pagamento
                         sub.codigoDesconto || '',    // Cupom de Desconto
                         sub.paymentMethod,           // Método de pagamento
-                        '',                          // User_Agent (Vazio)
-                        '',                          // Referrer (Vazio)
+                        '',                          // User_Agent
+                        '',                          // Referrer
                         student.name,                // Nome Completo
-                        student.email,               // E-mail para contato (Repetido)
-                        student.email,               // Confirmação do e-mail (Repetido ou Vazio)
+                        student.email,               // E-mail para contato
+                        student.email,               // Confirmação do e-mail
                         emailResponsavel,            // Email responsável
                         student.phoneNumber,         // Telefone
                         student.cpf,                 // CPF
                         student.rg,                  // RG
                         aceiteCiencia,               // Termo de Consentimento
                         aceiteInscricao,             // Termo de Inscrição
-                        sub.matriculaID || '',       // ID Matrícula (Extra)
-                        sub.schoolClassID            // Turma ID (Extra)
+                        sub.matriculaID || '',       // ID Matrícula
+                        className                    // Nome da Turma (ATUALIZADO)
                     ])
                 })
             }
         })
 
-        // Ajuste de largura das colunas principais
+        // Ajuste de largura das colunas para leitura fácil
         worksheet.getColumn(4).width = 30;  // Email
         worksheet.getColumn(10).width = 30; // Nome
         worksheet.getColumn(2).width = 20;  // Data
+        worksheet.getColumn(20).width = 30; // Turma
 
         const fileBuffer = await workbook.xlsx.writeBuffer()
 
