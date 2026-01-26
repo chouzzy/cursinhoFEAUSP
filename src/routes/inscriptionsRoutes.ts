@@ -41,6 +41,23 @@ inscriptionsRoutes.post('/', async (req: Request, res: Response) => {
             });
         }
 
+        // 2. Erros vindos da API do Santander (Axios)
+        if (error.response) {
+            // Log para debug do erro real do Santander
+            console.error('Detalhes do erro Santander:', JSON.stringify(error.response.data));
+
+            // Verifica se é o erro de CPF inválido específico do Santander
+            // O Santander costuma retornar: { details: "O CPF informado invalido", ... }
+            const santanderDetails = error.response.data?.details || '';
+
+            if (santanderDetails.includes('CPF informado invalido') || santanderDetails.includes('CPF')) {
+                return res.status(400).json({
+                    error: 'Dados Inválidos',
+                    details: 'Esse CPF não é um CPF válido, por favor revise.'
+                });
+            }
+        }
+
         return res.status(500).json({
             error: 'Falha ao gerar a cobrança PIX.',
             details: 'Ocorreu um erro interno no servidor.'
