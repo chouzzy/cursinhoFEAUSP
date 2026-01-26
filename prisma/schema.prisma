@@ -82,8 +82,8 @@ model Students {
   rg                       String?
   ufrg                     String
   selfDeclaration          String
-  oldSchool                String
-  oldSchoolAdress          String
+  oldSchool                String?
+  oldSchoolAdress          String?
   highSchoolGraduationDate String
   highSchoolPeriod         String
   metUsMethod              String
