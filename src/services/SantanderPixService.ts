@@ -149,6 +149,7 @@ export class SantanderPixService {
     } else {
         // 3. CRIAR NOVO ESTUDANTE
         console.log(`CPF não encontrado. Criando novo registro de estudante...`);
+        console.log('Dados do estudante:', studentModelData)
         const newInscription = await prisma.students.create({
           data: {
             ...studentModelData, // NÃO CONTÉM MAIS O CPF BRUTO
