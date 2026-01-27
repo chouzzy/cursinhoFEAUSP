@@ -230,7 +230,6 @@ export class AsaasService {
     };
   }
 
-  // ** EMAIL ESTILIZADO DO PAINEL **
   async sendMagicLink(email: string) {
     const donation = await prisma.donations.findFirst({
         where: { email: email, paymentMethod: 'asaas_checkout' },
@@ -240,7 +239,7 @@ export class AsaasService {
     if (!donation) throw new Error('Doador não encontrado.');
 
     const token = jwt.sign(
-        { donationId: donation.id, type: 'access_portal', email }, // Incluindo email no token
+        { donationId: donation.id, type: 'access_portal', email }, 
         process.env.TOKEN_PRIVATE_KEY || 'secret', 
         { expiresIn: '1h' }
     );
@@ -263,13 +262,11 @@ export class AsaasService {
                     <tr>
                         <td style="padding: 20px 0 30px 0;">
                             <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="border-collapse: collapse; border: 1px solid #e0e0e5; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-                                <!-- Cabeçalho -->
                                 <tr>
                                     <td align="center" style="padding: 40px 0 30px 0; background-color: #00274c;">
                                         <h1 style="color: #f4c430; font-size: 28px; margin: 0; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Cursinho FEA USP</h1>
                                     </td>
                                 </tr>
-                                <!-- Corpo -->
                                 <tr>
                                     <td style="padding: 40px 30px;">
                                         <table border="0" cellpadding="0" cellspacing="0" width="100%">
@@ -285,7 +282,6 @@ export class AsaasService {
                                                     Você solicitou acesso para gerenciar suas doações. Clique no botão abaixo para entrar no seu painel seguro.
                                                 </td>
                                             </tr>
-                                            <!-- Botão de Ação -->
                                             <tr>
                                                 <td align="center" style="padding-top: 20px; padding-bottom: 30px;">
                                                     <table border="0" cellspacing="0" cellpadding="0">
@@ -302,24 +298,6 @@ export class AsaasService {
                                             <tr>
                                                 <td style="color: #999999; font-size: 14px; line-height: 20px; text-align: center;">
                                                     Este link expira em <strong>1 hora</strong> por segurança.<br/>
-                                                    Se o botão não funcionar, copie e cole este link no seu navegador:<br/>
-                                                    <span style="color: #004aad; word-break: break-all;">${magicLink}</span>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                                <!-- Rodapé -->
-                                <tr>
-                                    <td style="padding: 30px; background-color: #f8f9fa; border-top: 1px solid #e0e0e5;">
-                                        <table border="0" cellpadding="0" cellspacing="0" width="100%">
-                                            <tr>
-                                                <td style="color: #999999; font-size: 12px; text-align: center; line-height: 18px;">
-                                                    <p style="margin: 0;"><strong>Cursinho FEA USP</strong></p>
-                                                    <p style="margin: 0;">Transformando vidas através da educação.</p>
-                                                    <p style="margin: 10px 0 0 0;">
-                                                        <a href="https://cursinhofeausp.com.br" style="color: #004aad; text-decoration: none;">Acesse nosso site</a>
-                                                    </p>
                                                 </td>
                                             </tr>
                                         </table>
@@ -336,6 +314,43 @@ export class AsaasService {
     });
 
     return { success: true };
+  }
+
+  // **MÉTODO ADICIONADO: Lista assinaturas para o painel do doador**
+  async listSubscriptions(email: string) {
+      const donations = await prisma.donations.findMany({
+          where: { 
+              email: email,
+              paymentMethod: 'asaas_checkout',
+              stripeSubscriptionID: { not: null } 
+          },
+          orderBy: { createdAt: 'desc' }
+      });
+
+      const userName = donations.length > 0 ? donations[0].name : '';
+
+      const details = await Promise.all(donations.map(async (donation) => {
+          try {
+              if (!donation.stripeSubscriptionID) return null;
+              const response = await asaas.get(`/subscriptions/${donation.stripeSubscriptionID}`);
+              const sub = response.data;
+              return {
+                  id: donation.id,
+                  externalId: sub.id,
+                  status: sub.status,
+                  value: sub.value,
+                  nextDueDate: sub.nextDueDate,
+                  description: sub.description || donation.name
+              };
+          } catch (error) {
+              return null;
+          }
+      }));
+
+      return {
+          userName: userName,
+          subscriptions: details.filter(i => i !== null)
+      };
   }
 
   async getSubscriptionDetails(donationId: string) {
@@ -372,6 +387,89 @@ export class AsaasService {
       });
 
       return { success: true, id: response.data.id };
+  }
+  
+  // **MÉTODO ADICIONADO: Envia email de sucesso de doação**
+  async sendDonationSuccessEmail(donationId: string) {
+    const donation = await prisma.donations.findUnique({ where: { id: donationId } });
+    if (!donation || !donation.email) return;
+
+    const formattedValue = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(donation.valuePaid);
+    const isRecurring = donation.ciclesBought !== 1; // Se for diferente de 1 (0 ou >1), é considerado recorrente no nosso fluxo
+    const title = isRecurring ? 'Doação Mensal Confirmada' : 'Doação Recebida';
+    const message = isRecurring 
+        ? 'Obrigado por continuar apoiando nosso sonho mensalmente.' 
+        : 'Sua generosidade faz toda a diferença.';
+
+    await mailService.sendEmail({
+        toEmail: donation.email,
+        toName: donation.name,
+        subject: isRecurring ? 'Sua doação mensal foi confirmada! 🎉' : 'Obrigado pela sua doação! 💙',
+        htmlContent: `
+            <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+                <h1 style="color: #00274c; text-align: center;">${title}!</h1>
+                <p>Olá, <strong>${donation.name}</strong>!</p>
+                <p>Recebemos a confirmação da sua doação no valor de <strong>${formattedValue}</strong>.</p>
+                <p>${message}</p>
+                <div style="background-color: #f0f7ff; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #004aad;">
+                   <p style="margin:0">Obrigado por apoiar o Cursinho FEA USP.</p>
+                </div>
+                <p style="font-size: 0.9em; color: #888; text-align: center;">Equipe Cursinho FEA USP</p>
+            </div>
+        `,
+        textContent: `Olá ${donation.name}, recebemos sua doação de ${formattedValue}. Obrigado!`
+    });
+  }
+
+  // **MÉTODO ADICIONADO: Envia email de sucesso de inscrição**
+  async sendInscriptionSuccessEmail(studentId: string, matriculaID: string, schoolClassId: string) {
+    const student = await prisma.students.findUnique({ where: { id: studentId } });
+    const turma = await prisma.schoolClass.findUnique({ where: { id: schoolClassId }, include: { documents: true } });
+
+    if (!student || !student.email) return;
+
+    let linksHtml = '';
+    if (turma && turma.documents && turma.documents.length > 0) {
+        linksHtml = `
+          <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
+            <h3 style="margin-top: 0; color: #004aad;">Documentos Importantes</h3>
+            <ul style="padding-left: 20px;">
+              ${turma.documents.map((doc: any) => 
+                `<li style="margin-bottom: 8px;">
+                   <a href="${doc.downloadLink}" target="_blank" style="color: #004aad; text-decoration: none; font-weight: bold;">
+                     ${doc.title}
+                   </a>
+                 </li>`
+              ).join('')}
+            </ul>
+          </div>
+        `;
+    }
+
+    await mailService.sendEmail({
+        toEmail: student.email,
+        toName: student.name,
+        subject: 'Inscrição Confirmada - Cursinho FEA USP',
+        htmlContent: `
+            <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 8px;">
+                <h1 style="color: #00274c; text-align: center;">Inscrição Confirmada!</h1>
+                <p>Olá, <strong>${student.name}</strong>!</p>
+                <p>Seu pagamento foi aprovado e sua inscrição realizada com sucesso.</p>
+                
+                <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 25px 0; text-align: center; border: 1px solid #eee;">
+                    <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase;">Número de Matrícula</p>
+                    <p style="margin: 5px 0 0 0; font-size: 2em; font-weight: bold; color: #00274c;">${matriculaID}</p>
+                </div>
+
+                ${linksHtml}
+                
+                <p>Fique atento ao seu e-mail para informações sobre as entrevistas.</p>
+                <br/>
+                <p style="text-align: center; color: #888; font-size: 0.9em;">Equipe Cursinho FEA USP</p>
+            </div>
+        `,
+        textContent: `Inscrição confirmada! Matrícula: ${matriculaID}`
+    });
   }
 
   private async findOrCreateCustomer(data: CreatePaymentData) {
