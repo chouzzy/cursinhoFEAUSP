@@ -1,256 +1,256 @@
 import { asaas } from "../lib/asaas";
 import { prisma } from "../prisma";
 import { randomUUID } from 'crypto';
-import { MailService } from "./MailService"; 
+import { MailService } from "./MailService";
 import jwt from 'jsonwebtoken';
 
 const mailService = new MailService();
 
 interface CreatePaymentData {
-  name: string;
-  email: string;
-  cpf: string;
-  phone: string;
-  value: number; 
-  interval: 'month' | 'one_time';
-  cycles: number;
-  productName: string;
-  
-  rg?: string;
-  ufrg?: string;
-  gender?: string;
-  birth?: string;
-  isPhoneWhatsapp?: boolean;
-  zipCode?: string;
-  street?: string;
-  homeNumber?: string;
-  complement?: string;
-  district?: string;
-  city?: string;
-  state?: string;
-  
-  type: 'donation' | 'inscription';
-  schoolClassID?: string; 
-  
-  // Campos extras de Inscrição
-  sobrenome?: string;
-  emailResponsavel?: string;
-  aceiteTermoCiencia?: boolean;
-  aceiteTermoInscricao?: boolean;
-  selfDeclaration?: string;
-  oldSchool?: string;
-  oldSchoolAdress?: string;
-  highSchoolGraduationDate?: string;
-  highSchoolPeriod?: string;
-  metUsMethod?: string;
-  exStudent?: string;
-  codigoDesconto?: string; // Adicionado campo de desconto
+    name: string;
+    email: string;
+    cpf: string;
+    phone: string;
+    value: number;
+    interval: 'month' | 'one_time';
+    cycles: number;
+    productName: string;
+
+    rg?: string;
+    ufrg?: string;
+    gender?: string;
+    birth?: string;
+    isPhoneWhatsapp?: boolean;
+    zipCode?: string;
+    street?: string;
+    homeNumber?: string;
+    complement?: string;
+    district?: string;
+    city?: string;
+    state?: string;
+
+    type: 'donation' | 'inscription';
+    schoolClassID?: string;
+
+    // Campos extras de Inscrição
+    sobrenome?: string;
+    emailResponsavel?: string;
+    aceiteTermoCiencia?: boolean;
+    aceiteTermoInscricao?: boolean;
+    selfDeclaration?: string;
+    oldSchool?: string;
+    oldSchoolAdress?: string;
+    highSchoolGraduationDate?: string;
+    highSchoolPeriod?: string;
+    metUsMethod?: string;
+    exStudent?: string;
+    codigoDesconto?: string; // Adicionado campo de desconto
 }
 
 export class AsaasService {
 
-  async createPaymentSession(data: CreatePaymentData) {
-    const customerId = await this.findOrCreateCustomer(data);
-    const txid = `asaas_${randomUUID()}`; 
-    
-    // Valor Base em Reais
-    let finalValueInReais = data.value / 100;
-    let couponCodeUsed: string | undefined = undefined;
+    async createPaymentSession(data: CreatePaymentData) {
+        const customerId = await this.findOrCreateCustomer(data);
+        const txid = `asaas_${randomUUID()}`;
 
-    // --- LÓGICA DE DESCONTO ---
-    if (data.codigoDesconto) {
-      console.log(`[AsaasService] Verificando cupom: ${data.codigoDesconto}`);
-      const coupon = await prisma.discountCoupon.findFirst({
-        where: { code: data.codigoDesconto, isActive: true }
-      });
+        // Valor Base em Reais
+        let finalValueInReais = data.value / 100;
+        let couponCodeUsed: string | undefined = undefined;
 
-      if (coupon) {
-        // Subtrai o valor do desconto
-        finalValueInReais = (data.value / 100) - coupon.discountValue;
-        
-        // Garante que não fique negativo
-        if (finalValueInReais < 0) finalValueInReais = 0;
-        
-        couponCodeUsed = coupon.code;
-        console.log(`[AsaasService] Cupom aplicado! Valor original: ${data.value/100}, Desconto: ${coupon.discountValue}, Final: ${finalValueInReais}`);
-      } else {
-        console.warn(`[AsaasService] Cupom inválido ou inativo: ${data.codigoDesconto}`);
-      }
-    }
-    // ---------------------------
+        // --- LÓGICA DE DESCONTO ---
+        if (data.codigoDesconto) {
+            console.log(`[AsaasService] Verificando cupom: ${data.codigoDesconto}`);
+            const coupon = await prisma.discountCoupon.findFirst({
+                where: { code: data.codigoDesconto, isActive: true }
+            });
 
-    let paymentUrl = '';
-    let asaasSubscriptionId: string | null = null; 
+            if (coupon) {
+                // Subtrai o valor do desconto
+                finalValueInReais = (data.value / 100) - coupon.discountValue;
 
-    // ATENÇÃO: O Asaas tem limite mínimo para cartão (geralmente R$ 5,00).
-    // Se o valor final for muito baixo (ex: R$ 0,60), o Asaas pode rejeitar.
-    // Mas vamos enviar o valor calculado corretamente agora.
+                // Garante que não fique negativo
+                if (finalValueInReais < 0) finalValueInReais = 0;
 
-    if (data.interval === 'one_time') {
-        const payload = {
-            customer: customerId,
-            billingType: 'UNDEFINED',
-            value: finalValueInReais, // Usa o valor com desconto
-            dueDate: new Date().toISOString().split('T')[0],
-            description: data.productName,
-            externalReference: txid, 
-            postalService: false
-        };
-        const response = await asaas.post('/payments', payload);
-        paymentUrl = response.data.invoiceUrl;
-    
-    } else {
-        const payload: any = {
-            customer: customerId,
-            billingType: 'CREDIT_CARD',
-            value: finalValueInReais, // Usa o valor com desconto
-            nextDueDate: new Date().toISOString().split('T')[0],
-            cycle: 'MONTHLY',
-            description: data.productName,
-            externalReference: txid,
-        };
+                couponCodeUsed = coupon.code;
+                console.log(`[AsaasService] Cupom aplicado! Valor original: ${data.value / 100}, Desconto: ${coupon.discountValue}, Final: ${finalValueInReais}`);
+            } else {
+                console.warn(`[AsaasService] Cupom inválido ou inativo: ${data.codigoDesconto}`);
+            }
+        }
+        // ---------------------------
 
-        if (data.cycles > 0) {
-            const endDate = new Date();
-            endDate.setMonth(endDate.getMonth() + (data.cycles - 1));
-            payload.endDate = endDate.toISOString().split('T')[0];
+        let paymentUrl = '';
+        let asaasSubscriptionId: string | null = null;
+
+        // ATENÇÃO: O Asaas tem limite mínimo para cartão (geralmente R$ 5,00).
+        // Se o valor final for muito baixo (ex: R$ 0,60), o Asaas pode rejeitar.
+        // Mas vamos enviar o valor calculado corretamente agora.
+
+        if (data.interval === 'one_time') {
+            const payload = {
+                customer: customerId,
+                billingType: 'UNDEFINED',
+                value: finalValueInReais, // Usa o valor com desconto
+                dueDate: new Date().toISOString().split('T')[0],
+                description: data.productName,
+                externalReference: txid,
+                postalService: false
+            };
+            const response = await asaas.post('/payments', payload);
+            paymentUrl = response.data.invoiceUrl;
+
+        } else {
+            const payload: any = {
+                customer: customerId,
+                billingType: 'CREDIT_CARD',
+                value: finalValueInReais, // Usa o valor com desconto
+                nextDueDate: new Date().toISOString().split('T')[0],
+                cycle: 'MONTHLY',
+                description: data.productName,
+                externalReference: txid,
+            };
+
+            if (data.cycles > 0) {
+                const endDate = new Date();
+                endDate.setMonth(endDate.getMonth() + (data.cycles - 1));
+                payload.endDate = endDate.toISOString().split('T')[0];
+            }
+
+            const response = await asaas.post('/subscriptions', payload);
+            asaasSubscriptionId = response.data.id;
+
+            const payments = await asaas.get(`/subscriptions/${response.data.id}/payments`);
+            const firstPayment = payments.data.data[0];
+            paymentUrl = firstPayment.invoiceUrl;
         }
 
-        const response = await asaas.post('/subscriptions', payload);
-        asaasSubscriptionId = response.data.id; 
-        
-        const payments = await asaas.get(`/subscriptions/${response.data.id}/payments`);
-        const firstPayment = payments.data.data[0];
-        paymentUrl = firstPayment.invoiceUrl;
-    }
+        let donationId = '';
 
-    let donationId = '';
+        if (data.type === 'donation') {
+            const donation = await prisma.donations.create({
+                data: {
+                    name: data.name,
+                    email: data.email,
+                    cpf: data.cpf.replace(/\D/g, ''),
+                    phoneNumber: data.phone,
+                    valuePaid: finalValueInReais, // Salva o valor com desconto
+                    paymentMethod: 'asaas_checkout',
+                    paymentStatus: 'PENDENTE',
+                    txid: txid,
+                    pixCopiaECola: `asaas_na_${randomUUID()}`,
+                    pixQrCode: `asaas_na_${randomUUID()}`,
 
-    if (data.type === 'donation') {
-        const donation = await prisma.donations.create({
-            data: {
+                    rg: data.rg, ufrg: data.ufrg || '', gender: data.gender || '', birth: data.birth || '',
+                    isPhoneWhatsapp: data.isPhoneWhatsapp || false,
+                    zipCode: data.zipCode || '', street: data.street || '', homeNumber: data.homeNumber || '',
+                    complement: data.complement, district: data.district || '', city: data.city || '', state: data.state || '',
+
+                    ciclesBought: data.interval === 'month' ? (data.cycles || 0) : 1,
+                    ciclePaid: 0,
+                    valueBought: finalValueInReais * (data.interval === 'month' ? (data.cycles || 1) : 1),
+                    stripeCustomerID: customerId,
+                    stripeSubscriptionID: asaasSubscriptionId
+                }
+            });
+            donationId = donation.id;
+
+        } else if (data.type === 'inscription' && data.schoolClassID) {
+            const sanitizedCpf = data.cpf.replace(/\D/g, '');
+
+            let existingStudent = await prisma.students.findFirst({
+                where: { cpf: sanitizedCpf }
+            });
+
+            const studentDataToSave = {
                 name: data.name,
                 email: data.email,
-                cpf: data.cpf.replace(/\D/g, ''),
+                cpf: sanitizedCpf,
                 phoneNumber: data.phone,
-                valuePaid: finalValueInReais, // Salva o valor com desconto
-                paymentMethod: 'asaas_checkout',
-                paymentStatus: 'PENDENTE',
-                txid: txid,
-                pixCopiaECola: `asaas_na_${randomUUID()}`,
-                pixQrCode: `asaas_na_${randomUUID()}`,
-                
                 rg: data.rg, ufrg: data.ufrg || '', gender: data.gender || '', birth: data.birth || '',
                 isPhoneWhatsapp: data.isPhoneWhatsapp || false,
                 zipCode: data.zipCode || '', street: data.street || '', homeNumber: data.homeNumber || '',
                 complement: data.complement, district: data.district || '', city: data.city || '', state: data.state || '',
-                
-                ciclesBought: data.interval === 'month' ? (data.cycles || 0) : 1,
-                ciclePaid: 0,
-                valueBought: finalValueInReais * (data.interval === 'month' ? (data.cycles || 1) : 1),
-                stripeCustomerID: customerId,
-                stripeSubscriptionID: asaasSubscriptionId
-            }
-        });
-        donationId = donation.id;
+                emailResponsavel: data.emailResponsavel,
+                aceiteTermoCiencia: data.aceiteTermoCiencia || false,
+                aceiteTermoInscricao: data.aceiteTermoInscricao || false,
+                selfDeclaration: data.selfDeclaration || '',
+                oldSchool: data.oldSchool || '',
+                oldSchoolAdress: data.oldSchoolAdress || '',
+                highSchoolGraduationDate: data.highSchoolGraduationDate || '',
+                highSchoolPeriod: data.highSchoolPeriod || '',
+                metUsMethod: data.metUsMethod || '',
+                exStudent: data.exStudent || 'Não',
+            };
 
-    } else if (data.type === 'inscription' && data.schoolClassID) {
-        const sanitizedCpf = data.cpf.replace(/\D/g, '');
-        
-        let existingStudent = await prisma.students.findFirst({
-            where: { cpf: sanitizedCpf }
-        });
+            const subscriptionData = {
+                schoolClassID: data.schoolClassID,
+                txid: txid,
+                paymentMethod: "asaas_checkout",
+                paymentStatus: "PENDENTE",
+                pixStatus: "PENDENTE",
+                paymentDate: new Date(),
+                valuePaid: finalValueInReais, // Salva o valor com desconto
+                codigoDesconto: couponCodeUsed, // Salva o cupom
+                pixCopiaECola: `asaas_na_${randomUUID()}`,
+                pixQrCode: `asaas_na_${randomUUID()}`,
+            };
 
-        const studentDataToSave = {
-            name: data.name,
-            email: data.email,
-            cpf: sanitizedCpf,
-            phoneNumber: data.phone,
-            rg: data.rg, ufrg: data.ufrg || '', gender: data.gender || '', birth: data.birth || '',
-            isPhoneWhatsapp: data.isPhoneWhatsapp || false,
-            zipCode: data.zipCode || '', street: data.street || '', homeNumber: data.homeNumber || '',
-            complement: data.complement, district: data.district || '', city: data.city || '', state: data.state || '',
-            emailResponsavel: data.emailResponsavel,
-            aceiteTermoCiencia: data.aceiteTermoCiencia || false,
-            aceiteTermoInscricao: data.aceiteTermoInscricao || false,
-            selfDeclaration: data.selfDeclaration || '',
-            oldSchool: data.oldSchool || '',
-            oldSchoolAdress: data.oldSchoolAdress || '',
-            highSchoolGraduationDate: data.highSchoolGraduationDate || '',
-            highSchoolPeriod: data.highSchoolPeriod || '',
-            metUsMethod: data.metUsMethod || '',
-            exStudent: data.exStudent || 'Não',
-        };
+            if (existingStudent) {
+                const completedSub = existingStudent.purcharsedSubscriptions.find(
+                    sub => sub.schoolClassID === data.schoolClassID && sub.paymentStatus === 'CONCLUIDA'
+                );
+                if (completedSub) {
+                    throw new Error('Você já está inscrito e com o pagamento confirmado para esta turma.');
+                }
 
-        const subscriptionData = {
-            schoolClassID: data.schoolClassID,
-            txid: txid,
-            paymentMethod: "asaas_checkout",
-            paymentStatus: "PENDENTE",
-            pixStatus: "PENDENTE",
-            paymentDate: new Date(),
-            valuePaid: finalValueInReais, // Salva o valor com desconto
-            codigoDesconto: couponCodeUsed, // Salva o cupom
-            pixCopiaECola: `asaas_na_${randomUUID()}`,
-            pixQrCode: `asaas_na_${randomUUID()}`,
-        };
-
-        if (existingStudent) {
-            const completedSub = existingStudent.purcharsedSubscriptions.find(
-                sub => sub.schoolClassID === data.schoolClassID && sub.paymentStatus === 'CONCLUIDA'
-            );
-            if (completedSub) {
-                 throw new Error('Você já está inscrito e com o pagamento confirmado para esta turma.');
-            }
-
-            await prisma.students.update({
-                where: { id: existingStudent.id },
-                data: {
-                    ...studentDataToSave,
-                    stripeCustomerID: customerId,
-                    purcharsedSubscriptions: {
-                        push: [subscriptionData]
+                await prisma.students.update({
+                    where: { id: existingStudent.id },
+                    data: {
+                        ...studentDataToSave,
+                        stripeCustomerID: customerId,
+                        purcharsedSubscriptions: {
+                            push: [subscriptionData]
+                        }
                     }
-                }
-            });
-        } else {
-            await prisma.students.create({
-                data: {
-                    ...studentDataToSave,
-                    stripeCustomerID: customerId,
-                    purcharsedSubscriptions: [subscriptionData]
-                }
-            });
+                });
+            } else {
+                await prisma.students.create({
+                    data: {
+                        ...studentDataToSave,
+                        stripeCustomerID: customerId,
+                        purcharsedSubscriptions: [subscriptionData]
+                    }
+                });
+            }
         }
+
+        return {
+            url: paymentUrl,
+            donationId: donationId
+        };
     }
 
-    return {
-      url: paymentUrl,
-      donationId: donationId
-    };
-  }
+    async sendMagicLink(email: string) {
+        const donation = await prisma.donations.findFirst({
+            where: { email: email, paymentMethod: 'asaas_checkout' },
+            orderBy: { createdAt: 'desc' }
+        });
 
-  async sendMagicLink(email: string) {
-    const donation = await prisma.donations.findFirst({
-        where: { email: email, paymentMethod: 'asaas_checkout' },
-        orderBy: { createdAt: 'desc' }
-    });
+        if (!donation) throw new Error('Doador não encontrado.');
 
-    if (!donation) throw new Error('Doador não encontrado.');
+        const token = jwt.sign(
+            { donationId: donation.id, type: 'access_portal', email },
+            process.env.TOKEN_PRIVATE_KEY || 'secret',
+            { expiresIn: '1h' }
+        );
 
-    const token = jwt.sign(
-        { donationId: donation.id, type: 'access_portal', email }, 
-        process.env.TOKEN_PRIVATE_KEY || 'secret', 
-        { expiresIn: '1h' }
-    );
+        const magicLink = `${process.env.NEXT_PUBLIC_APP_URL}/doacoes/painel?token=${token}`;
 
-    const magicLink = `${process.env.NEXT_PUBLIC_APP_URL}/doacoes/painel?token=${token}`;
-
-    await mailService.sendEmail({
-        toEmail: email,
-        toName: donation.name,
-        subject: 'Acesso ao Painel do Doador - Cursinho FEA USP',
-        htmlContent: `
+        await mailService.sendEmail({
+            toEmail: email,
+            toName: donation.name,
+            subject: 'Acesso ao Painel do Doador - Cursinho FEA USP',
+            htmlContent: `
             <!DOCTYPE html>
             <html>
             <head>
@@ -310,102 +310,102 @@ export class AsaasService {
             </body>
             </html>
         `,
-        textContent: `Acesse seu painel: ${magicLink}`
-    });
+            textContent: `Acesse seu painel: ${magicLink}`
+        });
 
-    return { success: true };
-  }
+        return { success: true };
+    }
 
-  // **MÉTODO ADICIONADO: Lista assinaturas para o painel do doador**
-  async listSubscriptions(email: string) {
-      const donations = await prisma.donations.findMany({
-          where: { 
-              email: email,
-              paymentMethod: 'asaas_checkout',
-              stripeSubscriptionID: { not: null } 
-          },
-          orderBy: { createdAt: 'desc' }
-      });
+    // **MÉTODO ADICIONADO: Lista assinaturas para o painel do doador**
+    async listSubscriptions(email: string) {
+        const donations = await prisma.donations.findMany({
+            where: {
+                email: email,
+                paymentMethod: 'asaas_checkout',
+                stripeSubscriptionID: { not: null }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
 
-      const userName = donations.length > 0 ? donations[0].name : '';
+        const userName = donations.length > 0 ? donations[0].name : '';
 
-      const details = await Promise.all(donations.map(async (donation) => {
-          try {
-              if (!donation.stripeSubscriptionID) return null;
-              const response = await asaas.get(`/subscriptions/${donation.stripeSubscriptionID}`);
-              const sub = response.data;
-              return {
-                  id: donation.id,
-                  externalId: sub.id,
-                  status: sub.status,
-                  value: sub.value,
-                  nextDueDate: sub.nextDueDate,
-                  description: sub.description || donation.name
-              };
-          } catch (error) {
-              return null;
-          }
-      }));
+        const details = await Promise.all(donations.map(async (donation) => {
+            try {
+                if (!donation.stripeSubscriptionID) return null;
+                const response = await asaas.get(`/subscriptions/${donation.stripeSubscriptionID}`);
+                const sub = response.data;
+                return {
+                    id: donation.id,
+                    externalId: sub.id,
+                    status: sub.status,
+                    value: sub.value,
+                    nextDueDate: sub.nextDueDate,
+                    description: sub.description || donation.name
+                };
+            } catch (error) {
+                return null;
+            }
+        }));
 
-      return {
-          userName: userName,
-          subscriptions: details.filter(i => i !== null)
-      };
-  }
+        return {
+            userName: userName,
+            subscriptions: details.filter(i => i !== null)
+        };
+    }
 
-  async getSubscriptionDetails(donationId: string) {
-      const donation = await prisma.donations.findUnique({ where: { id: donationId }});
-      
-      if (!donation) throw new Error('Doação não encontrada no banco.');
-      if (!donation.stripeSubscriptionID) throw new Error('Esta doação não possui uma assinatura ativa (ID de assinatura ausente).');
+    async getSubscriptionDetails(donationId: string) {
+        const donation = await prisma.donations.findUnique({ where: { id: donationId } });
 
-      const response = await asaas.get(`/subscriptions/${donation.stripeSubscriptionID}`);
-      const sub = response.data;
+        if (!donation) throw new Error('Doação não encontrada no banco.');
+        if (!donation.stripeSubscriptionID) throw new Error('Esta doação não possui uma assinatura ativa (ID de assinatura ausente).');
 
-      return {
-          status: sub.status,
-          value: sub.value,
-          nextDueDate: sub.nextDueDate,
-          cycle: sub.cycle,
-          description: sub.description
-      };
-  }
+        const response = await asaas.get(`/subscriptions/${donation.stripeSubscriptionID}`);
+        const sub = response.data;
 
-  async cancelSubscription(donationId: string, userEmail: string) {
-      const donation = await prisma.donations.findUnique({ where: { id: donationId }});
-      if (!donation || !donation.stripeSubscriptionID) throw new Error('Assinatura não encontrada.');
-      if (!donation || donation.email !== userEmail) throw new Error('Permissão negada.');
+        return {
+            status: sub.status,
+            value: sub.value,
+            nextDueDate: sub.nextDueDate,
+            cycle: sub.cycle,
+            description: sub.description
+        };
+    }
 
-      const response = await asaas.delete(`/subscriptions/${donation.stripeSubscriptionID}`);
-      
-      await prisma.donations.update({
-          where: { id: donationId },
-          data: { 
-              paymentStatus: 'canceled',
-              canceledAt: new Date()
-          }
-      });
+    async cancelSubscription(donationId: string, userEmail: string) {
+        const donation = await prisma.donations.findUnique({ where: { id: donationId } });
+        if (!donation || !donation.stripeSubscriptionID) throw new Error('Assinatura não encontrada.');
+        if (!donation || donation.email !== userEmail) throw new Error('Permissão negada.');
 
-      return { success: true, id: response.data.id };
-  }
-  
-  // **MÉTODO ADICIONADO: Envia email de sucesso de doação**
-  async sendDonationSuccessEmail(donationId: string) {
-    const donation = await prisma.donations.findUnique({ where: { id: donationId } });
-    if (!donation || !donation.email) return;
+        const response = await asaas.delete(`/subscriptions/${donation.stripeSubscriptionID}`);
 
-    const formattedValue = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(donation.valuePaid);
-    const isRecurring = donation.ciclesBought !== 1; // Se for diferente de 1 (0 ou >1), é considerado recorrente no nosso fluxo
-    const title = isRecurring ? 'Doação Mensal Confirmada' : 'Doação Recebida';
-    const message = isRecurring 
-        ? 'Obrigado por continuar apoiando nosso sonho mensalmente.' 
-        : 'Sua generosidade faz toda a diferença.';
+        await prisma.donations.update({
+            where: { id: donationId },
+            data: {
+                paymentStatus: 'canceled',
+                canceledAt: new Date()
+            }
+        });
 
-    await mailService.sendEmail({
-        toEmail: donation.email,
-        toName: donation.name,
-        subject: isRecurring ? 'Sua doação mensal foi confirmada! 🎉' : 'Obrigado pela sua doação! 💙',
-        htmlContent: `
+        return { success: true, id: response.data.id };
+    }
+
+    // **MÉTODO ADICIONADO: Envia email de sucesso de doação**
+    async sendDonationSuccessEmail(donationId: string) {
+        const donation = await prisma.donations.findUnique({ where: { id: donationId } });
+        if (!donation || !donation.email) return;
+
+        const formattedValue = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(donation.valuePaid);
+        const isRecurring = donation.ciclesBought !== 1; // Se for diferente de 1 (0 ou >1), é considerado recorrente no nosso fluxo
+        const title = isRecurring ? 'Doação Mensal Confirmada' : 'Doação Recebida';
+        const message = isRecurring
+            ? 'Obrigado por continuar apoiando nosso sonho mensalmente.'
+            : 'Sua generosidade faz toda a diferença.';
+
+        await mailService.sendEmail({
+            toEmail: donation.email,
+            toName: donation.name,
+            subject: isRecurring ? 'Sua doação mensal foi confirmada! 🎉' : 'Obrigado pela sua doação! 💙',
+            htmlContent: `
             <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
                 <h1 style="color: #00274c; text-align: center;">${title}!</h1>
                 <p>Olá, <strong>${donation.name}</strong>!</p>
@@ -417,80 +417,107 @@ export class AsaasService {
                 <p style="font-size: 0.9em; color: #888; text-align: center;">Equipe Cursinho FEA USP</p>
             </div>
         `,
-        textContent: `Olá ${donation.name}, recebemos sua doação de ${formattedValue}. Obrigado!`
-    });
-  }
+            textContent: `Olá ${donation.name}, recebemos sua doação de ${formattedValue}. Obrigado!`
+        });
+    }
 
-  // **MÉTODO ADICIONADO: Envia email de sucesso de inscrição**
-  async sendInscriptionSuccessEmail(studentId: string, matriculaID: string, schoolClassId: string) {
-    const student = await prisma.students.findUnique({ where: { id: studentId } });
-    const turma = await prisma.schoolClass.findUnique({ where: { id: schoolClassId }, include: { documents: true } });
+    // **MÉTODO ADICIONADO: Envia email de sucesso de inscrição**
+    async sendInscriptionSuccessEmail(studentId: string, matriculaID: string, schoolClassId: string) {
+        const student = await prisma.students.findUnique({ where: { id: studentId } });
+        const turma = await prisma.schoolClass.findUnique({ where: { id: schoolClassId }, include: { documents: true } });
 
-    if (!student || !student.email) return;
+        if (!student || !student.email) return;
 
-    let linksHtml = '';
-    if (turma && turma.documents && turma.documents.length > 0) {
-        linksHtml = `
+        let linksHtml = '';
+        if (turma && turma.documents && turma.documents.length > 0) {
+            linksHtml = `
           <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
             <h3 style="margin-top: 0; color: #004aad;">Documentos Importantes</h3>
             <ul style="padding-left: 20px;">
-              ${turma.documents.map((doc: any) => 
-                `<li style="margin-bottom: 8px;">
-                   <a href="${doc.downloadLink}" target="_blank" style="color: #004aad; text-decoration: none; font-weight: bold;">
-                     ${doc.title}
-                   </a>
-                 </li>`
-              ).join('')}
+              ${turma.documents.map((doc: any) => {
+
+                if (doc.title.toLowerCase().includes('entrevista')) {
+                    return '';
+                }
+                return (
+
+                    `<li style="margin-bottom: 8px;">
+                    <a href="${doc.downloadLink}" target="_blank" style="color: #004aad; text-decoration: none; font-weight: bold;">
+                    ${doc.title}
+                    </a>
+                    </li>`
+                )
+            }
+            ).join('')}
             </ul>
           </div>
         `;
-    }
+        }
 
-    await mailService.sendEmail({
-        toEmail: student.email,
-        toName: student.name,
-        subject: 'Inscrição Confirmada - Cursinho FEA USP',
-        htmlContent: `
+        await mailService.sendEmail({
+            toEmail: student.email,
+            toName: student.name,
+            subject: 'Inscrição Confirmada - Cursinho FEA USP',
+            htmlContent: `
             <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 8px;">
                 <h1 style="color: #00274c; text-align: center;">Inscrição Confirmada!</h1>
                 <p>Olá, <strong>${student.name}</strong>!</p>
-                <p>Seu pagamento foi aprovado e sua inscrição realizada com sucesso.</p>
+                <p>Agradecemos pela sua inscrição no Processo Seletivo da nossa ${turma ? turma.title : 'instituição'}! Para continuar sua inscrição, não se esqueça de ler com atenção o Manual do Candidato, o Formulário de Pré-Entrevista e o Termo de Inscrição que estarão disponíveis nos links abaixo.</p>
                 
                 <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 25px 0; text-align: center; border: 1px solid #eee;">
                     <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase;">Número de Inscrição</p>
                     <p style="margin: 5px 0 0 0; font-size: 2em; font-weight: bold; color: #00274c;">${matriculaID}</p>
                 </div>
 
+                <p>Agradecemos pela sua inscrição! Para continuar, não se esqueça de ler com atenção os documentos abaixo e seguir os próximos passos.</p>
+
                 ${linksHtml}
+
+                <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
+                    <h3 style="margin-top: 0; color: #004aad;">Próximos Passos Obrigatórios</h3>
+                    <p>Você deve agora <strong>agendar a data e horário</strong> da sua entrevista socioeconômica pelo seguinte link:</p>
+                    <p style="margin-bottom: 8px;">
+                        <a href="${turma?.documents[3].downloadLink}" target="_blank" style="color: #004aad; text-decoration: none; font-weight: bold;">
+                            Agendar Entrevista (Formulário de Pré-Entrevista) &rarr;
+                        </a>
+                    </p>
+                    <p style="font-size: 0.9em; margin-top: 15px;">
+                        <strong>Local da Entrevista:</strong><br>
+                        Faculdade de Economia Administração e Contabilidade<br>
+                        Av. Prof. Luciano Gualberto 908 - Butantã, São Paulo - SP, 05508-010
+                    </p>
+                </div>
                 
-                <p>Fique atento ao seu e-mail para informações sobre as entrevistas.</p>
+                <p style="font-size: 0.9em; color: #666;">
+                    *Ao agendar a entrevista e concluir sua inscrição, você concorda com as condições descritas no Termo de Inscrição.
+                </p>
                 <br/>
                 <p style="text-align: center; color: #888; font-size: 0.9em;">Equipe Cursinho FEA USP</p>
             </div>
         `,
-        textContent: `Inscrição confirmada! Matrícula: ${matriculaID}`
-    });
-  }
-
-  private async findOrCreateCustomer(data: CreatePaymentData) {
-    const cpfCnpj = data.cpf.replace(/\D/g, '');
-    
-    const { data: found } = await asaas.get('/customers', {
-        params: { cpfCnpj }
-    });
-
-    if (found.data && found.data.length > 0) {
-        return found.data[0].id;
+            textContent: `Inscrição confirmada! Nº: ${matriculaID}. Próximo passo: agende sua entrevista em ${turma?.documents[3].downloadLink}`
+        });
     }
 
-    const response = await asaas.post('/customers', {
-        name: data.name,
-        email: data.email,
-        cpfCnpj: cpfCnpj,
-        phone: data.phone,
-        mobilePhone: data.phone
-    });
+    private async findOrCreateCustomer(data: CreatePaymentData) {
+        const cpfCnpj = data.cpf.replace(/\D/g, '');
 
-    return response.data.id;
-  }
+        const { data: found } = await asaas.get('/customers', {
+            params: { cpfCnpj }
+        });
+
+        if (found.data && found.data.length > 0) {
+            return found.data[0].id;
+        }
+
+        const response = await asaas.post('/customers', {
+            name: data.name,
+            email: data.email,
+            cpfCnpj: cpfCnpj,
+            phone: data.phone,
+            mobilePhone: data.phone
+        });
+
+        return response.data.id;
+    }
 }
