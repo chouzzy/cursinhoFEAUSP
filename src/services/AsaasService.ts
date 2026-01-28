@@ -473,28 +473,35 @@ export class AsaasService {
 
                 ${linksHtml}
 
-                <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
-                    <h3 style="margin-top: 0; color: #004aad;">Próximos Passos Obrigatórios</h3>
-                    <p>Você deve agora <strong>agendar a data e horário</strong> da sua entrevista socioeconômica pelo seguinte link:</p>
-                    <p style="margin-bottom: 8px;">
-                        <a href="${turma?.documents[3].downloadLink}" target="_blank" style="color: #004aad; text-decoration: none; font-weight: bold;">
-                            Agendar Entrevista (Formulário de Pré-Entrevista) &rarr;
-                        </a>
+        ${(() => {
+            const entrevistaDoc = turma?.documents.find((doc: any) => doc.title.toLowerCase().includes('entrevista'));
+            if (entrevistaDoc) {
+                return `
+                    <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
+                        <h3 style="margin-top: 0; color: #004aad;">Próximos Passos Obrigatórios</h3>
+                        <p>Você deve agora <strong>agendar a data e horário</strong> da sua entrevista socioeconômica pelo seguinte link:</p>
+                        <p style="margin-bottom: 8px;">
+                            <a href="${entrevistaDoc.downloadLink}" target="_blank" style="color: #004aad; text-decoration: none; font-weight: bold;">
+                                Agendar Entrevista (Formulário de Pré-Entrevista) &rarr;
+                            </a>
+                        </p>
+                        <p style="font-size: 0.9em; margin-top: 15px;">
+                            <strong>Local da Entrevista:</strong><br>
+                            Faculdade de Economia Administração e Contabilidade<br>
+                            Av. Prof. Luciano Gualberto 908 - Butantã, São Paulo - SP, 05508-010
+                        </p>
+                    </div>
+                    <p style="font-size: 0.9em; color: #666;">
+                        *Ao agendar a entrevista e concluir sua inscrição, você concorda com as condições descritas no Termo de Inscrição.
                     </p>
-                    <p style="font-size: 0.9em; margin-top: 15px;">
-                        <strong>Local da Entrevista:</strong><br>
-                        Faculdade de Economia Administração e Contabilidade<br>
-                        Av. Prof. Luciano Gualberto 908 - Butantã, São Paulo - SP, 05508-010
-                    </p>
-                </div>
-                
-                <p style="font-size: 0.9em; color: #666;">
-                    *Ao agendar a entrevista e concluir sua inscrição, você concorda com as condições descritas no Termo de Inscrição.
-                </p>
-                <br/>
-                <p style="text-align: center; color: #888; font-size: 0.9em;">Equipe Cursinho FEA USP</p>
-            </div>
-        `,
+                `;
+            }
+            return '';
+        })()}
+        <br/>
+        <p style="text-align: center; color: #888; font-size: 0.9em;">Equipe Cursinho FEA USP</p>
+    </div>
+`,
             textContent: `Inscrição confirmada! Nº: ${matriculaID}. Próximo passo: agende sua entrevista em ${turma?.documents[3].downloadLink}`
         });
     }
