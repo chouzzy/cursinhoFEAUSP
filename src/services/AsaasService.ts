@@ -502,7 +502,7 @@ export class AsaasService {
         <p style="text-align: center; color: #888; font-size: 0.9em;">Equipe Cursinho FEA USP</p>
     </div>
 `,
-            textContent: `Inscrição confirmada! Nº: ${matriculaID}. Próximo passo: agende sua entrevista em ${turma?.documents[3].downloadLink}`
+            textContent: `Inscrição confirmada! Nº: ${matriculaID}`
         });
     }
 
