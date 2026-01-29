@@ -51,13 +51,11 @@ class ExcelListStudentsUseCase {
             return students
         }
 
-        // **NOVO: Buscar todas as turmas para mapear ID -> Nome**
-        // Isso evita fazer uma query por linha e deixa a exportação rápida
+        // Buscar todas as turmas para mapear ID -> Nome
         const allClasses = await prisma.schoolClass.findMany({
             select: { id: true, title: true }
         });
         
-        // Criamos um dicionário para acesso rápido: { 'id_123': 'Turma Manhã', ... }
         const classesMap: Record<string, string> = {};
         allClasses.forEach(cls => {
             classesMap[cls.id] = cls.title;
@@ -66,7 +64,6 @@ class ExcelListStudentsUseCase {
         // Create a new Excel workbook
         const workbook = new Workbook()
 
-        // Add a new worksheet to the workbook
         const worksheet: Worksheet = workbook.addWorksheet("Inscrições")
 
         // **ETAPA 1: CABEÇALHOS**
@@ -91,27 +88,42 @@ class ExcelListStudentsUseCase {
             "Termo de Inscrição",
             // Campos extras úteis
             "ID Matrícula",
-            "Turma" // Agora mostrará o Nome
+            "Turma",
+            "Data Criação (Aluno)"
         ])
+
+        // Função auxiliar para converter UTC para GMT-3 (Brasil)
+        const toBrazilTime = (dateInput: Date | string) => {
+            const date = new Date(dateInput);
+            // Subtrai 3 horas (3 * 60 * 60 * 1000 ms)
+            return new Date(date.getTime() - (3 * 60 * 60 * 1000));
+        };
 
         // **ETAPA 2: PREENCHIMENTO DOS DADOS**
         students.studentsList?.forEach(student => {
             if (student.purcharsedSubscriptions && student.purcharsedSubscriptions.length > 0) {
                 
-                student.purcharsedSubscriptions.forEach((sub: { paymentDate: string | number | Date; schoolClassID: string | number; valuePaid: any; txid: any; paymentStatus: any; codigoDesconto: any; paymentMethod: any; matriculaID: any }) => {
-                    // Formatações
-                    const paymentDateFormatted = sub.paymentDate ? format(new Date(sub.paymentDate), 'dd/MM/yyyy HH:mm') : '';
+                student.purcharsedSubscriptions.forEach((sub: { paymentDate: string | Date; schoolClassID: string | number; valuePaid: any; txid: any; paymentStatus: any; codigoDesconto: any; paymentMethod: any; matriculaID: any }) => {
+                    // Formatações com ajuste de Fuso Horário
+                    const paymentDateFormatted = sub.paymentDate 
+                        ? format(toBrazilTime(sub.paymentDate), 'dd/MM/yyyy HH:mm') 
+                        : '';
+                    
+                    const createdAtFormatted = student.createdAt
+                        ? format(toBrazilTime(student.createdAt), 'dd/MM/yyyy HH:mm')
+                        : '';
+
                     const aceiteCiencia = student.aceiteTermoCiencia ? "Sim" : "Não";
                     const aceiteInscricao = student.aceiteTermoInscricao ? "Sim" : "Não";
                     const emailResponsavel = student.emailResponsavel || "Não"; 
 
-                    // Busca o nome da turma no mapa, ou usa o ID se não encontrar
+                    // Busca o nome da turma no mapa
                     const className = classesMap[sub.schoolClassID] || sub.schoolClassID || 'Desconhecida';
 
                     // Criamos a linha
                     worksheet.addRow([
                         sub.valuePaid,               // Valor
-                        paymentDateFormatted,        // Data compra
+                        paymentDateFormatted,        // Data compra (CORRIGIDA)
                         sub.txid || '',              // Nº pedido (usamos txid)
                         student.email,               // Email
                         sub.paymentStatus,           // Estado de pagamento
@@ -129,17 +141,19 @@ class ExcelListStudentsUseCase {
                         aceiteCiencia,               // Termo de Consentimento
                         aceiteInscricao,             // Termo de Inscrição
                         sub.matriculaID || '',       // ID Matrícula
-                        className                    // Nome da Turma (ATUALIZADO)
+                        className,                   // Nome da Turma
+                        createdAtFormatted           // Data Criação (CORRIGIDA)
                     ])
                 })
             }
         })
 
-        // Ajuste de largura das colunas para leitura fácil
+        // Ajuste de largura das colunas
         worksheet.getColumn(4).width = 30;  // Email
         worksheet.getColumn(10).width = 30; // Nome
-        worksheet.getColumn(2).width = 20;  // Data
+        worksheet.getColumn(2).width = 20;  // Data Pagamento
         worksheet.getColumn(20).width = 30; // Turma
+        worksheet.getColumn(21).width = 20; // Data Criação
 
         const fileBuffer = await workbook.xlsx.writeBuffer()
 
