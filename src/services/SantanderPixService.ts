@@ -2,7 +2,7 @@ import { prisma } from "../prisma";
 import { santanderApiClient } from "../lib/santanderApiClient";
 import { randomBytes, randomUUID } from 'crypto';
 import { Students } from "@prisma/client";
-import { crc16ccitt } from 'crc'; 
+import { crc16ccitt } from 'crc'; // Usando a lib oficial de CRC
 
 type InscriptionData = Omit<Students, 'id' | 'createdAt' | 'purcharsedSubscriptions' | 'stripeCustomerID' | 'name' | 'emailResponsavel' | 'aceiteTermoCiencia' | 'aceiteTermoInscricao'> & {
   schoolClassID: string;
@@ -13,43 +13,67 @@ type InscriptionData = Omit<Students, 'id' | 'createdAt' | 'purcharsedSubscripti
   paymentMethod?: string;
 };
 
-const INSCRIPTION_PRICE_DEFAULT = 36.00
+const INSCRIPTION_PRICE_DEFAULT = 35.00; 
+
+// Remove acentos e caracteres especiais para garantir compatibilidade bancária
+function normalizeText(text: string): string {
+    return text
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+        .replace(/[^a-zA-Z0-9 ]/g, "")   // Remove símbolos não-alfanuméricos
+        .toUpperCase()
+        .trim();
+}
 
 function formatEMVField(id: string, value: string): string {
     const length = value.length.toString().padStart(2, '0');
-    if (length.length > 2) {
-        console.warn(`Valor do campo EMV (ID ${id}) muito longo: ${value.length}`);
-    }
     return `${id}${length}${value}`;
 }
 
-function buildEMVString(location: string, txid: string, valor: string, nomeRecebedor: string, cidadeRecebedor: string): string {
-    const f00 = formatEMVField("00", "01");
-    const f01 = formatEMVField("01", "12");
-    const f26_sub00 = formatEMVField("00", "br.gov.bcb.pix");
-    const f26_sub25 = formatEMVField("25", location);
-    const f26_value = f26_sub00 + f26_sub25;
-    const f26 = formatEMVField("26", f26_value);
-    const f52 = formatEMVField("52", "0000");
-    const f53 = formatEMVField("53", "986");
-    const f54 = formatEMVField("54", valor);
-    const f58 = formatEMVField("58", "BR");
-    const f59 = formatEMVField("59", nomeRecebedor.substring(0, 25));
-    const f60 = formatEMVField("60", cidadeRecebedor.substring(0, 15));
-    const f62_sub05 = formatEMVField("05", txid);
-    const f62 = formatEMVField("62", f62_sub05);
-    let payload = f00 + f01 + f26 + f52 + f53 + f54 + f58 + f59 + f60 + f62;
-    const payloadComCrcInfo = payload + "6304";
-    const crc = crc16ccitt(payloadComCrcInfo, 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
-    const f63 = "6304" + crc;
-    return payload + f63;
+// Função robusta para gerar o PIX Copia e Cola DINÂMICO (Baseado em URL/Location)
+// Padrão BR Code do Banco Central
+function generateDynamicEMV(location: string, nomeRecebedor: string, cidadeRecebedor: string): string {
+    // 1. Tratamento da URL (Remove protocolo https://)
+    const cleanLocation = location.replace(/^https?:\/\//, '');
+
+    // 2. Normalização de Textos (Limites rígidos do padrão EMV)
+    const nome = normalizeText(nomeRecebedor).substring(0, 25);
+    const cidade = normalizeText(cidadeRecebedor).substring(0, 15);
+
+    // 3. Montagem dos Campos
+    const f00 = formatEMVField("00", "01"); // Payload Format
+    const f01 = formatEMVField("01", "12"); // Point of Initiation (12 = Dinâmico)
+    
+    // Campo 26: Merchant Account Information
+    const gui = formatEMVField("00", "br.gov.bcb.pix");
+    const urlField = formatEMVField("25", cleanLocation);
+    const f26 = formatEMVField("26", gui + urlField);
+
+    const f52 = formatEMVField("52", "0000"); // Merchant Category Code
+    const f53 = formatEMVField("53", "986");  // Moeda (BRL)
+    const f58 = formatEMVField("58", "BR");   // País
+    const f59 = formatEMVField("59", nome);   // Nome Recebedor
+    const f60 = formatEMVField("60", cidade); // Cidade Recebedor
+    
+    // Campo 62: Additional Data (TxID)
+    // Em QR Dinâmico, o TxID já está atrelado à URL no banco, então usamos ***
+    // Isso evita conflitos de validação em alguns bancos
+    const f62 = formatEMVField("62", formatEMVField("05", "***"));
+
+    // 4. Montagem do Payload parcial (tudo exceto o CRC)
+    const payload = f00 + f01 + f26 + f52 + f53 + f58 + f59 + f60 + f62 + "6304";
+
+    // 5. Cálculo do CRC16
+    // Usamos a lib 'crc' para garantir precisão (polinômio 0x1021, init 0xFFFF)
+    const crc = crc16ccitt(payload).toString(16).toUpperCase().padStart(4, '0');
+
+    return payload + crc;
 }
 
 export class SantanderPixService {
 
   async createInscriptionWithPix(inscriptionData: any) { 
-    // Limpeza de dados
-    // ADICIONADO: 'cpf' na desestruturação para retirá-lo de studentModelData
+    // Removemos campos desnecessários antes de salvar
     const { 
       schoolClassID, 
       price, 
@@ -60,7 +84,7 @@ export class SantanderPixService {
       aceiteTermoCiencia,
       aceiteTermoInscricao,
       paymentMethod,
-      cpf, // <--- REMOVIDO DO SPREAD
+      cpf, // Removemos cpf bruto
       ...studentModelData 
     } = inscriptionData;
 
@@ -69,16 +93,14 @@ export class SantanderPixService {
     }
 
     const nomeCompleto = `${nome} ${sobrenome}`;
-    // Usamos o CPF que extraímos para sanitizar
     const sanitizedCpf = cpf.replace(/\D/g, '');
-    
-    // Busca informações da turma
+    let studentId: string;
+
     const schoolClass = await prisma.schoolClass.findUnique({
         where: { id: schoolClassID }
     });
     const nomeTurma = schoolClass?.title || 'Turma';
 
-    // Lógica de Desconto
     let finalPrice = INSCRIPTION_PRICE_DEFAULT;
     let couponCodeUsed: string | undefined = undefined;
 
@@ -93,21 +115,14 @@ export class SantanderPixService {
       }
     }
 
-    // 1. GERAÇÃO DE NOVO TXID
     const txid = `insc${randomBytes(14).toString('hex')}`; 
 
-    let studentId: string;
-
-    // 2. BUSCA DO ESTUDANTE
     let existingStudent = await prisma.students.findFirst({
         where: { cpf: sanitizedCpf }
     });
 
     if (existingStudent) {
         studentId = existingStudent.id;
-        console.log(`Estudante encontrado por CPF. ID: ${studentId}`);
-
-        // Verifica se já existe inscrição CONCLUÍDA para esta turma
         const completedSubscription = existingStudent.purcharsedSubscriptions.find(
             sub => sub.schoolClassID === schoolClassID && sub.paymentStatus === 'CONCLUIDA'
         );
@@ -115,21 +130,17 @@ export class SantanderPixService {
         if (completedSubscription) {
             throw new Error('Você já está inscrito e com o pagamento confirmado para esta turma.');
         }
-
-        console.log(`Criando nova intenção de pagamento (push) para o aluno existente...`);
         
         await prisma.students.update({
-            where: { id: studentId },
+            where: { id: existingStudent.id },
             data: {
-                ...studentModelData, // NÃO CONTÉM MAIS O CPF BRUTO
+                ...studentModelData, 
                 name: nomeCompleto,
                 email: inscriptionData.email,
                 emailResponsavel: emailResponsavel,
                 aceiteTermoCiencia: aceiteTermoCiencia,
                 aceiteTermoInscricao: aceiteTermoInscricao,
-                // Garantimos que o CPF no banco seja o sanitizado (embora já deva ser)
-                cpf: sanitizedCpf, 
-                
+                cpf: sanitizedCpf,
                 purcharsedSubscriptions: {
                     push: [{
                         schoolClassID: schoolClassID,
@@ -147,14 +158,11 @@ export class SantanderPixService {
         });
 
     } else {
-        // 3. CRIAR NOVO ESTUDANTE
-        console.log(`CPF não encontrado. Criando novo registro de estudante...`);
-        console.log('Dados do estudante:', studentModelData)
         const newInscription = await prisma.students.create({
           data: {
-            ...studentModelData, // NÃO CONTÉM MAIS O CPF BRUTO
+            ...studentModelData, 
             name: nomeCompleto, 
-            cpf: sanitizedCpf, // CPF Limpo
+            cpf: sanitizedCpf,
             email: inscriptionData.email,
             emailResponsavel: emailResponsavel,
             aceiteTermoCiencia: aceiteTermoCiencia,
@@ -176,35 +184,31 @@ export class SantanderPixService {
         studentId = newInscription.id;
     }
     
-    // --- GERAÇÃO DA COBRANÇA PIX ---
-    console.log(`Gerando cobrança PIX para txid: ${txid}`);
-    
+    // --- GERAÇÃO PIX ---
     const priceForPix = finalPrice.toFixed(2); 
 
     const cobData = {
       calendario: { expiracao: 3600 },
       devedor: {
         cpf: sanitizedCpf,
-        nome: nomeCompleto,
+        nome: normalizeText(nomeCompleto).substring(0, 200),
       },
       valor: { original: priceForPix },
       chave: process.env.SANTANDER_PIX_KEY!,
-      solicitacaoPagador: "Taxa de Inscrição Cursinho FEA USP",
+      solicitacaoPagador: "Inscricao Cursinho FEA USP",
     };
 
+    // 1. Cria cobrança no Santander
     const createResponse = await santanderApiClient.createCob(txid, cobData);
     
-    const nomeRecebedor = process.env.SANTANDER_RECEBEDOR_NOME || "CURSINHO FEA USP";
-    const cidadeRecebedor = process.env.SANTANDER_RECEBEDOR_CIDADE || "SAO PAULO";
-    
-    const pixCopiaECola = buildEMVString(
-      createResponse.location.replace('https://', ''),
-      createResponse.txid,
-      createResponse.valor.original,
-      nomeRecebedor,
-      cidadeRecebedor
+    // 2. Gera o Copia e Cola CORRETO (Dinâmico) usando a location
+    const pixCopiaECola = generateDynamicEMV(
+      createResponse.location, 
+      "ASSOC EDUC VISCONDE CAIRU", // Nome exato da conta bancária
+      "SAO PAULO"
     );
 
+    // 3. Atualiza o banco
     await prisma.students.update({
         where: { id: studentId },
         data: {
@@ -213,7 +217,7 @@ export class SantanderPixService {
                     where: { txid: txid },
                     data: {
                         pixCopiaECola: pixCopiaECola,
-                        pixQrCode: createResponse.location,
+                        pixQrCode: pixCopiaECola, // O QRCode usa o mesmo payload EMV
                     }
                 }
             }

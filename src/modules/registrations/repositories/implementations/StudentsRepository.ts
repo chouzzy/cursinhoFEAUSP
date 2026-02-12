@@ -35,124 +35,45 @@ class StudentsRepository implements IStudentsRepository {
                 page = 1
             }
 
-            let filteredStudents = await prisma.students.findMany({
-                where: {
-                    AND: [
-                        { id: id },
-                        { name: { contains: name } },
-                        { email: email },
-                        { cpf: cpf },
-                        {
-                            purcharsedSubscriptions: {
-                                some: {
-                                    schoolClassID: schoolClassID,
-                                    paymentStatus: paymentStatus,
-                                    paymentDate: {
-                                        gte: new Date(initDate),
-                                        lte: new Date(endDate)
-                                    }
+            // 1. Criamos a query de filtro (WHERE) separada para usar no Count e no FindMany
+            const whereQuery: any = {
+                AND: [
+                    { id: id },
+                    { name: { contains: name } },
+                    { email: email },
+                    { cpf: cpf },
+                    {
+                        purcharsedSubscriptions: {
+                            some: {
+                                schoolClassID: schoolClassID,
+                                paymentStatus: paymentStatus,
+                                paymentDate: {
+                                    gte: new Date(initDate),
+                                    lte: new Date(endDate)
                                 }
-                            },
+                            }
                         },
-                    ]
-                },
+                    },
+                ]
+            };
+
+            // 2. Conta o total REAL de documentos que batem com o filtro no banco inteiro
+            const totalCount = await prisma.students.count({
+                where: whereQuery
+            });
+
+            // 3. Busca apenas os alunos da página atual
+            let filteredStudents = await prisma.students.findMany({
+                where: whereQuery,
                 skip: (page - 1) * pageRange,
                 take: pageRange
-            })
-
-
-            // const studentsPerSchoolClass: Students[] = []
-            // filteredStudents.map(student => {
-
-            //     const check = student.purcharsedSubscriptions.map(sub => {
-
-
-            //         if (sub.paymentDate) {
-
-
-            //             if ((new Date(endDate) > sub.paymentDate) && (sub.paymentDate > new Date(initDate))) {
-
-            //                 return true
-            //             }
-
-            //             else {
-            //                 return false
-            //             }
-            //         }
-            //     })
-
-            //     if (check.includes(true)) {
-            //         studentsPerSchoolClass.push(student)
-            //     }
-            // })
-
-            // filteredStudents = studentsPerSchoolClass
-
-            // Filtro por turma
-
-            // if (schoolClassID) {
-            //     const studentsPerSchoolClass: Students[] = []
-
-
-            //     filteredStudents.map(student => {
-
-            //         const check = student.purcharsedSubscriptions.map(sub => {
-
-            //             if (sub.schoolClassID == schoolClassID) {
-            //                 if (!paymentStatus) {
-            //                     return true
-
-            //                 } else if (sub.paymentStatus == paymentStatus) {
-            //                     return true
-            //                 }
-            //             }
-            //             return false
-
-
-            //         })
-
-            //         if (check.includes(true)) {
-            //             studentsPerSchoolClass.push(student)
-            //         }
-
-            //     })
-
-
-            //     return {
-            //         isValid: true,
-            //         statusCode: 202,
-            //         studentsList: studentsPerSchoolClass,
-            //         totalDocuments: studentsPerSchoolClass.length
-            //     }
-            // }
-
-            //Filtro apenas por status de pagamento
-            // if (paymentStatus && !schoolClassID) {
-            //     const studentsPerPaymentStatus: Students[] = []
-
-            //     filteredStudents.map(student => {
-
-            //         student.purcharsedSubscriptions.map(sub => {
-
-            //             if (sub.paymentStatus == paymentStatus) {
-            //                 studentsPerPaymentStatus.push(student)
-            //             }
-            //         })
-            //     })
-
-            //     return {
-            //         isValid: true,
-            //         statusCode: 202,
-            //         studentsList: studentsPerPaymentStatus,
-            //         totalDocuments: studentsPerPaymentStatus.length
-            //     }
-            // }
+            });
 
             return {
                 isValid: true,
                 statusCode: 202,
                 studentsList: filteredStudents,
-                totalDocuments: filteredStudents.length
+                totalDocuments: totalCount // <-- CORREÇÃO: Agora passa o total real!
             }
 
         } catch (error: unknown) {
