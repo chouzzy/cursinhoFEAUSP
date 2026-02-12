@@ -69,6 +69,8 @@ class StudentsRepository implements IStudentsRepository {
                 take: pageRange
             });
 
+            // 4. Retorna os alunos filtrados e o total REAL de documentos que batem com o filtro
+
             return {
                 isValid: true,
                 statusCode: 202,
