@@ -58,7 +58,8 @@ export async function handleStudentCheckoutCompleted(event: Stripe.Event) {
         console.log(`[DEBUG 4.1] Incrementando contador da turma...`);
         turma = await prisma.schoolClass.update({
             where: { id: schoolClassID },
-            data: { registrationCounter: { increment: 1 } }
+            data: { registrationCounter: { increment: 1 } },
+            include: { documents: true } // <--- ADICIONADO PARA PUXAR OS LINKS
         });
         console.log(`[DEBUG 4.2] Turma atualizada. Contador: ${turma.registrationCounter}`);
 
@@ -72,7 +73,10 @@ export async function handleStudentCheckoutCompleted(event: Stripe.Event) {
         console.error(`[DEBUG ERROR MATRICULA] Falha ao gerar matrícula: ${err.message}`);
         if (!turma) {
              console.log(`[DEBUG 4.4] Tentando buscar turma sem update (fallback)...`);
-             turma = await prisma.schoolClass.findUnique({ where: { id: schoolClassID }});
+             turma = await prisma.schoolClass.findUnique({ 
+               where: { id: schoolClassID },
+               include: { documents: true } // <--- ADICIONADO PARA PUXAR OS LINKS
+             });
         }
     }
 
@@ -104,6 +108,7 @@ export async function handleStudentCheckoutCompleted(event: Stripe.Event) {
             linksHtml = `
               <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
                 <h3 style="margin-top: 0; color: #004aad;">Documentos Importantes</h3>
+                <p style="margin-bottom: 10px;">Por favor, acesse e leia os documentos abaixo:</p>
                 <ul style="padding-left: 20px;">
                   ${turma.documents.map((doc: any) => 
                     `<li style="margin-bottom: 8px;">
@@ -123,24 +128,40 @@ export async function handleStudentCheckoutCompleted(event: Stripe.Event) {
             toName: student.name,
             subject: 'Inscrição Confirmada - Cursinho FEA USP',
             htmlContent: `
-                <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto;">
-                    <h1 style="color: #00274c;">Inscrição Confirmada!</h1>
-                    <p>Olá, <strong>${student.name}</strong>!</p>
-                    <p>Seu pagamento via cartão foi aprovado e sua inscrição realizada com sucesso.</p>
+                <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 8px; background-color: #ffffff;">
+                    
+                    <div style="text-align: center; border-bottom: 2px solid #f4c430; padding-bottom: 15px; margin-bottom: 20px;">
+                        <h1 style="color: #00274c; margin: 0;">Inscrição Confirmada!</h1>
+                    </div>
+                    
+                    <p style="font-size: 16px;">Olá, <strong>${student.name}</strong>!</p>
+                    
+                    <p>Temos o prazer de confirmar que o seu pagamento foi recebido e sua inscrição no <strong>Cursinho FEA USP</strong> foi realizada com sucesso.</p>
                     
                     <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 25px 0; text-align: center; border: 1px solid #eee;">
-                        <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase;">Número de Pedido</p>
+                        <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 1px;">Número de Matrícula</p>
                         <p style="margin: 5px 0 0 0; font-size: 2em; font-weight: bold; color: #00274c;">${novaMatriculaID || 'Em processamento'}</p>
                     </div>
 
                     ${linksHtml}
                     
-                    <p>Fique atento ao seu e-mail para informações sobre as entrevistas.</p>
-                    <br/>
-                    <p>Atenciosamente,<br/><strong>Equipe Cursinho FEA USP</strong></p>
+                    <div style="margin-top: 30px;">
+                        <h3 style="color: #333;">Próximos Passos</h3>
+                        <p>Fique tranquilo(a)! Nossa equipe de seleção entrará em contato em breve.</p>
+                        <p>Fique atento ao seu <strong>e-mail</strong> e <strong>WhatsApp</strong> (caso tenha informado) para receber as datas das entrevistas e demais instruções.</p>
+                    </div>
+                    
+                    <br />
+                    <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+                    
+                    <p style="font-size: 0.9em; color: #888; text-align: center;">
+                        Atenciosamente,<br/>
+                        <strong>Equipe Cursinho FEA USP</strong><br/>
+                        <a href="https://cursinhofeausp.com.br" style="color: #004aad; text-decoration: none;">cursinhofeausp.com.br</a>
+                    </p>
                 </div>
             `,
-            textContent: `Inscrição confirmada! Matrícula: ${novaMatriculaID}`
+            textContent: `Inscrição confirmada! Matrícula: ${novaMatriculaID}. A equipe entrará em contato em breve. Acesse os documentos da turma pelo portal.`
         });
         console.log(`[DEBUG 8] E-mail enviado.`);
     } else {
