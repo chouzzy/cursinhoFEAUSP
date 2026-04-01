@@ -1,9 +1,10 @@
 import { Router, Request, Response } from "express";
 import { SantanderPixService } from "../services/SantanderPixService";
 import { TrackingService } from "../services/TrackingService";
-import { MailService } from "../services/MailService"; // Importe o MailService
+import { MailService } from "../services/MailService";
 import { prisma } from "../prisma";
 import { StripeInscriptionController } from "../controllers/StripeInscriptionController";
+import { ensureAuthenticated } from "../modules/registrations/middleware/ensureAuthenticate";
 
 const inscriptionsRoutes = Router();
 
@@ -148,5 +149,135 @@ inscriptionsRoutes.post('/test-email', async (req: Request, res: Response) => {
 });
 
 inscriptionsRoutes.post('/checkout', stripeInscriptionController.handle);
+
+/**
+ * Confirmação manual de pagamento — uso exclusivo do painel admin.
+ * Roda o mesmo fluxo do webhook: gera matrícula e envia e-mail de confirmação.
+ */
+inscriptionsRoutes.post('/:studentId/confirm', ensureAuthenticated, async (req: Request, res: Response) => {
+    const { studentId } = req.params;
+    const { txid } = req.body;
+
+    if (!txid) {
+        return res.status(400).json({ error: 'txid é obrigatório.' });
+    }
+
+    try {
+        const student = await prisma.students.findUnique({ where: { id: studentId } });
+        if (!student) {
+            return res.status(404).json({ error: 'Aluno não encontrado.' });
+        }
+
+        const subscription = student.purcharsedSubscriptions.find(s => s.txid === txid);
+        if (!subscription) {
+            return res.status(404).json({ error: 'Inscrição com este txid não encontrada.' });
+        }
+
+        const isConcluida = subscription.paymentStatus === 'CONCLUIDA' || subscription.paymentStatus === 'CONCLUÍDA';
+        if (isConcluida && subscription.matriculaID) {
+            return res.status(400).json({ error: 'Esta inscrição já foi confirmada.', matriculaID: subscription.matriculaID });
+        }
+
+        // Gera matrícula (só incrementa o contador se ainda não tiver ID)
+        let matriculaID = subscription.matriculaID;
+        let documents: { title: string; downloadLink: string }[] = [];
+
+        if (!matriculaID) {
+            const turma = await prisma.schoolClass.update({
+                where: { id: subscription.schoolClassID },
+                data: { registrationCounter: { increment: 1 } },
+                include: { documents: true },
+            });
+            const ano = new Date().getFullYear();
+            const codigoTurma = turma.code || 'GERAL';
+            const sequencial = turma.registrationCounter.toString().padStart(4, '0');
+            matriculaID = `${ano}${codigoTurma}${sequencial}`;
+            documents = turma.documents as { title: string; downloadLink: string }[];
+        } else {
+            const turma = await prisma.schoolClass.findUnique({
+                where: { id: subscription.schoolClassID },
+                include: { documents: true },
+            });
+            documents = (turma?.documents ?? []) as { title: string; downloadLink: string }[];
+        }
+
+        // Atualiza inscrição no banco
+        await prisma.students.update({
+            where: { id: student.id },
+            data: {
+                purcharsedSubscriptions: {
+                    updateMany: {
+                        where: { txid },
+                        data: {
+                            paymentStatus: 'CONCLUIDA',
+                            pixStatus: 'CONCLUIDA',
+                            matriculaID,
+                            pixDate: new Date().toISOString(),
+                        },
+                    },
+                },
+            },
+        });
+
+        // Envia e-mail de confirmação
+        let linksHtml = '';
+        if (documents.length > 0) {
+            linksHtml = `
+              <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
+                <h3 style="margin-top: 0; color: #004aad;">Documentos Importantes</h3>
+                <p style="margin-bottom: 10px;">Por favor, acesse e leia os documentos abaixo:</p>
+                <ul style="padding-left: 20px;">
+                  ${documents.map(doc =>
+                    `<li style="margin-bottom: 8px;">
+                       <a href="${doc.downloadLink}" target="_blank" style="color: #004aad; text-decoration: none; font-weight: bold; font-size: 16px;">
+                         ${doc.title}
+                         <span style="font-size: 12px; color: #666;">(Clique para acessar)</span>
+                       </a>
+                     </li>`
+                  ).join('')}
+                </ul>
+              </div>`;
+        }
+
+        const mailService = new MailService();
+        await mailService.sendEmail({
+            toEmail: student.email,
+            toName: student.name,
+            subject: 'Inscrição Confirmada - Cursinho FEA USP',
+            htmlContent: `
+                <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 8px; background-color: #ffffff;">
+                    <div style="text-align: center; border-bottom: 2px solid #f4c430; padding-bottom: 15px; margin-bottom: 20px;">
+                        <h1 style="color: #00274c; margin: 0;">Inscrição Confirmada!</h1>
+                    </div>
+                    <p style="font-size: 16px;">Olá, <strong>${student.name}</strong>!</p>
+                    <p>Temos o prazer de confirmar que o seu pagamento foi recebido e sua inscrição no <strong>Cursinho FEA USP</strong> foi realizada com sucesso.</p>
+                    <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 25px 0; text-align: center; border: 1px solid #eee;">
+                        <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 1px;">Número de Matrícula</p>
+                        <p style="margin: 5px 0 0 0; font-size: 2em; font-weight: bold; color: #00274c;">${matriculaID}</p>
+                    </div>
+                    ${linksHtml}
+                    <div style="margin-top: 30px;">
+                        <h3 style="color: #333;">Próximos Passos</h3>
+                        <p>Fique tranquilo(a)! Nossa equipe de seleção entrará em contato em breve.</p>
+                        <p>Fique atento ao seu <strong>e-mail</strong> e <strong>WhatsApp</strong> para receber as datas das entrevistas e demais instruções.</p>
+                    </div>
+                    <br />
+                    <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+                    <p style="font-size: 0.9em; color: #888; text-align: center;">
+                        Atenciosamente,<br/>
+                        <strong>Equipe Cursinho FEA USP</strong><br/>
+                        <a href="https://cursinhofeausp.com.br" style="color: #004aad; text-decoration: none;">cursinhofeausp.com.br</a>
+                    </p>
+                </div>`,
+            textContent: `Olá ${student.name}, sua inscrição foi confirmada! Matrícula: ${matriculaID}. Fique atento ao e-mail e WhatsApp para próximas etapas.`,
+        });
+
+        return res.status(200).json({ success: true, matriculaID });
+
+    } catch (error: any) {
+        console.error('Erro ao confirmar inscrição manualmente:', error.message);
+        return res.status(500).json({ error: 'Erro interno ao confirmar inscrição.' });
+    }
+});
 
 export { inscriptionsRoutes };

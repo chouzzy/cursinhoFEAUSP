@@ -188,7 +188,7 @@ export class SantanderPixService {
     const priceForPix = finalPrice.toFixed(2); 
 
     const cobData = {
-      calendario: { expiracao: 3600 },
+      calendario: { expiracao: 86400 },
       devedor: {
         cpf: sanitizedCpf,
         nome: normalizeText(nomeCompleto).substring(0, 200),
