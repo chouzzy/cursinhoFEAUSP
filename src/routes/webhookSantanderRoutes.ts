@@ -153,6 +153,17 @@ webhookSantanderRoutes.post('/santander', async (req: Request, res: Response) =>
                         <h3 style="color: #333;">Próximos Passos</h3>
                         <p>Fique tranquilo(a)! Nossa equipe de seleção entrará em contato em breve.</p>
                         <p>Fique atento ao seu <strong>e-mail</strong> e <strong>WhatsApp</strong> (caso tenha informado) para receber as datas das entrevistas e demais instruções.</p>
+                        <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
+                            <p style="margin: 0; font-size: 0.9em;">
+                                <strong>Local de Entrevista:</strong><br><br>
+                                <strong>Entrevistas dia 04/04:</strong><br>
+                                Edifício Prof. Antonio Candido (Letras) - FFLCH-USP<br>
+                                Av. Prof. Luciano Gualberto, 298-460 - Butantã, São Paulo - SP, 05508-010<br><br>
+                                <strong>Entrevistas dias 11/04:</strong><br>
+                                Faculdade de Economia Administração e Contabilidade<br>
+                                Av. Prof. Luciano Gualberto 908 - Butantã, São Paulo - SP, 05508-010
+                            </p>
+                        </div>
                     </div>
 
                     <br />
