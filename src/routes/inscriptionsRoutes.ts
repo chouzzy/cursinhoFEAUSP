@@ -5,6 +5,7 @@ import { MailService } from "../services/MailService";
 import { prisma } from "../prisma";
 import { StripeInscriptionController } from "../controllers/StripeInscriptionController";
 import { ensureAuthenticated } from "../modules/registrations/middleware/ensureAuthenticate";
+import { getLocationHtml } from "../utils/emailUtils";
 
 const inscriptionsRoutes = Router();
 
@@ -181,6 +182,7 @@ inscriptionsRoutes.post('/:studentId/confirm', ensureAuthenticated, async (req: 
         // Gera matrícula (só incrementa o contador se ainda não tiver ID)
         let matriculaID = subscription.matriculaID;
         let documents: { title: string; downloadLink: string }[] = [];
+        let turmaInfo: { code?: string; title?: string } | null = null;
 
         if (!matriculaID) {
             const turma = await prisma.schoolClass.update({
@@ -193,12 +195,14 @@ inscriptionsRoutes.post('/:studentId/confirm', ensureAuthenticated, async (req: 
             const sequencial = turma.registrationCounter.toString().padStart(4, '0');
             matriculaID = `${ano}${codigoTurma}${sequencial}`;
             documents = turma.documents as { title: string; downloadLink: string }[];
+            turmaInfo = { code: turma.code ?? undefined, title: turma.title ?? undefined };
         } else {
             const turma = await prisma.schoolClass.findUnique({
                 where: { id: subscription.schoolClassID },
                 include: { documents: true },
             });
             documents = (turma?.documents ?? []) as { title: string; downloadLink: string }[];
+            turmaInfo = turma ? { code: turma.code ?? undefined, title: turma.title ?? undefined } : null;
         }
 
         // Atualiza inscrição no banco
@@ -250,7 +254,7 @@ inscriptionsRoutes.post('/:studentId/confirm', ensureAuthenticated, async (req: 
                         <h1 style="color: #00274c; margin: 0;">Inscrição Confirmada!</h1>
                     </div>
                     <p style="font-size: 16px;">Olá, <strong>${student.name}</strong>!</p>
-                    <p>Temos o prazer de confirmar que o seu pagamento foi recebido e sua inscrição no <strong>Cursinho FEA USP</strong> foi realizada com sucesso.</p>
+                    <p>Agradecemos pela sua inscrição no Processo Seletivo da nossa <strong>${turmaInfo?.title || 'Cursinho FEA USP'}</strong>! Para continuar sua inscrição, não se esqueça de ler com atenção o Manual do Candidato, o Formulário de Pré-Entrevista e o Termo de Inscrição que estarão disponíveis nos links abaixo.</p>
                     <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 25px 0; text-align: center; border: 1px solid #eee;">
                         <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 1px;">Número de Matrícula</p>
                         <p style="margin: 5px 0 0 0; font-size: 2em; font-weight: bold; color: #00274c;">${matriculaID}</p>
@@ -263,12 +267,7 @@ inscriptionsRoutes.post('/:studentId/confirm', ensureAuthenticated, async (req: 
                         <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
                             <p style="margin: 0; font-size: 0.9em;">
                                 <strong>Local de Entrevista:</strong><br><br>
-                                <strong>Entrevistas dia 04/04:</strong><br>
-                                Edifício Prof. Antonio Candido (Letras) - FFLCH-USP<br>
-                                Av. Prof. Luciano Gualberto, 298-460 - Butantã, São Paulo - SP, 05508-010<br><br>
-                                <strong>Entrevistas dias 11/04:</strong><br>
-                                Faculdade de Economia Administração e Contabilidade<br>
-                                Av. Prof. Luciano Gualberto 908 - Butantã, São Paulo - SP, 05508-010
+                                ${getLocationHtml(turmaInfo)}
                             </p>
                         </div>
                     </div>

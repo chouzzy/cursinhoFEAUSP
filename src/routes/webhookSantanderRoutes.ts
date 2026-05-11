@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../prisma";
-import { MailService } from "../services/MailService"; 
+import { MailService } from "../services/MailService";
+import { getLocationHtml } from "../utils/emailUtils";
 
 interface SantanderPixTransaction {
   endToEndId: string;
@@ -140,7 +141,7 @@ webhookSantanderRoutes.post('/santander', async (req: Request, res: Response) =>
 
                     <p style="font-size: 16px;">Olá, <strong>${studentWithSubscription.name}</strong>!</p>
 
-                    <p>Temos o prazer de confirmar que o seu pagamento foi recebido e sua inscrição no <strong>Cursinho FEA USP</strong> foi realizada com sucesso.</p>
+                    <p>Agradecemos pela sua inscrição no Processo Seletivo da nossa <strong>${turma?.title || 'Cursinho FEA USP'}</strong>! Para continuar sua inscrição, não se esqueça de ler com atenção o Manual do Candidato, o Formulário de Pré-Entrevista e o Termo de Inscrição que estarão disponíveis nos links abaixo.</p>
 
                     <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 25px 0; text-align: center; border: 1px solid #eee;">
                         <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 1px;">Número de Matrícula</p>
@@ -156,12 +157,7 @@ webhookSantanderRoutes.post('/santander', async (req: Request, res: Response) =>
                         <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
                             <p style="margin: 0; font-size: 0.9em;">
                                 <strong>Local de Entrevista:</strong><br><br>
-                                <strong>Entrevistas dia 04/04:</strong><br>
-                                Edifício Prof. Antonio Candido (Letras) - FFLCH-USP<br>
-                                Av. Prof. Luciano Gualberto, 298-460 - Butantã, São Paulo - SP, 05508-010<br><br>
-                                <strong>Entrevistas dias 11/04:</strong><br>
-                                Faculdade de Economia Administração e Contabilidade<br>
-                                Av. Prof. Luciano Gualberto 908 - Butantã, São Paulo - SP, 05508-010
+                                ${getLocationHtml(turma)}
                             </p>
                         </div>
                     </div>

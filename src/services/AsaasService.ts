@@ -3,6 +3,7 @@ import { prisma } from "../prisma";
 import { randomUUID } from 'crypto';
 import { MailService } from "./MailService";
 import jwt from 'jsonwebtoken';
+import { getLocationHtml } from "../utils/emailUtils";
 
 const mailService = new MailService();
 
@@ -487,12 +488,7 @@ export class AsaasService {
                         </p>
                         <p style="font-size: 0.9em; margin-top: 15px;">
                             <strong>Local de Entrevista:</strong><br><br>
-                            <strong>Entrevistas dia 04/04:</strong><br>
-                            Edifício Prof. Antonio Candido (Letras) - FFLCH-USP<br>
-                            Av. Prof. Luciano Gualberto, 298-460 - Butantã, São Paulo - SP, 05508-010<br><br>
-                            <strong>Entrevistas dias 11/04:</strong><br>
-                            Faculdade de Economia Administração e Contabilidade<br>
-                            Av. Prof. Luciano Gualberto 908 - Butantã, São Paulo - SP, 05508-010
+                            ${getLocationHtml(turma)}
                         </p>
                     </div>
                     <p style="font-size: 0.9em; color: #666;">
