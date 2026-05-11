@@ -125,10 +125,10 @@ class StudentsRepository implements IStudentsRepository {
             }
 
             // CHECA SE O ESTUDANTE EXISTE NO BANCO DE DADOS
-            const { name, cpf, rg, purcharsedSubscriptions } = studentData
+            const { name, cpf, purcharsedSubscriptions } = studentData
             const { valuePaid } = purcharsedSubscriptions
 
-            const searchedStudent = await getStudentByCPForRG(cpf, rg)
+            const searchedStudent = await getStudentByCPForRG(cpf)
 
 
 
@@ -216,7 +216,7 @@ class StudentsRepository implements IStudentsRepository {
 
         try {
 
-            const { purcharsedSubscriptions, cpf, rg } = studentData
+            const { purcharsedSubscriptions, cpf } = studentData
             const { schoolClassID, paymentMethod, currency } = purcharsedSubscriptions
 
             // CHECA SE A TURMA EXISTE
@@ -235,13 +235,12 @@ class StudentsRepository implements IStudentsRepository {
             const stripeCustomerID = await getStripeStudentCustomerID(studentData)
 
             // CHECA SE INSCRIÇÃO EXISTE NO BANCO DE DADOS
-            const searchedStudent = await getStudent(cpf, rg)
+            const searchedStudent = await getStudent(cpf)
 
             const stripeSubscriptions = new StripeSubscriptionsManager()
             const stripeResponse = await stripeSubscriptions.createStudentPaymentIntent({
                 stripeCustomerID,
                 cpf,
-                rg,
                 searchedSchoolClass,
                 paymentMethod,
                 currency

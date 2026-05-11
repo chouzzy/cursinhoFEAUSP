@@ -77,7 +77,6 @@ class ExcelListStudentsUseCase {
             "Email responsável (se menor)",
             "Telefone",
             "CPF",
-            "RG",
             "Termo de Consentimento",
             "Termo de Inscrição",
             // Campos extras úteis
@@ -158,7 +157,6 @@ class ExcelListStudentsUseCase {
                         emailResponsavel,            // Email responsável
                         student.phoneNumber,         // Telefone
                         student.cpf,                 // CPF
-                        student.rg,                  // RG
                         aceiteCiencia,               // Termo de Consentimento
                         aceiteInscricao,             // Termo de Inscrição
                         sub.matriculaID || '',       // ID Matrícula

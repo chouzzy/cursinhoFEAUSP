@@ -11,19 +11,14 @@ class CreateStudentUseCase {
 
     async execute(studentData: CreateStudentRequestProps): Promise<validationResponse> {
 
-        const {cpf, rg} = studentData
+        const { cpf } = studentData
 
-        // validação que o yup não consegue fazer (um ou outro)
-        if (!cpf && !rg) { 
+        if (!cpf) {
             return ({
                 isValid: false,
                 statusCode: 403,
-                errorMessage: 'O CPF ou o RG são obrigatórios.',
+                errorMessage: 'O CPF é obrigatório.',
             })
-        }
-
-        if (!studentData.rg) {
-            studentData.ufrg = "NDA"
         }
 
         const bodyValidation = await checkBody(studentData)
