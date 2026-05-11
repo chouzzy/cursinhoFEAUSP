@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../prisma";
-import { MailService } from "../services/MailService"; 
+import { MailService } from "../services/MailService";
+import { getLocationHtml } from "../utils/emailUtils";
 
 interface SantanderPixTransaction {
   endToEndId: string;
@@ -156,12 +157,7 @@ webhookSantanderRoutes.post('/santander', async (req: Request, res: Response) =>
                         <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
                             <p style="margin: 0; font-size: 0.9em;">
                                 <strong>Local de Entrevista:</strong><br><br>
-                                <strong>Entrevistas dia 04/04:</strong><br>
-                                Edifício Prof. Antonio Candido (Letras) - FFLCH-USP<br>
-                                Av. Prof. Luciano Gualberto, 298-460 - Butantã, São Paulo - SP, 05508-010<br><br>
-                                <strong>Entrevistas dias 11/04:</strong><br>
-                                Faculdade de Economia Administração e Contabilidade<br>
-                                Av. Prof. Luciano Gualberto 908 - Butantã, São Paulo - SP, 05508-010
+                                ${getLocationHtml(turma)}
                             </p>
                         </div>
                     </div>
