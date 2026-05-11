@@ -11,10 +11,6 @@ class CreateStudentUseCase {
 
     async execute(studentData: CreatePixStudentRequestProps): Promise<validationResponse> {
 
-        if (!studentData.rg) {
-            studentData.ufrg = "Não informado"
-        }
-
         const bodyValidation = await checkBody(studentData)
 
         if (bodyValidation.isValid === false) {

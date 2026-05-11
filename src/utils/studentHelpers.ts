@@ -90,17 +90,12 @@ async function checkIfPixIsExpired(searchedStudent: any, studentData: CreatePixS
     }
 }
 
-async function getStudentByCPForRG(cpf: string, rg: string | null) {
+async function getStudentByCPForRG(cpf: string) {
 
     try {
 
         const searchedStudent = await prisma.students.findFirst({
-            where: {
-                OR: [
-                    { cpf: cpf },
-                    { rg: rg }
-                ]
-            }
+            where: { cpf: cpf }
         })
 
         return searchedStudent
@@ -188,8 +183,7 @@ async function createStudentPix(studentData: CreatePixStudentRequestProps, pixDa
                 zipCode: studentData.zipCode,
 
                 cpf: studentData.cpf,
-                rg: studentData.rg,
-                ufrg: studentData.ufrg,
+                ufrg: 'NDA',
                 selfDeclaration: studentData.selfDeclaration,
                 oldSchool: studentData.oldSchool,
                 oldSchoolAdress: studentData.oldSchoolAdress,
@@ -290,18 +284,12 @@ async function checkSchoolClassExists(schoolClassID: SchoolClass["id"]) {
 
 }
 
-async function getStudent(cpf: Students["cpf"], rg?: Students["rg"]) {
-
+async function getStudent(cpf: Students["cpf"]) {
 
     try {
 
         const searchedStudent = await prisma.students.findFirst({
-            where: {
-                OR: [
-                    { cpf: cpf },
-                    { rg: rg }
-                ]
-            }
+            where: { cpf: cpf }
         })
 
         return searchedStudent
@@ -475,8 +463,7 @@ async function createStudent(studentData: CreateStudentRequestProps, stripeCusto
                 zipCode: studentData.zipCode,
 
                 cpf: studentData.cpf,
-                rg: studentData.rg,
-                ufrg: studentData.ufrg,
+                ufrg: 'NDA',
                 selfDeclaration: studentData.selfDeclaration,
                 oldSchool: studentData.oldSchool,
                 oldSchoolAdress: studentData.oldSchoolAdress,

@@ -25,8 +25,6 @@ interface CreatePixStudentRequestProps {
     aceiteTermoInscricao: Students["aceiteTermoInscricao"],
 
     cpf: Students["cpf"],
-    rg: Students["rg"],
-    ufrg: Students["ufrg"],
     selfDeclaration: Students["selfDeclaration"],
     oldSchool: Students["oldSchool"],
     oldSchoolAdress: Students["oldSchoolAdress"],

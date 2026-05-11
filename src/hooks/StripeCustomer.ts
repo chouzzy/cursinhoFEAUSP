@@ -443,7 +443,7 @@ class StripeCustomer {
 
         try {
 
-            let { cpf, rg } = customerData
+            let { cpf } = customerData
 
             const customer = await stripe.customers.create({
                 description: `Customer criado por awer na data: ${(new Date()).toLocaleDateString('pt-BR')}`,
@@ -457,7 +457,6 @@ class StripeCustomer {
                 phone: customerData.phoneNumber,
                 metadata: {
                     cpf: cpf,
-                    rg: rg ?? 'NDA',
                     cnpj: 'NDA'
                 }
             });

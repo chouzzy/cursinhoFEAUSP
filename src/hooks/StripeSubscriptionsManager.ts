@@ -23,7 +23,6 @@ interface StudentSubscriptionProps {
     stripeCustomerID: string,
 
     cpf: Students["cpf"],
-    rg?: Students["rg"],
 
     searchedSchoolClass: SchoolClass
     paymentMethod: string
@@ -161,7 +160,7 @@ class StripeSubscriptionsManager {
 
     }
 
-    async createStudentPaymentIntent({ stripeCustomerID, cpf, rg, searchedSchoolClass, paymentMethod, currency }: StudentSubscriptionProps): Promise<validationResponse> {
+    async createStudentPaymentIntent({ stripeCustomerID, cpf, searchedSchoolClass, paymentMethod, currency }: StudentSubscriptionProps): Promise<validationResponse> {
 
         try {
 
@@ -188,7 +187,6 @@ class StripeSubscriptionsManager {
                 metadata: {
                     subscriptionType: 'Subscription',
                     cpf: cpf,
-                    rg: rg ?? 'NDA',
                     stripeCustomerID: stripeCustomerID,
                     schoolClassID: id
                 },
