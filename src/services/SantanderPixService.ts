@@ -110,7 +110,9 @@ export class SantanderPixService {
       });
       if (coupon) {
         finalPrice = INSCRIPTION_PRICE_DEFAULT - coupon.discountValue;
-        if (finalPrice < 0) finalPrice = 0; 
+        if (finalPrice <= 0) {
+          throw new Error('COUPON_EXCEEDS_PRICE');
+        }
         couponCodeUsed = coupon.code;
       }
     }

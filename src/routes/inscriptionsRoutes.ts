@@ -43,6 +43,13 @@ inscriptionsRoutes.post('/', async (req: Request, res: Response) => {
             });
         }
 
+        if (error.message === 'COUPON_EXCEEDS_PRICE') {
+            return res.status(400).json({
+                error: 'Cupom Inválido',
+                details: 'O valor da inscrição não pode ser menor do que o valor do cupom.'
+            });
+        }
+
         // 2. Erros vindos da API do Santander (Axios)
         if (error.response) {
             // Log para debug do erro real do Santander
