@@ -62,9 +62,10 @@ class StudentsRepository implements IStudentsRepository {
                 where: whereQuery
             });
 
-            // 3. Busca apenas os alunos da página atual
+            // 3. Busca apenas os alunos da página atual (mais recentes primeiro)
             let filteredStudents = await prisma.students.findMany({
                 where: whereQuery,
+                orderBy: { createdAt: 'desc' },
                 skip: (page - 1) * pageRange,
                 take: pageRange
             });
