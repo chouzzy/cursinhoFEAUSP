@@ -162,8 +162,9 @@ export class SantanderPixService {
     } else {
         const newInscription = await prisma.students.create({
           data: {
-            ...studentModelData, 
-            name: nomeCompleto, 
+            ...studentModelData,
+            ufrg: 'NDA',
+            name: nomeCompleto,
             cpf: sanitizedCpf,
             email: inscriptionData.email,
             emailResponsavel: emailResponsavel,
