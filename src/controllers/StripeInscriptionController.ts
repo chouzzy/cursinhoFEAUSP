@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { StripeInscriptionService } from "../services/StripeInscriptionService";
 import { AsaasService } from "../services/AsaasService"; // Importe o serviço do Asaas
+import { isValidPhone, PHONE_ERROR_MESSAGE } from "../utils/phone";
 
 export class StripeInscriptionController {
   async handle(req: Request, res: Response) {
@@ -8,6 +9,10 @@ export class StripeInscriptionController {
 
     if (!inscriptionData) {
       return res.status(400).json({ error: "Dados de inscrição obrigatórios." });
+    }
+
+    if (!isValidPhone(inscriptionData.phoneNumber)) {
+      return res.status(400).json({ error: PHONE_ERROR_MESSAGE });
     }
 
     const PAYMENT_PROVIDER = process.env.PAYMENT_PROVIDER || 'stripe';

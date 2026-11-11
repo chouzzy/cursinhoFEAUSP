@@ -64,7 +64,7 @@ class ExcelListStudentsUseCase {
         worksheet.addRow([
             "Valor",
             "Data compra",
-            "Nº pedido",
+            "ID Matrícula",
             "Email",
             "Estado de pagamento",
             "Cupom de Desconto",
@@ -80,7 +80,7 @@ class ExcelListStudentsUseCase {
             "Termo de Consentimento",
             "Termo de Inscrição",
             // Campos extras úteis
-            "ID Matrícula",
+            "Nº pedido",
             "Turma",
             "Data Criação (Aluno)"
         ])
