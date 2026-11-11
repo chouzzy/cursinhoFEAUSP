@@ -466,7 +466,7 @@ export class AsaasService {
                 <p>Agradecemos pela sua inscrição no Processo Seletivo da nossa ${turma ? turma.title : 'instituição'}! Para continuar sua inscrição, não se esqueça de ler com atenção o Manual do Candidato, o Formulário de Pré-Entrevista e o Termo de Inscrição que estarão disponíveis nos links abaixo.</p>
                 
                 <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 25px 0; text-align: center; border: 1px solid #eee;">
-                    <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase;">Número de Inscrição</p>
+                    <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase;">Número do pedido</p>
                     <p style="margin: 5px 0 0 0; font-size: 2em; font-weight: bold; color: #00274c;">${matriculaID}</p>
                 </div>
 
@@ -502,7 +502,7 @@ export class AsaasService {
         <p style="text-align: center; color: #888; font-size: 0.9em;">Equipe Cursinho FEA USP</p>
     </div>
 `,
-            textContent: `Inscrição confirmada! Nº: ${matriculaID}`
+            textContent: `Inscrição confirmada! Número do pedido: ${matriculaID}`
         });
     }
 

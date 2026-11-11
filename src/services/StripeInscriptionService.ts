@@ -1,3 +1,4 @@
+import { anoDaTurma } from "../utils/matriculaYear";
 import { prisma } from "../prisma";
 import { randomUUID } from 'crypto';
 import { Students } from "@prisma/client";
@@ -170,7 +171,7 @@ export class StripeInscriptionService {
                 where: { id: schoolClassID },
                 data: { registrationCounter: { increment: 1 } }
             });
-            const ano = new Date().getFullYear();
+            const ano = anoDaTurma(updatedTurma.title);
             const codigoTurma = updatedTurma.code || 'GERAL';
             const sequencial = updatedTurma.registrationCounter.toString().padStart(4, '0');
             novaMatriculaID = `${ano}${codigoTurma}${sequencial}`;
@@ -232,7 +233,7 @@ export class StripeInscriptionService {
                         <p>Temos o prazer de confirmar que a sua inscrição no <strong>Cursinho FEA USP</strong> foi realizada com sucesso (Inscrição Isenta/Gratuita).</p>
                         
                         <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 25px 0; text-align: center; border: 1px solid #eee;">
-                            <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 1px;">Número de Matrícula</p>
+                            <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 1px;">Número do pedido</p>
                             <p style="margin: 5px 0 0 0; font-size: 2em; font-weight: bold; color: #00274c;">${novaMatriculaID || 'Em processamento'}</p>
                         </div>
 
@@ -254,7 +255,7 @@ export class StripeInscriptionService {
                         </p>
                     </div>
                 `,
-                textContent: `Inscrição confirmada! Matrícula: ${novaMatriculaID}. A equipe entrará em contato em breve. Acesse os documentos da turma pelo portal.`
+                textContent: `Inscrição confirmada! Número do pedido: ${novaMatriculaID}. A equipe entrará em contato em breve. Acesse os documentos da turma pelo portal.`
             });
         }
 

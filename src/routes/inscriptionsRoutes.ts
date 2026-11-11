@@ -1,3 +1,5 @@
+import { isValidPhone, PHONE_ERROR_MESSAGE } from "../utils/phone";
+import { anoDaTurma } from "../utils/matriculaYear";
 import { Router, Request, Response } from "express";
 import { SantanderPixService } from "../services/SantanderPixService";
 import { TrackingService } from "../services/TrackingService";
@@ -28,6 +30,10 @@ inscriptionsRoutes.post('/', async (req: Request, res: Response) => {
 
         if (!inscriptionData || Object.keys(inscriptionData).length === 0) {
             return res.status(400).json({ error: 'Corpo da requisição vazio. Nenhum dado de inscrição foi enviado.' });
+        }
+
+        if (!isValidPhone(inscriptionData.phoneNumber)) {
+            return res.status(400).json({ error: PHONE_ERROR_MESSAGE });
         }
 
         const pixResponse = await santanderPixService.createInscriptionWithPix(inscriptionData);
@@ -197,7 +203,7 @@ inscriptionsRoutes.post('/:studentId/confirm', ensureAuthenticated, async (req: 
                 data: { registrationCounter: { increment: 1 } },
                 include: { documents: true },
             });
-            const ano = new Date().getFullYear();
+            const ano = anoDaTurma(turma.title);
             const codigoTurma = turma.code || 'GERAL';
             const sequencial = turma.registrationCounter.toString().padStart(4, '0');
             matriculaID = `${ano}${codigoTurma}${sequencial}`;
@@ -263,7 +269,7 @@ inscriptionsRoutes.post('/:studentId/confirm', ensureAuthenticated, async (req: 
                     <p style="font-size: 16px;">Olá, <strong>${student.name}</strong>!</p>
                     <p>Agradecemos pela sua inscrição no Processo Seletivo da nossa <strong>${turmaInfo?.title || 'Cursinho FEA USP'}</strong>! Para continuar sua inscrição, não se esqueça de ler com atenção o Manual do Candidato, o Formulário de Pré-Entrevista e o Termo de Inscrição que estarão disponíveis nos links abaixo.</p>
                     <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 25px 0; text-align: center; border: 1px solid #eee;">
-                        <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 1px;">Número de Matrícula</p>
+                        <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 1px;">Número do pedido</p>
                         <p style="margin: 5px 0 0 0; font-size: 2em; font-weight: bold; color: #00274c;">${matriculaID}</p>
                     </div>
                     ${linksHtml}
@@ -286,7 +292,7 @@ inscriptionsRoutes.post('/:studentId/confirm', ensureAuthenticated, async (req: 
                         <a href="https://cursinhofeausp.com.br" style="color: #004aad; text-decoration: none;">cursinhofeausp.com.br</a>
                     </p>
                 </div>`,
-            textContent: `Olá ${student.name}, sua inscrição foi confirmada! Matrícula: ${matriculaID}. Fique atento ao e-mail e WhatsApp para próximas etapas.`,
+            textContent: `Olá ${student.name}, sua inscrição foi confirmada! Número do pedido: ${matriculaID}. Fique atento ao e-mail e WhatsApp para próximas etapas.`,
         });
 
         return res.status(200).json({ success: true, matriculaID });

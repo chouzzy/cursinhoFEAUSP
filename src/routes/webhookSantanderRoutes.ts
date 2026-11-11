@@ -1,3 +1,4 @@
+import { anoDaTurma } from "../utils/matriculaYear";
 import { Router, Request, Response } from "express";
 import { prisma } from "../prisma";
 import { MailService } from "../services/MailService";
@@ -72,7 +73,7 @@ webhookSantanderRoutes.post('/santander', async (req: Request, res: Response) =>
             include: { documents: true } // <--- ADICIONADO PARA PUXAR OS LINKS
           });
 
-          const ano = new Date().getFullYear();
+          const ano = anoDaTurma(turma.title);
           const codigoTurma = turma.code || 'GERAL';
           const sequencial = turma.registrationCounter.toString().padStart(4, '0');
           novaMatriculaID = `${ano}${codigoTurma}${sequencial}`;
@@ -144,7 +145,7 @@ webhookSantanderRoutes.post('/santander', async (req: Request, res: Response) =>
                     <p>Agradecemos pela sua inscrição no Processo Seletivo da nossa <strong>${turma?.title || 'Cursinho FEA USP'}</strong>! Para continuar sua inscrição, não se esqueça de ler com atenção o Manual do Candidato, o Formulário de Pré-Entrevista e o Termo de Inscrição que estarão disponíveis nos links abaixo.</p>
 
                     <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 25px 0; text-align: center; border: 1px solid #eee;">
-                        <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 1px;">Número de Matrícula</p>
+                        <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 1px;">Número do pedido</p>
                         <p style="margin: 5px 0 0 0; font-size: 2em; font-weight: bold; color: #00274c;">${novaMatriculaID || 'Em processamento'}</p>
                     </div>
 
@@ -172,7 +173,7 @@ webhookSantanderRoutes.post('/santander', async (req: Request, res: Response) =>
                     </p>
                 </div>
             `,
-            textContent: `Olá ${studentWithSubscription.name}, sua inscrição foi confirmada! Matrícula: ${novaMatriculaID}. A equipe entrará em contato em breve. Acesse os documentos da turma pelo portal.`,
+            textContent: `Olá ${studentWithSubscription.name}, sua inscrição foi confirmada! Número do pedido: ${novaMatriculaID}. A equipe entrará em contato em breve. Acesse os documentos da turma pelo portal.`,
         }).catch((err: any) => console.error(`Erro ao enviar e-mail para ${studentWithSubscription.email}:`, err));
 
       } else {

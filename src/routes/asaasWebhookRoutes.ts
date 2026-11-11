@@ -1,3 +1,4 @@
+import { anoDaTurma } from "../utils/matriculaYear";
 import express, { Router, Request, Response } from "express";
 import { prisma } from "../prisma";
 import { AsaasService } from "../services/AsaasService"; // Importe o AsaasService
@@ -110,7 +111,7 @@ asaasWebhookRoutes.post('/', express.json(), async (req: Request, res: Response)
                                          where: { id: subscription.schoolClassID },
                                          data: { registrationCounter: { increment: 1 } }
                                      });
-                                     const ano = new Date().getFullYear();
+                                     const ano = anoDaTurma(turma.title);
                                      const codigoTurma = turma.code || 'GERAL';
                                      const sequencial = turma.registrationCounter.toString().padStart(4, '0');
                                      novaMatriculaID = `${ano}${codigoTurma}${sequencial}`;
