@@ -11,8 +11,33 @@ asaasWebhookRoutes.use((req, res, next) => {
     next();
 });
 
+// Eventos do Asaas que indicam que a cobrança não vai ser paga (ou ficou pendente).
+// Só registramos no log, para que o diagnóstico de "o pagamento não funcionou" seja possível.
+const FAILURE_EVENTS = [
+    'PAYMENT_OVERDUE',
+    'PAYMENT_DELETED',
+    'PAYMENT_REFUNDED',
+    'PAYMENT_CHARGEBACK_REQUESTED',
+    'PAYMENT_CREDIT_CARD_CAPTURE_REFUSED',
+    'PAYMENT_REPROVED_BY_RISK_ANALYSIS',
+    'PAYMENT_AWAITING_RISK_ANALYSIS',
+];
+
 asaasWebhookRoutes.post('/', express.json(), async (req: Request, res: Response) => {
     console.log("--- 🟢 INÍCIO DO WEBHOOK ASAAS ---");
+
+    // O Asaas envia no header `asaas-access-token` o token definido no cadastro do webhook.
+    // Com ASAAS_WEBHOOK_TOKEN configurado, qualquer chamada sem o token certo é recusada.
+    // Sem a variável, o comportamento antigo é mantido (aceita tudo) e fica um aviso no log.
+    const expectedToken = process.env.ASAAS_WEBHOOK_TOKEN;
+    if (expectedToken) {
+        if (req.headers['asaas-access-token'] !== expectedToken) {
+            console.warn("⛔ Webhook Asaas recusado: token ausente ou inválido.");
+            return res.status(401).json({ received: false });
+        }
+    } else {
+        console.warn("⚠️ ASAAS_WEBHOOK_TOKEN não configurado: webhook Asaas aceito sem autenticação.");
+    }
 
     res.status(200).json({ received: true });
     console.log("Resposta 200 enviada ao Asaas.");
@@ -24,6 +49,20 @@ asaasWebhookRoutes.post('/', express.json(), async (req: Request, res: Response)
 
             if (!event || !payment) {
                 console.warn("⚠️ Payload inválido ou incompleto.");
+                return;
+            }
+
+            console.log(`[ASAAS WEBHOOK] evento=${event} payment=${payment.id} ref=${payment.externalReference} billingType=${payment.billingType} status=${payment.status}`);
+
+            if (FAILURE_EVENTS.includes(event)) {
+                console.warn(`⚠️ [ASAAS WEBHOOK] Cobrança ${payment.id} (ref ${payment.externalReference}) recebeu ${event}. Nada é alterado no banco.`);
+                return;
+            }
+
+            // Cartão gera PAYMENT_CONFIRMED e, dias depois, PAYMENT_RECEIVED para a mesma cobrança.
+            // Processar os dois duplicava e-mail e, na doação recorrente, somava o valor duas vezes.
+            if (event === 'PAYMENT_RECEIVED' && payment.billingType === 'CREDIT_CARD') {
+                console.log(`[ASAAS WEBHOOK] PAYMENT_RECEIVED de cartão (${payment.id}) já tratado no PAYMENT_CONFIRMED. Ignorando.`);
                 return;
             }
 
@@ -50,9 +89,15 @@ asaasWebhookRoutes.post('/', express.json(), async (req: Request, res: Response)
 
                     if (donation) {
                         console.log(`✅ Doação encontrada (ID: ${donation.id}). Atualizando...`);
-                        
+
                         const isRecurring = donation.ciclesBought === 0 || donation.ciclesBought > 1;
-                        
+
+                        // Doação única já confirmada: reenvio do Asaas não pode repetir e-mail nem regravar.
+                        if (!isRecurring && donation.paymentStatus === 'CONCLUIDA') {
+                            console.log(`Doação ${donation.id} já confirmada. Ignorando evento repetido.`);
+                            return;
+                        }
+
                         const updateData: any = {
                             paymentDate: new Date(),
                             paymentStatus: isRecurring ? 'active' : 'CONCLUIDA', 
