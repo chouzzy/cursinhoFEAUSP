@@ -27,6 +27,10 @@ const studentPixSchema = object({
     metUsMethod: string(),
     exStudent: string().required(),
 
+    emailResponsavel: string().nullable(),
+    nomeResponsavel: string().nullable(),
+    cpfResponsavel: string().nullable(),
+
     purcharsedSubscriptions: object({
         schoolClassID: string().required("O ID da turma deve ser informado").min(36, "O ID deve possuir 36 caracteres no formato UUID"),
         paymentMethod: string().required("Informe a forma de pagamento").oneOf(['PIX'], 'A única forma de pagamento válida é PIX')

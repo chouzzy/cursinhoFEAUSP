@@ -91,6 +91,8 @@ model Students {
   stripeCustomerID         String
 
   emailResponsavel     String? // Opcional, para o e-mail do responsável
+  nomeResponsavel      String? // Nome completo do responsável legal (obrigatório na inscrição de menor de 18)
+  cpfResponsavel       String? // CPF do responsável legal, só dígitos (obrigatório na inscrição de menor de 18)
   aceiteTermoCiencia   Boolean // Obrigatório para o aceite
   aceiteTermoInscricao Boolean // Obrigatório para o aceite
 

@@ -8,13 +8,15 @@ import { stripe } from "../server";
 const mailService = new MailService();
 
 // Tipo derivado do modelo
-type InscriptionData = Omit<Students, 'id' | 'createdAt' | 'purcharsedSubscriptions' | 'stripeCustomerID' | 'name' | 'emailResponsavel' | 'aceiteTermoCiencia' | 'aceiteTermoInscricao'> & {
+type InscriptionData = Omit<Students, 'id' | 'createdAt' | 'purcharsedSubscriptions' | 'stripeCustomerID' | 'name' | 'emailResponsavel' | 'nomeResponsavel' | 'cpfResponsavel' | 'aceiteTermoCiencia' | 'aceiteTermoInscricao'> & {
   schoolClassID: string;
   nome: string;
   sobrenome: string;
   aceiteTermoCiencia: boolean;
   aceiteTermoInscricao: boolean;
   emailResponsavel?: string;
+  nomeResponsavel?: string | null;
+  cpfResponsavel?: string | null;
   codigoDesconto?: string;
   paymentMethod?: string;
   price?: string;
@@ -32,6 +34,8 @@ export class StripeInscriptionService {
       sobrenome, 
       codigoDesconto, 
       emailResponsavel,
+      nomeResponsavel,
+      cpfResponsavel,
       aceiteTermoCiencia,
       aceiteTermoInscricao,
       paymentMethod,
@@ -105,6 +109,8 @@ export class StripeInscriptionService {
                 name: nomeCompleto,
                 email: inscriptionData.email, 
                 emailResponsavel: emailResponsavel,
+                nomeResponsavel: nomeResponsavel ?? null,
+                cpfResponsavel: cpfResponsavel ?? null,
                 purcharsedSubscriptions: {
                     push: [{
                         schoolClassID: schoolClassID,
@@ -129,6 +135,8 @@ export class StripeInscriptionService {
                 cpf: sanitizedCpf, 
                 email: inscriptionData.email,
                 emailResponsavel: emailResponsavel,
+                nomeResponsavel: nomeResponsavel ?? null,
+                cpfResponsavel: cpfResponsavel ?? null,
                 aceiteTermoCiencia: aceiteTermoCiencia,
                 aceiteTermoInscricao: aceiteTermoInscricao,
                 stripeCustomerID: customer.id,

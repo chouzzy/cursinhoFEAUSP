@@ -1,4 +1,5 @@
 import { validationResponse } from "../../../../../types";
+import { normalizarResponsavelLegal, ResponsavelLegalError } from "../../../../../utils/responsavelLegal";
 import { Students } from "../../../entities/Students";
 import { IStudentsRepository } from "../../../repositories/IStudentsRepository";
 import { checkBody } from "./CreateStudentCheck";
@@ -29,6 +30,19 @@ class CreateStudentUseCase {
                 statusCode: 403,
                 errorMessage: bodyValidation.errorMessage,
             })
+        }
+
+        try {
+            Object.assign(studentData, normalizarResponsavelLegal(studentData))
+        } catch (error) {
+            if (error instanceof ResponsavelLegalError) {
+                return ({
+                    isValid: false,
+                    statusCode: 403,
+                    errorMessage: error.message,
+                })
+            }
+            throw error
         }
         
         const createdStudent = await this.studentsRepository.createStudentPaymentIntent(studentData)

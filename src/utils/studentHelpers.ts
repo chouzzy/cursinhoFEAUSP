@@ -172,6 +172,8 @@ async function createStudentPix(studentData: CreatePixStudentRequestProps, pixDa
                 isPhoneWhatsapp: studentData.isPhoneWhatsapp,
                 state: studentData.state,
                 emailResponsavel: studentData.emailResponsavel ?? 'Não informado',
+                nomeResponsavel: studentData.nomeResponsavel ?? null,
+                cpfResponsavel: studentData.cpfResponsavel ?? null,
                 aceiteTermoCiencia: studentData.aceiteTermoCiencia,
                 aceiteTermoInscricao: studentData.aceiteTermoInscricao,
 
@@ -452,6 +454,8 @@ async function createStudent(studentData: CreateStudentRequestProps, stripeCusto
                 isPhoneWhatsapp: studentData.isPhoneWhatsapp,
                 state: studentData.state,
                 emailResponsavel: studentData.emailResponsavel ?? 'Não informado',
+                nomeResponsavel: studentData.nomeResponsavel ?? null,
+                cpfResponsavel: studentData.cpfResponsavel ?? null,
                 aceiteTermoCiencia: studentData.aceiteTermoCiencia,
                 aceiteTermoInscricao: studentData.aceiteTermoInscricao,
 

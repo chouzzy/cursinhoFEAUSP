@@ -60,35 +60,55 @@ class ExcelListStudentsUseCase {
         const workbook = new Workbook()
         const worksheet: Worksheet = workbook.addWorksheet("Inscrições")
 
-        // CABEÇALHOS
-        worksheet.addRow([
-            "Valor",
-            "Data compra",
-            "ID Matrícula",
-            "Email",
-            "Estado de pagamento",
-            "Cupom de Desconto",
-            "Método de pagamento",
-            "User_Agent",
-            "Referrer",
-            "Nome Completo",
-            "E-mail para contato",
-            "Confirmação do e-mail",
-            "Email responsável (se menor)",
-            "Telefone",
-            "CPF",
-            "Termo de Consentimento",
-            "Termo de Inscrição",
-            // Campos extras úteis
-            "Nº pedido",
-            "Turma",
-            "Data Criação (Aluno)"
-        ])
-
         const toBrazilTime = (dateInput: Date | string) => {
             const date = new Date(dateInput);
             return new Date(date.getTime() - (3 * 60 * 60 * 1000));
         };
+
+        const montarEnderecoCompleto = (student: Students): string => {
+            const complemento = student.complement && student.complement !== 'Não informado'
+                ? student.complement
+                : '';
+            const cidadeUf = [student.city, student.state].filter(Boolean).join('/');
+            return [student.street, student.homeNumber, complemento, student.district, cidadeUf]
+                .map(parte => (parte ?? '').trim())
+                .filter(Boolean)
+                .join(', ');
+        };
+
+        type LinhaExcel = { student: Students, sub: any };
+
+        // Cada coluna declara o cabeçalho e o valor juntos, para os dois nunca desalinharem.
+        // Colunas novas entram no fim, para não deslocar quem já usa a planilha por posição.
+        const colunas: { header: string, width?: number, value: (linha: LinhaExcel) => any }[] = [
+            { header: "Valor", value: ({ sub }) => sub.valuePaid },
+            { header: "Data compra", width: 20, value: ({ sub }) => sub.paymentDate ? format(toBrazilTime(sub.paymentDate), 'dd/MM/yyyy HH:mm') : '' },
+            { header: "Nº pedido", value: ({ sub }) => sub.txid || '' },
+            { header: "Email", width: 30, value: ({ student }) => student.email },
+            { header: "Estado de pagamento", value: ({ sub }) => sub.paymentStatus },
+            { header: "Cupom de Desconto", value: ({ sub }) => sub.codigoDesconto || '' },
+            { header: "Método de pagamento", value: ({ sub }) => sub.paymentMethod },
+            { header: "User_Agent", value: () => '' },
+            { header: "Referrer", value: () => '' },
+            { header: "Nome Completo", width: 30, value: ({ student }) => student.name },
+            { header: "E-mail para contato", value: ({ student }) => student.email },
+            { header: "Confirmação do e-mail", value: ({ student }) => student.email },
+            { header: "Email responsável (se menor)", value: ({ student }) => student.emailResponsavel || "Não" },
+            { header: "Telefone", value: ({ student }) => student.phoneNumber },
+            { header: "CPF", value: ({ student }) => student.cpf },
+            { header: "Termo de Consentimento", value: ({ student }) => student.aceiteTermoCiencia ? "Sim" : "Não" },
+            { header: "Termo de Inscrição", value: ({ student }) => student.aceiteTermoInscricao ? "Sim" : "Não" },
+            { header: "ID Matrícula", value: ({ sub }) => sub.matriculaID || '' },
+            { header: "Turma", width: 30, value: ({ sub }) => classesMap[sub.schoolClassID] || sub.schoolClassID || 'Desconhecida' },
+            { header: "Data Criação (Aluno)", width: 20, value: ({ student }) => student.createdAt ? format(toBrazilTime(student.createdAt), 'dd/MM/yyyy HH:mm') : '' },
+            { header: "CEP", value: ({ student }) => student.zipCode || '' },
+            { header: "Endereço completo", width: 50, value: ({ student }) => montarEnderecoCompleto(student) },
+            { header: "Nome do responsável", width: 30, value: ({ student }) => student.nomeResponsavel || '' },
+            { header: "CPF do responsável", value: ({ student }) => student.cpfResponsavel || '' },
+        ];
+
+        // CABEÇALHOS
+        worksheet.addRow(colunas.map(coluna => coluna.header))
 
         // DADOS
         students.studentsList?.forEach(student => {
@@ -123,56 +143,16 @@ class ExcelListStudentsUseCase {
                     return isValid;
                 });
 
-                filteredSubs.forEach((sub: { paymentDate: string | Date; schoolClassID: string | number; valuePaid: any; txid: any; paymentStatus: any; codigoDesconto: any; paymentMethod: any; matriculaID: any }) => {
-                    // Formatações com ajuste de Fuso Horário
-                    const paymentDateFormatted = sub.paymentDate
-                        ? format(toBrazilTime(sub.paymentDate), 'dd/MM/yyyy HH:mm')
-                        : '';
-
-                    const createdAtFormatted = student.createdAt
-                        ? format(toBrazilTime(student.createdAt), 'dd/MM/yyyy HH:mm')
-                        : '';
-
-                    const aceiteCiencia = student.aceiteTermoCiencia ? "Sim" : "Não";
-                    const aceiteInscricao = student.aceiteTermoInscricao ? "Sim" : "Não";
-                    const emailResponsavel = student.emailResponsavel || "Não";
-
-                    // Busca o nome da turma no mapa
-                    const className = classesMap[sub.schoolClassID] || sub.schoolClassID || 'Desconhecida';
-
-                    // Criamos a linha
-                    worksheet.addRow([
-                        sub.valuePaid,               // Valor
-                        paymentDateFormatted,        // Data compra (CORRIGIDA)
-                        sub.txid || '',              // Nº pedido (usamos txid)
-                        student.email,               // Email
-                        sub.paymentStatus,           // Estado de pagamento
-                        sub.codigoDesconto || '',    // Cupom de Desconto
-                        sub.paymentMethod,           // Método de pagamento
-                        '',                          // User_Agent
-                        '',                          // Referrer
-                        student.name,                // Nome Completo
-                        student.email,               // E-mail para contato
-                        student.email,               // Confirmação do e-mail
-                        emailResponsavel,            // Email responsável
-                        student.phoneNumber,         // Telefone
-                        student.cpf,                 // CPF
-                        aceiteCiencia,               // Termo de Consentimento
-                        aceiteInscricao,             // Termo de Inscrição
-                        sub.matriculaID || '',       // ID Matrícula
-                        className,                   // Nome da Turma
-                        createdAtFormatted           // Data Criação (CORRIGIDA)
-                    ])
+                filteredSubs.forEach((sub: any) => {
+                    worksheet.addRow(colunas.map(coluna => coluna.value({ student, sub })))
                 })
             }
         })
 
         // Ajuste de largura das colunas
-        worksheet.getColumn(4).width = 30;  // Email
-        worksheet.getColumn(10).width = 30; // Nome
-        worksheet.getColumn(2).width = 20;  // Data Pagamento
-        worksheet.getColumn(20).width = 30; // Turma
-        worksheet.getColumn(21).width = 20; // Data Criação
+        colunas.forEach((coluna, indice) => {
+            if (coluna.width) worksheet.getColumn(indice + 1).width = coluna.width;
+        });
 
         const fileBuffer = await workbook.xlsx.writeBuffer()
 

@@ -4,12 +4,14 @@ import { randomBytes, randomUUID } from 'crypto';
 import { Students } from "@prisma/client";
 import { crc16ccitt } from 'crc'; // Usando a lib oficial de CRC
 
-type InscriptionData = Omit<Students, 'id' | 'createdAt' | 'purcharsedSubscriptions' | 'stripeCustomerID' | 'name' | 'emailResponsavel' | 'aceiteTermoCiencia' | 'aceiteTermoInscricao'> & {
+type InscriptionData = Omit<Students, 'id' | 'createdAt' | 'purcharsedSubscriptions' | 'stripeCustomerID' | 'name' | 'emailResponsavel' | 'nomeResponsavel' | 'cpfResponsavel' | 'aceiteTermoCiencia' | 'aceiteTermoInscricao'> & {
   schoolClassID: string;
   nome: string;
   sobrenome: string;
   codigoDesconto?: string; 
   emailResponsavel?: string; 
+  nomeResponsavel?: string | null;
+  cpfResponsavel?: string | null;
   paymentMethod?: string;
 };
 
@@ -81,6 +83,8 @@ export class SantanderPixService {
       sobrenome, 
       codigoDesconto, 
       emailResponsavel,
+      nomeResponsavel,
+      cpfResponsavel,
       aceiteTermoCiencia,
       aceiteTermoInscricao,
       paymentMethod,
@@ -140,6 +144,8 @@ export class SantanderPixService {
                 name: nomeCompleto,
                 email: inscriptionData.email,
                 emailResponsavel: emailResponsavel,
+                nomeResponsavel: nomeResponsavel ?? null,
+                cpfResponsavel: cpfResponsavel ?? null,
                 aceiteTermoCiencia: aceiteTermoCiencia,
                 aceiteTermoInscricao: aceiteTermoInscricao,
                 cpf: sanitizedCpf,
@@ -168,6 +174,8 @@ export class SantanderPixService {
             cpf: sanitizedCpf,
             email: inscriptionData.email,
             emailResponsavel: emailResponsavel,
+            nomeResponsavel: nomeResponsavel ?? null,
+            cpfResponsavel: cpfResponsavel ?? null,
             aceiteTermoCiencia: aceiteTermoCiencia,
             aceiteTermoInscricao: aceiteTermoInscricao,
             stripeCustomerID: randomUUID(), 
