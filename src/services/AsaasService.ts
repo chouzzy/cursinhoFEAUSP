@@ -3,7 +3,7 @@ import { prisma } from "../prisma";
 import { randomUUID } from 'crypto';
 import { MailService } from "./MailService";
 import jwt from 'jsonwebtoken';
-import { getLocationHtml } from "../utils/emailUtils";
+import { getAgendamentoHtml, getIntroHtml, getLocationHtml, TERMO_NOTA_HTML } from "../utils/emailUtils";
 
 const mailService = new MailService();
 
@@ -439,20 +439,12 @@ export class AsaasService {
           <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
             <h3 style="margin-top: 0; color: #004aad;">Documentos Importantes</h3>
             <ul style="padding-left: 20px;">
-              ${turma.documents.map((doc: any) => {
-
-                if (doc.title.toLowerCase().includes('entrevista')) {
-                    return '';
-                }
-                return (
-
+              ${turma.documents.map((doc: any) =>
                     `<li style="margin-bottom: 8px;">
                     <a href="${doc.downloadLink}" target="_blank" style="color: #004aad; text-decoration: none; font-weight: bold;">
                     ${doc.title}
                     </a>
                     </li>`
-                )
-            }
             ).join('')}
             </ul>
           </div>
@@ -467,41 +459,25 @@ export class AsaasService {
             <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 8px;">
                 <h1 style="color: #00274c; text-align: center;">Inscrição Confirmada!</h1>
                 <p>Olá, <strong>${student.name}</strong>!</p>
-                <p>Agradecemos pela sua inscrição no Processo Seletivo da nossa ${turma ? turma.title : 'instituição'}! Para continuar sua inscrição, não se esqueça de ler com atenção o Manual do Candidato, o Formulário de Pré-Entrevista e o Termo de Inscrição que estarão disponíveis nos links abaixo.</p>
-                
+                ${getIntroHtml(turma?.title)}
+
                 <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 25px 0; text-align: center; border: 1px solid #eee;">
                     <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase;">Número do pedido</p>
                     <p style="margin: 5px 0 0 0; font-size: 2em; font-weight: bold; color: #00274c;">${matriculaID}</p>
                 </div>
 
-                <p>Agradecemos pela sua inscrição! Para continuar, não se esqueça de ler com atenção os documentos abaixo e seguir os próximos passos.</p>
-
                 ${linksHtml}
 
-        ${(() => {
-            const entrevistaDoc = turma?.documents.find((doc: any) => doc.title.toLowerCase().includes('entrevista'));
-            if (entrevistaDoc) {
-                return `
-                    <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
-                        <h3 style="margin-top: 0; color: #004aad;">Próximos Passos Obrigatórios</h3>
-                        <p>Você deve agora <strong>agendar a data e horário</strong> da sua entrevista socioeconômica pelo seguinte link:</p>
-                        <p style="margin-bottom: 8px;">
-                            <a href="${entrevistaDoc.downloadLink}" target="_blank" style="color: #004aad; text-decoration: none; font-weight: bold;">
-                                Agendar Entrevista (Formulário de Pré-Entrevista) &rarr;
-                            </a>
-                        </p>
-                        <p style="font-size: 0.9em; margin-top: 15px;">
-                            <strong>Local de Entrevista:</strong><br><br>
-                            ${getLocationHtml(turma)}
-                        </p>
-                    </div>
-                    <p style="font-size: 0.9em; color: #666;">
-                        *Ao agendar a entrevista e concluir sua inscrição, você concorda com as condições descritas no Termo de Inscrição.
+                ${getAgendamentoHtml(turma?.documents)}
+
+                <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
+                    <p style="margin: 0; font-size: 0.9em;">
+                        <strong>Local de Entrevista:</strong><br><br>
+                        ${getLocationHtml(turma)}
                     </p>
-                `;
-            }
-            return '';
-        })()}
+                </div>
+
+                ${TERMO_NOTA_HTML}
         <br/>
         <p style="text-align: center; color: #888; font-size: 0.9em;">Equipe Cursinho FEA USP</p>
     </div>

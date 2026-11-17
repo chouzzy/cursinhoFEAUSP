@@ -2,6 +2,7 @@ import { anoDaTurma } from "./matriculaYear";
 import { prisma } from "../prisma";
 import Stripe from "stripe";
 import { MailService } from "../services/MailService"; 
+import { getAgendamentoHtml, getIntroHtml, TERMO_NOTA_HTML } from "./emailUtils";
 
 const mailService = new MailService();
 
@@ -137,7 +138,7 @@ export async function handleStudentCheckoutCompleted(event: Stripe.Event) {
                     
                     <p style="font-size: 16px;">Olá, <strong>${student.name}</strong>!</p>
                     
-                    <p>Temos o prazer de confirmar que o seu pagamento foi recebido e sua inscrição no <strong>Cursinho FEA USP</strong> foi realizada com sucesso.</p>
+                    ${getIntroHtml(turma?.title)}
                     
                     <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 25px 0; text-align: center; border: 1px solid #eee;">
                         <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 1px;">Número do pedido</p>
@@ -145,12 +146,16 @@ export async function handleStudentCheckoutCompleted(event: Stripe.Event) {
                     </div>
 
                     ${linksHtml}
+
+                    ${getAgendamentoHtml(turma?.documents)}
                     
                     <div style="margin-top: 30px;">
                         <h3 style="color: #333;">Próximos Passos</h3>
                         <p>Fique tranquilo(a)! Nossa equipe de seleção entrará em contato em breve.</p>
                         <p>Fique atento ao seu <strong>e-mail</strong> e <strong>WhatsApp</strong> (caso tenha informado) para receber as datas das entrevistas e demais instruções.</p>
                     </div>
+
+                    ${TERMO_NOTA_HTML}
                     
                     <br />
                     <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />

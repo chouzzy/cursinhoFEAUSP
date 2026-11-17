@@ -7,7 +7,7 @@ import { MailService } from "../services/MailService";
 import { prisma } from "../prisma";
 import { StripeInscriptionController } from "../controllers/StripeInscriptionController";
 import { ensureAuthenticated } from "../modules/registrations/middleware/ensureAuthenticate";
-import { getLocationHtml } from "../utils/emailUtils";
+import { getAgendamentoHtml, getIntroHtml, getLocationHtml, TERMO_NOTA_HTML } from "../utils/emailUtils";
 import { normalizarResponsavelLegal, ResponsavelLegalError } from "../utils/responsavelLegal";
 
 const inscriptionsRoutes = Router();
@@ -277,12 +277,13 @@ inscriptionsRoutes.post('/:studentId/confirm', ensureAuthenticated, async (req: 
                         <h1 style="color: #00274c; margin: 0;">Inscrição Confirmada!</h1>
                     </div>
                     <p style="font-size: 16px;">Olá, <strong>${student.name}</strong>!</p>
-                    <p>Agradecemos pela sua inscrição no Processo Seletivo da nossa <strong>${turmaInfo?.title || 'Cursinho FEA USP'}</strong>! Para continuar sua inscrição, não se esqueça de ler com atenção o Manual do Candidato, o Formulário de Pré-Entrevista e o Termo de Inscrição que estarão disponíveis nos links abaixo.</p>
+                    ${getIntroHtml(turmaInfo?.title)}
                     <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 25px 0; text-align: center; border: 1px solid #eee;">
                         <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 1px;">Número do pedido</p>
                         <p style="margin: 5px 0 0 0; font-size: 2em; font-weight: bold; color: #00274c;">${matriculaID}</p>
                     </div>
                     ${linksHtml}
+                    ${getAgendamentoHtml(documents)}
                     <div style="margin-top: 30px;">
                         <h3 style="color: #333;">Próximos Passos</h3>
                         <p>Fique tranquilo(a)! Nossa equipe de seleção entrará em contato em breve.</p>
@@ -294,6 +295,7 @@ inscriptionsRoutes.post('/:studentId/confirm', ensureAuthenticated, async (req: 
                             </p>
                         </div>
                     </div>
+                    ${TERMO_NOTA_HTML}
                     <br />
                     <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
                     <p style="font-size: 0.9em; color: #888; text-align: center;">

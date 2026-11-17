@@ -3,6 +3,7 @@ import { prisma } from "../prisma";
 import { randomUUID } from 'crypto';
 import { Students } from "@prisma/client";
 import { MailService } from "./MailService"; 
+import { getAgendamentoHtml, getIntroHtml, TERMO_NOTA_HTML } from "../utils/emailUtils";
 import { stripe } from "../server";
 
 const mailService = new MailService();
@@ -238,7 +239,7 @@ export class StripeInscriptionService {
                         
                         <p style="font-size: 16px;">Olá, <strong>${finalStudent.name}</strong>!</p>
                         
-                        <p>Temos o prazer de confirmar que a sua inscrição no <strong>Cursinho FEA USP</strong> foi realizada com sucesso (Inscrição Isenta/Gratuita).</p>
+                        ${getIntroHtml(schoolClass?.title)}
                         
                         <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 25px 0; text-align: center; border: 1px solid #eee;">
                             <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 1px;">Número do pedido</p>
@@ -246,12 +247,16 @@ export class StripeInscriptionService {
                         </div>
 
                         ${linksHtml}
+
+                        ${getAgendamentoHtml(schoolClass?.documents)}
                         
                         <div style="margin-top: 30px;">
                             <h3 style="color: #333;">Próximos Passos</h3>
                             <p>Fique tranquilo(a)! Nossa equipe de seleção entrará em contato em breve.</p>
                             <p>Fique atento ao seu <strong>e-mail</strong> e <strong>WhatsApp</strong> (caso tenha informado) para receber as datas das entrevistas e demais instruções.</p>
                         </div>
+
+                        ${TERMO_NOTA_HTML}
                         
                         <br />
                         <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
