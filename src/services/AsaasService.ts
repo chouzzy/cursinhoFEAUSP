@@ -36,6 +36,8 @@ interface CreatePaymentData {
     // Campos extras de Inscrição
     sobrenome?: string;
     emailResponsavel?: string;
+    nomeResponsavel?: string | null;
+    cpfResponsavel?: string | null;
     aceiteTermoCiencia?: boolean;
     aceiteTermoInscricao?: boolean;
     selfDeclaration?: string;
@@ -172,6 +174,8 @@ export class AsaasService {
                 zipCode: data.zipCode || '', street: data.street || '', homeNumber: data.homeNumber || '',
                 complement: data.complement, district: data.district || '', city: data.city || '', state: data.state || '',
                 emailResponsavel: data.emailResponsavel,
+                nomeResponsavel: data.nomeResponsavel ?? null,
+                cpfResponsavel: data.cpfResponsavel ?? null,
                 aceiteTermoCiencia: data.aceiteTermoCiencia || false,
                 aceiteTermoInscricao: data.aceiteTermoInscricao || false,
                 selfDeclaration: data.selfDeclaration || '',

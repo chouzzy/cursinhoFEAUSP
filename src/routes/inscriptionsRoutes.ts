@@ -8,6 +8,7 @@ import { prisma } from "../prisma";
 import { StripeInscriptionController } from "../controllers/StripeInscriptionController";
 import { ensureAuthenticated } from "../modules/registrations/middleware/ensureAuthenticate";
 import { getLocationHtml } from "../utils/emailUtils";
+import { normalizarResponsavelLegal, ResponsavelLegalError } from "../utils/responsavelLegal";
 
 const inscriptionsRoutes = Router();
 
@@ -34,6 +35,15 @@ inscriptionsRoutes.post('/', async (req: Request, res: Response) => {
 
         if (!isValidPhone(inscriptionData.phoneNumber)) {
             return res.status(400).json({ error: PHONE_ERROR_MESSAGE });
+        }
+
+        try {
+            Object.assign(inscriptionData, normalizarResponsavelLegal(inscriptionData));
+        } catch (error) {
+            if (error instanceof ResponsavelLegalError) {
+                return res.status(400).json({ error: 'Dados do responsável legal', details: error.message });
+            }
+            throw error;
         }
 
         const pixResponse = await santanderPixService.createInscriptionWithPix(inscriptionData);

@@ -22,6 +22,8 @@ interface CreateStudentRequestProps {
     district: Students["district"]
     zipCode: Students["zipCode"]
     emailResponsavel: Students["emailResponsavel"] // Obrigatório para o aceite
+    nomeResponsavel?: Students["nomeResponsavel"],
+    cpfResponsavel?: Students["cpfResponsavel"],
     aceiteTermoCiencia: Students["aceiteTermoCiencia"] // Obrigatório para o aceite
     aceiteTermoInscricao: Students["aceiteTermoInscricao"] // Obrigatório para o aceite
 

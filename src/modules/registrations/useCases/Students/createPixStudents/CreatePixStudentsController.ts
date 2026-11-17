@@ -21,6 +21,8 @@ interface CreatePixStudentRequestProps {
     zipCode: Students["zipCode"]
 
     emailResponsavel: Students["emailResponsavel"],
+    nomeResponsavel?: Students["nomeResponsavel"],
+    cpfResponsavel?: Students["cpfResponsavel"],
     aceiteTermoCiencia: Students["aceiteTermoCiencia"],
     aceiteTermoInscricao: Students["aceiteTermoInscricao"],
 

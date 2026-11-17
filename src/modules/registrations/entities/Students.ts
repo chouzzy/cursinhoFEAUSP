@@ -21,6 +21,8 @@ class Students {
     ufrg!: string
 
     emailResponsavel!: string | null // Opcional, para o e-mail do responsável
+    nomeResponsavel?: string | null // Nome completo do responsável legal (menor de 18)
+    cpfResponsavel?: string | null // CPF do responsável legal, só dígitos (menor de 18)
     aceiteTermoCiencia!: boolean // Obrigatório para o aceite
     aceiteTermoInscricao!: boolean // Obrigatório para o aceite
 
