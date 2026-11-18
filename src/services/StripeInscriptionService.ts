@@ -3,6 +3,7 @@ import { prisma } from "../prisma";
 import { randomUUID } from 'crypto';
 import { Students } from "@prisma/client";
 import { MailService } from "./MailService"; 
+import { buildConfirmacaoInscricaoHtml } from "../utils/confirmacaoInscricaoEmail";
 import { stripe } from "../server";
 
 const mailService = new MailService();
@@ -205,64 +206,11 @@ export class StripeInscriptionService {
         });
 
         if (finalStudent.email) {
-            let linksHtml = '';
-            if (schoolClass.documents && schoolClass.documents.length > 0) {
-                linksHtml = `
-                  <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
-                    <h3 style="margin-top: 0; color: #004aad;">Documentos Importantes</h3>
-                    <p style="margin-bottom: 10px;">Por favor, acesse e leia os documentos abaixo:</p>
-                    <ul style="padding-left: 20px;">
-                      ${schoolClass.documents.map((doc: any) => 
-                        `<li style="margin-bottom: 8px;">
-                           <a href="${doc.downloadLink}" target="_blank" style="color: #004aad; text-decoration: none; font-weight: bold; font-size: 16px;">
-                             ${doc.title} 
-                             <span style="font-size: 12px; color: #666;">(Clique para acessar)</span>
-                           </a>
-                         </li>`
-                      ).join('')}
-                    </ul>
-                  </div>
-                `;
-            }
-
             await mailService.sendEmail({
                 toEmail: finalStudent.email,
                 toName: finalStudent.name,
                 subject: 'Inscrição Confirmada - Cursinho FEA USP',
-                htmlContent: `
-                    <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 8px; background-color: #ffffff;">
-                        
-                        <div style="text-align: center; border-bottom: 2px solid #f4c430; padding-bottom: 15px; margin-bottom: 20px;">
-                            <h1 style="color: #00274c; margin: 0;">Inscrição Confirmada!</h1>
-                        </div>
-                        
-                        <p style="font-size: 16px;">Olá, <strong>${finalStudent.name}</strong>!</p>
-                        
-                        <p>Temos o prazer de confirmar que a sua inscrição no <strong>Cursinho FEA USP</strong> foi realizada com sucesso (Inscrição Isenta/Gratuita).</p>
-                        
-                        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 25px 0; text-align: center; border: 1px solid #eee;">
-                            <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 1px;">Número do pedido</p>
-                            <p style="margin: 5px 0 0 0; font-size: 2em; font-weight: bold; color: #00274c;">${novaMatriculaID || 'Em processamento'}</p>
-                        </div>
-
-                        ${linksHtml}
-                        
-                        <div style="margin-top: 30px;">
-                            <h3 style="color: #333;">Próximos Passos</h3>
-                            <p>Fique tranquilo(a)! Nossa equipe de seleção entrará em contato em breve.</p>
-                            <p>Fique atento ao seu <strong>e-mail</strong> e <strong>WhatsApp</strong> (caso tenha informado) para receber as datas das entrevistas e demais instruções.</p>
-                        </div>
-                        
-                        <br />
-                        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-                        
-                        <p style="font-size: 0.9em; color: #888; text-align: center;">
-                            Atenciosamente,<br/>
-                            <strong>Equipe Cursinho FEA USP</strong><br/>
-                            <a href="https://cursinhofeausp.com.br" style="color: #004aad; text-decoration: none;">cursinhofeausp.com.br</a>
-                        </p>
-                    </div>
-                `,
+                htmlContent: buildConfirmacaoInscricaoHtml({ nome: finalStudent.name, turma: schoolClass, pedido: novaMatriculaID }),
                 textContent: `Inscrição confirmada! Número do pedido: ${novaMatriculaID}. A equipe entrará em contato em breve. Acesse os documentos da turma pelo portal.`
             });
         }

@@ -7,7 +7,8 @@ import { MailService } from "../services/MailService";
 import { prisma } from "../prisma";
 import { StripeInscriptionController } from "../controllers/StripeInscriptionController";
 import { ensureAuthenticated } from "../modules/registrations/middleware/ensureAuthenticate";
-import { getLocationHtml } from "../utils/emailUtils";
+import { buildConfirmacaoInscricaoHtml } from "../utils/confirmacaoInscricaoEmail";
+import { documentosDoEmail } from "../utils/emailUtils";
 import { normalizarResponsavelLegal, ResponsavelLegalError } from "../utils/responsavelLegal";
 
 const inscriptionsRoutes = Router();
@@ -217,14 +218,14 @@ inscriptionsRoutes.post('/:studentId/confirm', ensureAuthenticated, async (req: 
             const codigoTurma = turma.code || 'GERAL';
             const sequencial = turma.registrationCounter.toString().padStart(4, '0');
             matriculaID = `${ano}${codigoTurma}${sequencial}`;
-            documents = turma.documents as { title: string; downloadLink: string }[];
+            documents = documentosDoEmail(turma.documents as { title: string; downloadLink: string }[]);
             turmaInfo = { code: turma.code ?? undefined, title: turma.title ?? undefined };
         } else {
             const turma = await prisma.schoolClass.findUnique({
                 where: { id: subscription.schoolClassID },
                 include: { documents: true },
             });
-            documents = (turma?.documents ?? []) as { title: string; downloadLink: string }[];
+            documents = documentosDoEmail((turma?.documents ?? []) as { title: string; downloadLink: string }[]);
             turmaInfo = turma ? { code: turma.code ?? undefined, title: turma.title ?? undefined } : null;
         }
 
@@ -247,61 +248,12 @@ inscriptionsRoutes.post('/:studentId/confirm', ensureAuthenticated, async (req: 
         });
 
         // Envia e-mail de confirmação
-        let linksHtml = '';
-        if (documents.length > 0) {
-            linksHtml = `
-              <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
-                <h3 style="margin-top: 0; color: #004aad;">Documentos Importantes</h3>
-                <p style="margin-bottom: 10px;">Por favor, acesse e leia os documentos abaixo:</p>
-                <ul style="padding-left: 20px;">
-                  ${documents.map(doc =>
-                    `<li style="margin-bottom: 8px;">
-                       <a href="${doc.downloadLink}" target="_blank" style="color: #004aad; text-decoration: none; font-weight: bold; font-size: 16px;">
-                         ${doc.title}
-                         <span style="font-size: 12px; color: #666;">(Clique para acessar)</span>
-                       </a>
-                     </li>`
-                  ).join('')}
-                </ul>
-              </div>`;
-        }
-
         const mailService = new MailService();
         await mailService.sendEmail({
             toEmail: student.email,
             toName: student.name,
             subject: 'Inscrição Confirmada - Cursinho FEA USP',
-            htmlContent: `
-                <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 8px; background-color: #ffffff;">
-                    <div style="text-align: center; border-bottom: 2px solid #f4c430; padding-bottom: 15px; margin-bottom: 20px;">
-                        <h1 style="color: #00274c; margin: 0;">Inscrição Confirmada!</h1>
-                    </div>
-                    <p style="font-size: 16px;">Olá, <strong>${student.name}</strong>!</p>
-                    <p>Agradecemos pela sua inscrição no Processo Seletivo da nossa <strong>${turmaInfo?.title || 'Cursinho FEA USP'}</strong>! Para continuar sua inscrição, não se esqueça de ler com atenção o Manual do Candidato, o Formulário de Pré-Entrevista e o Termo de Inscrição que estarão disponíveis nos links abaixo.</p>
-                    <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 25px 0; text-align: center; border: 1px solid #eee;">
-                        <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase; letter-spacing: 1px;">Número do pedido</p>
-                        <p style="margin: 5px 0 0 0; font-size: 2em; font-weight: bold; color: #00274c;">${matriculaID}</p>
-                    </div>
-                    ${linksHtml}
-                    <div style="margin-top: 30px;">
-                        <h3 style="color: #333;">Próximos Passos</h3>
-                        <p>Fique tranquilo(a)! Nossa equipe de seleção entrará em contato em breve.</p>
-                        <p>Fique atento ao seu <strong>e-mail</strong> e <strong>WhatsApp</strong> para receber as datas das entrevistas e demais instruções.</p>
-                        <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
-                            <p style="margin: 0; font-size: 0.9em;">
-                                <strong>Local de Entrevista:</strong><br><br>
-                                ${getLocationHtml(turmaInfo)}
-                            </p>
-                        </div>
-                    </div>
-                    <br />
-                    <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-                    <p style="font-size: 0.9em; color: #888; text-align: center;">
-                        Atenciosamente,<br/>
-                        <strong>Equipe Cursinho FEA USP</strong><br/>
-                        <a href="https://cursinhofeausp.com.br" style="color: #004aad; text-decoration: none;">cursinhofeausp.com.br</a>
-                    </p>
-                </div>`,
+            htmlContent: buildConfirmacaoInscricaoHtml({ nome: student.name, turma: { ...(turmaInfo ?? {}), documents }, pedido: matriculaID }),
             textContent: `Olá ${student.name}, sua inscrição foi confirmada! Número do pedido: ${matriculaID}. Fique atento ao e-mail e WhatsApp para próximas etapas.`,
         });
 
