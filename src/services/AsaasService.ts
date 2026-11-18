@@ -3,7 +3,7 @@ import { prisma } from "../prisma";
 import { randomUUID } from 'crypto';
 import { MailService } from "./MailService";
 import jwt from 'jsonwebtoken';
-import { documentosDoEmail, getAgendamentoHtml, getIntroHtml, getLocationHtml, TERMO_NOTA_HTML } from "../utils/emailUtils";
+import { buildConfirmacaoInscricaoHtml } from "../utils/confirmacaoInscricaoEmail";
 
 const mailService = new MailService();
 
@@ -433,55 +433,11 @@ export class AsaasService {
 
         if (!student || !student.email) return;
 
-        let linksHtml = '';
-        if (turma && documentosDoEmail(turma.documents).length > 0) {
-            linksHtml = `
-          <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
-            <h3 style="margin-top: 0; color: #004aad;">Documentos Importantes</h3>
-            <ul style="padding-left: 20px;">
-              ${documentosDoEmail(turma.documents).map((doc: any) =>
-                    `<li style="margin-bottom: 8px;">
-                    <a href="${doc.downloadLink}" target="_blank" style="color: #004aad; text-decoration: none; font-weight: bold;">
-                    ${doc.title}
-                    </a>
-                    </li>`
-            ).join('')}
-            </ul>
-          </div>
-        `;
-        }
-
         await mailService.sendEmail({
             toEmail: student.email,
             toName: student.name,
             subject: 'Inscrição Confirmada - Cursinho FEA USP',
-            htmlContent: `
-            <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 8px;">
-                <h1 style="color: #00274c; text-align: center;">Inscrição Confirmada!</h1>
-                <p>Olá, <strong>${student.name}</strong>!</p>
-                ${getIntroHtml(turma?.title)}
-
-                <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 25px 0; text-align: center; border: 1px solid #eee;">
-                    <p style="margin: 0; font-size: 0.9em; color: #666; text-transform: uppercase;">Número do pedido</p>
-                    <p style="margin: 5px 0 0 0; font-size: 2em; font-weight: bold; color: #00274c;">${matriculaID}</p>
-                </div>
-
-                ${linksHtml}
-
-                ${getAgendamentoHtml(turma?.documents)}
-
-                <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
-                    <p style="margin: 0; font-size: 0.9em;">
-                        <strong>Local de Entrevista:</strong><br><br>
-                        ${getLocationHtml(turma)}
-                    </p>
-                </div>
-
-                ${TERMO_NOTA_HTML}
-        <br/>
-        <p style="text-align: center; color: #888; font-size: 0.9em;">Equipe Cursinho FEA USP</p>
-    </div>
-`,
+            htmlContent: buildConfirmacaoInscricaoHtml({ nome: student.name, turma: turma, pedido: matriculaID }),
             textContent: `Inscrição confirmada! Número do pedido: ${matriculaID}`
         });
     }
