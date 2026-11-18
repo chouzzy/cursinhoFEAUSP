@@ -7,7 +7,7 @@ import { MailService } from "../services/MailService";
 import { prisma } from "../prisma";
 import { StripeInscriptionController } from "../controllers/StripeInscriptionController";
 import { ensureAuthenticated } from "../modules/registrations/middleware/ensureAuthenticate";
-import { getAgendamentoHtml, getIntroHtml, getLocationHtml, TERMO_NOTA_HTML } from "../utils/emailUtils";
+import { documentosDoEmail, getAgendamentoHtml, getIntroHtml, getLocationHtml, TERMO_NOTA_HTML } from "../utils/emailUtils";
 import { normalizarResponsavelLegal, ResponsavelLegalError } from "../utils/responsavelLegal";
 
 const inscriptionsRoutes = Router();
@@ -217,14 +217,14 @@ inscriptionsRoutes.post('/:studentId/confirm', ensureAuthenticated, async (req: 
             const codigoTurma = turma.code || 'GERAL';
             const sequencial = turma.registrationCounter.toString().padStart(4, '0');
             matriculaID = `${ano}${codigoTurma}${sequencial}`;
-            documents = turma.documents as { title: string; downloadLink: string }[];
+            documents = documentosDoEmail(turma.documents as { title: string; downloadLink: string }[]);
             turmaInfo = { code: turma.code ?? undefined, title: turma.title ?? undefined };
         } else {
             const turma = await prisma.schoolClass.findUnique({
                 where: { id: subscription.schoolClassID },
                 include: { documents: true },
             });
-            documents = (turma?.documents ?? []) as { title: string; downloadLink: string }[];
+            documents = documentosDoEmail((turma?.documents ?? []) as { title: string; downloadLink: string }[]);
             turmaInfo = turma ? { code: turma.code ?? undefined, title: turma.title ?? undefined } : null;
         }
 
@@ -287,7 +287,6 @@ inscriptionsRoutes.post('/:studentId/confirm', ensureAuthenticated, async (req: 
                     <div style="margin-top: 30px;">
                         <h3 style="color: #333;">Próximos Passos</h3>
                         <p>Fique tranquilo(a)! Nossa equipe de seleção entrará em contato em breve.</p>
-                        <p>Fique atento ao seu <strong>e-mail</strong> e <strong>WhatsApp</strong> para receber as datas das entrevistas e demais instruções.</p>
                         <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
                             <p style="margin: 0; font-size: 0.9em;">
                                 <strong>Local de Entrevista:</strong><br><br>

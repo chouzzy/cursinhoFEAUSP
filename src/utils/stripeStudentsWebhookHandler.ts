@@ -2,7 +2,7 @@ import { anoDaTurma } from "./matriculaYear";
 import { prisma } from "../prisma";
 import Stripe from "stripe";
 import { MailService } from "../services/MailService"; 
-import { getAgendamentoHtml, getIntroHtml, TERMO_NOTA_HTML } from "./emailUtils";
+import { documentosDoEmail, getAgendamentoHtml, getIntroHtml, TERMO_NOTA_HTML } from "./emailUtils";
 
 const mailService = new MailService();
 
@@ -106,13 +106,13 @@ export async function handleStudentCheckoutCompleted(event: Stripe.Event) {
     console.log(`[DEBUG 7] Preparando envio de e-mail...`);
     if (student.email) {
         let linksHtml = '';
-        if (turma && turma.documents && turma.documents.length > 0) {
+        if (turma && documentosDoEmail(turma.documents).length > 0) {
             linksHtml = `
               <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
                 <h3 style="margin-top: 0; color: #004aad;">Documentos Importantes</h3>
                 <p style="margin-bottom: 10px;">Por favor, acesse e leia os documentos abaixo:</p>
                 <ul style="padding-left: 20px;">
-                  ${turma.documents.map((doc: any) => 
+                  ${documentosDoEmail(turma.documents).map((doc: any) => 
                     `<li style="margin-bottom: 8px;">
                        <a href="${doc.downloadLink}" target="_blank" style="color: #004aad; text-decoration: none; font-weight: bold; font-size: 16px;">
                          ${doc.title} 
@@ -152,7 +152,6 @@ export async function handleStudentCheckoutCompleted(event: Stripe.Event) {
                     <div style="margin-top: 30px;">
                         <h3 style="color: #333;">Próximos Passos</h3>
                         <p>Fique tranquilo(a)! Nossa equipe de seleção entrará em contato em breve.</p>
-                        <p>Fique atento ao seu <strong>e-mail</strong> e <strong>WhatsApp</strong> (caso tenha informado) para receber as datas das entrevistas e demais instruções.</p>
                     </div>
 
                     ${TERMO_NOTA_HTML}

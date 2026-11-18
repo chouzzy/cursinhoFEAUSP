@@ -3,7 +3,7 @@ import { prisma } from "../prisma";
 import { randomUUID } from 'crypto';
 import { MailService } from "./MailService";
 import jwt from 'jsonwebtoken';
-import { getAgendamentoHtml, getIntroHtml, getLocationHtml, TERMO_NOTA_HTML } from "../utils/emailUtils";
+import { documentosDoEmail, getAgendamentoHtml, getIntroHtml, getLocationHtml, TERMO_NOTA_HTML } from "../utils/emailUtils";
 
 const mailService = new MailService();
 
@@ -434,12 +434,12 @@ export class AsaasService {
         if (!student || !student.email) return;
 
         let linksHtml = '';
-        if (turma && turma.documents && turma.documents.length > 0) {
+        if (turma && documentosDoEmail(turma.documents).length > 0) {
             linksHtml = `
           <div style="margin: 20px 0; padding: 15px; background-color: #f0f7ff; border-left: 4px solid #004aad; border-radius: 4px;">
             <h3 style="margin-top: 0; color: #004aad;">Documentos Importantes</h3>
             <ul style="padding-left: 20px;">
-              ${turma.documents.map((doc: any) =>
+              ${documentosDoEmail(turma.documents).map((doc: any) =>
                     `<li style="margin-bottom: 8px;">
                     <a href="${doc.downloadLink}" target="_blank" style="color: #004aad; text-decoration: none; font-weight: bold;">
                     ${doc.title}

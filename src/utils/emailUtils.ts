@@ -32,6 +32,18 @@ export function getLocationHtml(turma?: { code?: string | null; title?: string |
     return 'A ser confirmado por e-mail.'
 }
 
+/**
+ * Documentos que vão na caixa de links do e-mail: só Manual do Candidato,
+ * Termo de Inscrição e Formulário de Pré-Entrevista. O resto (ex.: provas
+ * anteriores) fica só no site.
+ */
+export function documentosDoEmail<T extends { title?: string | null }>(documents?: T[] | null): T[] {
+    return (documents ?? []).filter(d => {
+        const t = d.title?.toLowerCase() ?? ''
+        return t.includes('manual') || t.includes('termo') || t.includes('entrevista')
+    })
+}
+
 /** Parágrafo de abertura do e-mail de confirmação de inscrição. */
 export function getIntroHtml(turmaTitle?: string | null): string {
     return `<p>Agradecemos pela sua inscrição no Processo Seletivo da nossa <strong>${turmaTitle || 'Cursinho FEA USP'}</strong>! Para continuar sua candidatura, não se esqueça de ler com atenção o Manual do Candidato e o Termo de Inscrição que estarão disponíveis nos links abaixo.</p>`
