@@ -15,7 +15,7 @@ type InscriptionData = Omit<Students, 'id' | 'createdAt' | 'purcharsedSubscripti
   paymentMethod?: string;
 };
 
-const INSCRIPTION_PRICE_DEFAULT = 35.00; 
+const INSCRIPTION_PRICE_DEFAULT = 35.00; // só se a turma não tiver preço cadastrado
 
 // Remove acentos e caracteres especiais para garantir compatibilidade bancária
 function normalizeText(text: string): string {
@@ -105,7 +105,10 @@ export class SantanderPixService {
     });
     const nomeTurma = schoolClass?.title || 'Turma';
 
-    let finalPrice = INSCRIPTION_PRICE_DEFAULT;
+    // Preço vem da turma (centavos no banco); o fixo só cobre turma sem preço
+    const precoTurma = schoolClass?.subscriptions?.price;
+    const basePrice = precoTurma ? precoTurma / 100 : INSCRIPTION_PRICE_DEFAULT;
+    let finalPrice = basePrice;
     let couponCodeUsed: string | undefined = undefined;
 
     if (codigoDesconto) {
@@ -113,7 +116,7 @@ export class SantanderPixService {
         where: { code: codigoDesconto, isActive: true }
       });
       if (coupon) {
-        finalPrice = INSCRIPTION_PRICE_DEFAULT - coupon.discountValue;
+        finalPrice = basePrice - coupon.discountValue;
         if (finalPrice <= 0) {
           throw new Error('COUPON_EXCEEDS_PRICE');
         }
