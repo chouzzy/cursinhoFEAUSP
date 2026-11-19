@@ -30,14 +30,15 @@ export function buildConfirmacaoInscricaoHtml(params: {
 
     const docRow = (d: Doc) => {
         const destaque = ehEntrevista(d)
+        // O link fica em cada célula (nome e "Abrir"). Um <a> em volta da
+        // tabela inteira só pega a borda em vários clientes de e-mail.
+        const link = esc(d.downloadLink)
         return `
         <tr><td style="padding:0 0 10px 0;">
-          <a href="${esc(d.downloadLink)}" target="_blank" style="display:block;text-decoration:none;background:${destaque ? '#FFD500' : '#ffffff'};border:1px solid ${destaque ? '#FFD500' : '#D9D6EC'};border-radius:10px;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-              <td style="padding:14px 16px;${fonte}font-size:15px;font-weight:bold;color:#2a255a;">${esc(d.title)}</td>
-              <td align="right" style="padding:14px 16px;${fonte}font-size:13px;font-weight:bold;color:${destaque ? '#2a255a' : '#219EBC'};white-space:nowrap;">${destaque ? 'Agendar' : 'Abrir'} &rarr;</td>
-            </tr></table>
-          </a>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${destaque ? '#FFD500' : '#ffffff'};border:1px solid ${destaque ? '#FFD500' : '#D9D6EC'};border-radius:10px;"><tr>
+            <td style="padding:0;"><a href="${link}" target="_blank" style="display:block;padding:14px 16px;${fonte}font-size:15px;font-weight:bold;color:#2a255a;text-decoration:none;">${esc(d.title)}</a></td>
+            <td align="right" style="padding:0;white-space:nowrap;"><a href="${link}" target="_blank" style="display:block;padding:14px 16px;${fonte}font-size:14px;font-weight:bold;color:${destaque ? '#2a255a' : '#219EBC'};text-decoration:underline;white-space:nowrap;">${destaque ? 'Agendar' : 'Abrir'} &rarr;</a></td>
+          </tr></table>
         </td></tr>`
     }
 
