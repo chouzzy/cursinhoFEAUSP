@@ -24,7 +24,6 @@ class ListSchoolClassController {
         const listSchoolClassUseCase = new ListSchoolClassUseCase(schoolClassRepository);
 
         const schoolClassResponse = await listSchoolClassUseCase.execute({ page, pageRange, status })
-        console.log(schoolClassResponse)
 
         return res.status(
             schoolClassResponse.statusCode
